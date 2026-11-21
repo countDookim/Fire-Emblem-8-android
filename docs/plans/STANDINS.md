@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 227 across 47 Kotlin files.
+Total entries: 224 across 46 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -20,7 +20,7 @@ Total entries: 227 across 47 Kotlin files.
 | M6-E | 43 |
 | M6-F | 16 |
 | M6-G | 5 |
-| M6-H | 41 |
+| M6-H | 40 |
 | M6-I | 27 |
 | M6-J | 10 |
 | D09-3 | 3 |
@@ -31,7 +31,6 @@ Total entries: 227 across 47 Kotlin files.
 | EP-24b | 1 |
 | EP-31 | 2 |
 | EP-34a | 1 |
-| EP-36 | 2 |
 | EP-7 | 2 |
 | IS-2 | 1 |
 | PP-10 | 1 |
@@ -166,7 +165,7 @@ Total entries: 227 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `battleAnimationsOn` | Stand-in until M6-G for `BeginAnimsOnBattleAnimations` / `sub_8055BC4` (banim-ekrbattle): whether the battle is shown with battle animations ([BanimPrepare.sub8055BC4] exists in fe8.game.bm, left u... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 
-## M6-H (41)
+## M6-H (40)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -201,7 +200,6 @@ Total entries: 227 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `canUnitMove` | `CanUnitMove` for the active unit: whether an adjacent tile is free of enemies and within the movement left after `moveCount` (asked for a canto move); stand-in until M6-H, false. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `doesBmxFadeExist` | `DoesBMXFADEExist` (bmxfade.c, `Proc_Find(sProcScr_BMXFADE)`): stand-in until M6-H (the fog fade of chapters with vision), default false. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `execTrap` | `ExecTrap(proc, unit, 0)` for unit id [unit]; stand-in until M6-H, true (go on). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getPickTrapType` | M6-H stand-in. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `newBmxFade` | `NewBMXFADE(flag)` (fog chapters only); stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `renderBmMapOnBg2` | `RenderBmMapOnBg2` (fog chapters only); stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `trapTypeAt` | `GetTrapAt(x, y)->type` of src/bmtrick.c; stand-in until M6-H, -1 for no trap. |
@@ -338,13 +336,6 @@ Total entries: 227 across 47 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `dropTargetCount` | Stand-in until EP-34a ports drop target lists. |
-
-## EP-36 (2)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `EntityBmMaps` | Stand-in until EP-36: the trap pool of src/bmtrick.c (`GetTrap(i)`, not ported) is the [Traps] source, empty by default, so torchlights never light the fog map and mines never mark the hidden map. |
-| `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `traps` | `GetTrap(i)` of src/bmtrick.c (stand-in, EP-36): the trap pool, empty by default. |
 
 ## EP-7 (2)
 

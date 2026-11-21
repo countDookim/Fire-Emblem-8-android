@@ -1326,6 +1326,9 @@ public class Fe8Boot(
         main.hooks.gorgonEggHatchDisplay = phaseStartEnd.gorgonEggHatchDisplay
         mapTraps = trapsObj
         battleEntityMaps.traps = trapsObj
+        phase.hooks.getPickTrapType = { unit -> trapsObj.getPickTrapType(unit) }
+        battleGenerate.disableAllLightRunes = { trapsObj.disableAllLightRunes() }
+        battleGenerate.enableAllLightRunes = { trapsObj.enableAllLightRunes() }
         main.hooks.updateTraps = trapsObj.updateTrapsScript
         main.hooks.decayTraps = { trapsObj.decayTraps() }
     }

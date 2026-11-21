@@ -134,6 +134,9 @@ public class MapTraps(
         ),
     )
 
+    // `GetTrap(id)` (bmtrick.c) is `sTrapPool + id`, a pointer into the pool. Transcribed from
+    // src/bmtrick.c: GetTrap (not verified: no capture calls it with a trap in the pool). Here the
+    // slot is its index and the four accessors below read its fields.
     override fun type(index: Int): Int = bytes[index * TRAP_SIZE + OFF_TYPE].toInt() and 0xFF
     override fun x(index: Int): Int = bytes[index * TRAP_SIZE + OFF_X].toInt() and 0xFF
     override fun y(index: Int): Int = bytes[index * TRAP_SIZE + OFF_Y].toInt() and 0xFF
@@ -191,6 +194,75 @@ public class MapTraps(
             i++
         }
         return -1
+    }
+
+    /**
+     * Transcribed from src/bmtrap.c: GetPickTrapType (not verified: no capture calls it, and the
+     * Prologue pool is empty, so only the "no trap here" result can occur)
+     *
+     * The kind of trap the unit with id [unit] can pick or trigger on its own tile: none
+     * (`TRAP_NONE`) when no trap is there or it is a ballista, `TRAP_FIRE_THIEF` for a thief on a
+     * fire tile, `TRAP_MINE_ASSASSIN` for an assassin with a free item slot on a mine (none when
+     * the inventory is full), none for a stealing unit on a mine, else the trap's own type.
+     */
+    public fun getPickTrapType(unit: Int): Int {
+        val index = getTrapAt(units.xPos(unit), units.yPos(unit))
+        if (index < 0) return TRAP_NONE
+        val attributes = units.cAttributes(unit)
+        when (type(index)) {
+            TRAP_BALLISTA -> return TRAP_NONE
+            TRAP_FIRETILE -> if ((attributes and UnitTable.CA_THIEF) != 0) return TRAP_FIRE_THIEF
+            TRAP_MINE -> {
+                if ((attributes and CA_ASSASSIN) != 0) {
+                    return if (unitItemCount(unit) != UnitTable.UNIT_ITEM_COUNT) {
+                        TRAP_MINE_ASSASSIN
+                    } else {
+                        TRAP_NONE
+                    }
+                } else if ((attributes and CA_STEAL) != 0) {
+                    return TRAP_NONE
+                }
+            }
+        }
+        return type(index)
+    }
+
+    /** `GetUnitItemCount(unit)` (bmunit.c): one past the last filled item slot. */
+    private fun unitItemCount(unit: Int): Int {
+        for (slot in UnitTable.UNIT_ITEM_COUNT - 1 downTo 0) {
+            if (units.item(unit, slot) != 0) return slot + 1
+        }
+        return 0
+    }
+
+    /**
+     * Transcribed from src/bmtrick.c: DisableAllLightRunes (not verified: no Light Rune exists in
+     * the Prologue, so no capture shows a toggle with a rune in the pool)
+     *
+     * Restores the true terrain under every Light Rune. The loop stops at the first empty slot.
+     */
+    public fun disableAllLightRunes() {
+        var i = 0
+        while (i < TRAP_MAX_COUNT && type(i) != TRAP_NONE) {
+            if (type(i) == TRAP_LIGHT_RUNE) {
+                map.terrain[y(i), x(i)] = map.getTrueTerrainAt(x(i), y(i))
+            }
+            i++
+        }
+    }
+
+    /**
+     * Transcribed from src/bmtrick.c: EnableAllLightRunes (not verified: no Light Rune exists in
+     * the Prologue, so no capture shows a toggle with a rune in the pool)
+     *
+     * Sets the terrain under every Light Rune to `TERRAIN_NONE`.
+     */
+    public fun enableAllLightRunes() {
+        var i = 0
+        while (i < TRAP_MAX_COUNT && type(i) != TRAP_NONE) {
+            if (type(i) == TRAP_LIGHT_RUNE) map.terrain[y(i), x(i)] = TERRAIN_NONE
+            i++
+        }
     }
 
     /**
@@ -683,6 +755,9 @@ public class MapTraps(
         public const val OFF_EXTRA: Int = 3
         /** Byte offset of data bytes (4 bytes). */
         public const val OFF_DATA: Int = 4
+
+        private const val CA_STEAL = 1 shl 2
+        private const val CA_ASSASSIN = 1 shl 25
 
         /** Trap type: None / unused slot. */
         public const val TRAP_NONE: Int = 0

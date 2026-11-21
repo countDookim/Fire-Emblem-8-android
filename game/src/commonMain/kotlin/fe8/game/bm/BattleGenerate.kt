@@ -467,6 +467,23 @@ public class BattleGenerate(
         }
     }
 
+    // `BattlePrintDebugUnitInfo` and `BattlePrintDebugHitInfo` (bmbattle.c), which the C calls
+    // after the hits, have no counterpart: in the retail ROM the first is a bare return and the
+    // second only reads the hit array to its end marker (no store, no call), so they change
+    // nothing (`BattleDebugPrintsAreNoOpsTest`).
+
+    /**
+     * `DisableAllLightRunes` (bmtrick.c) before the terrain bonuses. Wired in `Fe8Boot` to
+     * `MapTraps`; default is a no-op for unconfigured unit tests.
+     */
+    public var disableAllLightRunes: () -> Unit = {}
+
+    /**
+     * `EnableAllLightRunes` (bmtrick.c) after the hits. Wired in `Fe8Boot` to `MapTraps`; default
+     * is a no-op for unconfigured unit tests.
+     */
+    public var enableAllLightRunes: () -> Unit = {}
+
     /**
      * Records win/loss for the battle result (`PidStatsRecordBattleRes`, `bmsave-bwl.c`).
      * Wired in `Fe8Boot` to `PidStats`; default is a no-op for unconfigured unit tests.
@@ -1140,7 +1157,8 @@ public class BattleGenerate(
      *
      * The body of [battleGenerateSimulation] (`stats.config` already set): like the real battle
      * set-up, but with the actor moved to ([x], [y]) before the range is measured, and its
-     * weapon from [actorWpnSlot]. The light runes are not toggled (not ported).
+     * weapon from [actorWpnSlot]. The light runes are toggled off and on around the hits as in
+     * the C ([disableAllLightRunes], [enableAllLightRunes]).
      * (Not verified: a position other than the actor's own, as the AI passes, is in no capture.)
      */
     public fun battleGenerateSimulationInternal(
@@ -1187,9 +1205,11 @@ public class BattleGenerate(
         battle.setBattleUnitWeapon(target, BmBattle.BU_ISLOT_AUTO)
         battle.battleInitTargetCanCounter()
         battle.battleApplyWeaponTriangleEffect(actor, target)
+        disableAllLightRunes()
         battle.setBattleUnitTerrainBonusesAuto(actor)
         battle.setBattleUnitTerrainBonusesAuto(target)
         battleGenerate()
+        enableAllLightRunes()
     }
 
     /**

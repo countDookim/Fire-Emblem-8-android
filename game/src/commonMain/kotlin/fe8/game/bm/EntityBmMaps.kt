@@ -11,9 +11,9 @@ import fe8.game.bm.StructCodec.u8
  * redoes this after anything that moves or removes units or changes the fog (the end of a unit
  * action, an event that places units or sets the fog vision).
  *
- * Stand-in until EP-36: the trap pool of src/bmtrick.c (`GetTrap(i)`, not ported) is the
- * [Traps] source, empty by default, so torchlights never light the fog map and mines never mark
- * the hidden map.
+ * The trap pool of src/bmtrick.c (`GetTrap(i)`) is the [Traps] source: [MapTraps] in the game
+ * (wired in `Fe8Boot`), empty by default so a bare instance lights no torchlight and marks no
+ * mine.
  */
 public class EntityBmMaps(
     /** The map whose pools are refreshed. */
@@ -25,7 +25,7 @@ public class EntityBmMaps(
      * fog) and `faction` (the phase running).
      */
     private val playSt: PlaySt,
-    /** `GetTrap(i)` of src/bmtrick.c (stand-in, EP-36): the trap pool, empty by default. */
+    /** `GetTrap(i)` of src/bmtrick.c the trap pool, empty by default; the game sets [MapTraps]. */
     public var traps: Traps = Traps.NONE,
 ) {
     /** `struct Trap` list of src/bmtrick.c as far as the map refreshes read it. */

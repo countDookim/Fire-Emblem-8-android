@@ -394,14 +394,107 @@ class TrapsDifferentialTest {
         fun seedPlaySt(step: Int) = playSt.decode(playStTrace.step(step), 0)
     }
 
+    @Test
+    fun `battle window f4181-4892 has an empty pool and the Light Rune toggles leave terrain as captured`() {
+        val sim = Sim("ram_trace_prologue_clear")
+        val empty = ByteArray(MapTraps.POOL_SIZE)
+        val frames = listOf(4181, 4182, 4189, 4240, 4250, 4260, 4266, 4269, 4271, 4272, 4273, 4274,
+            4892)
+        for (frame in frames) {
+            val ewram = sim.run.region("r%05d".format(frame), "ewram")
+            val pool = ewram.copyOfRange(
+                TRAP_POOL_ADDR - EWRAM_BASE, TRAP_POOL_ADDR - EWRAM_BASE + MapTraps.POOL_SIZE,
+            )
+            assertArrayEquals(empty, pool, "sTrapPool at f$frame")
+        }
+        // The Prologue pool is empty, so the toggles that bracket every battle (f4240..4274:
+        // forecast generation, then the real battle) have nothing to switch: the terrain map the
+        // capture holds equals the chapter's own at both ends, and the port's toggles keep it so.
+        for (frame in listOf(4240, 4274)) {
+            val ewram = sim.run.region("r%05d".format(frame), "ewram")
+            val rows = ewram.u32(GBM_MAP_TERRAIN - EWRAM_BASE) - EWRAM_BASE
+            sim.traps.disableAllLightRunes()
+            sim.traps.enableAllLightRunes()
+            for (y in 0 until sim.map.sizeY) {
+                val row = ewram.u32(rows + 4 * y) - EWRAM_BASE
+                for (x in 0 until sim.map.sizeX) {
+                    assertEquals(
+                        ewram[row + x].toInt() and 0xFF, sim.map.terrain[y, x],
+                        "terrain ($x, $y) at f$frame",
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `GetPickTrapType is none and GetTrapAt finds nothing for every unit on an empty pool`() {
+        val sim = Sim("ram_trace_prologue_clear")
+        sim.seedUnits(4181)
+        var checked = 0
+        for (id in 1..62) {
+            if (sim.units.u32At(id) == 0) continue
+            checked++
+            assertEquals(MapTraps.TRAP_NONE, sim.traps.getPickTrapType(id), "unit $id")
+            assertEquals(-1, sim.traps.getTrapAt(sim.units.xPos(id), sim.units.yPos(id)))
+        }
+        assertTrue(checked > 0, "no blue unit")
+    }
+
+    @Test
+    fun `Light Rune toggles and GetPickTrapType on a synthetic pool`() {
+        val sim = Sim("ram_trace_prologue_clear")
+        val trueTerrain = sim.map.terrain[5, 4]
+        sim.traps.addLightRune(4, 5)
+        assertEquals(MapTraps.TERRAIN_NONE, sim.map.terrain[5, 4])
+        sim.traps.disableAllLightRunes()
+        assertEquals(sim.map.getTrueTerrainAt(4, 5), sim.map.terrain[5, 4])
+        assertEquals(trueTerrain, sim.map.terrain[5, 4])
+        sim.traps.enableAllLightRunes()
+        assertEquals(MapTraps.TERRAIN_NONE, sim.map.terrain[5, 4])
+
+        // A ballista picks nothing; a fire tile gives its own type to a unit without CA_THIEF.
+        sim.seedUnits(4181)
+        val id = (1..62).first { sim.units.u32At(it) != 0 }
+        val x = sim.units.xPos(id)
+        val y = sim.units.yPos(id)
+        sim.traps.addTrap(x, y, MapTraps.TRAP_BALLISTA, 0)
+        assertEquals(MapTraps.TRAP_NONE, sim.traps.getPickTrapType(id))
+        sim.traps.clearTraps()
+        sim.traps.addTrap(x, y, MapTraps.TRAP_GORGON_EGG, 0)
+        assertEquals(MapTraps.TRAP_GORGON_EGG, sim.traps.getPickTrapType(id))
+    }
+
+    @Test
+    fun `retail ROM bodies of the battle debug prints change nothing`() {
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val rom = romFile.readBytes()
+        fun half(address: Int, i: Int): Int =
+            (rom[address - 0x08000000 + 2 * i].toInt() and 0xFF) or
+                ((rom[address - 0x08000000 + 2 * i + 1].toInt() and 0xFF) shl 8)
+        // BattlePrintDebugUnitInfo: 2 bytes, `bx lr`.
+        assertEquals(0x4770, half(0x0802CAF8, 0))
+        // BattlePrintDebugHitInfo: 0x26 bytes; no BL, no store (str/strb/strh immediate or sp).
+        for (i in 0 until 0x26 / 2) {
+            val op = half(0x0802CAFC, i)
+            if (i == 7 || i == 8) continue // literal pool word
+            assertTrue((op ushr 11) != 0b11110 && (op ushr 11) != 0b11111, "BL at $i")
+            assertTrue((op ushr 11) !in listOf(0b01100, 0b01110, 0b10000, 0b10010), "store at $i")
+        }
+    }
+
     private companion object {
         const val EWRAM_BASE = 0x02000000
         const val TRAP_POOL_ADDR = 0x0203A614
         const val TARGET_ROOT_ADDR = 0x0203DDE8
         const val TARGET_LIST_ADDR = 0x0203DDEC
         const val TARGET_COUNT_ADDR = 0x0203E0EC
+        const val GBM_MAP_TERRAIN = 0x0202E4DC
         const val RED_OFFSET = 62 * 0x48
         const val US_DEAD = 1 shl 2
+
+        /** The character pointer word of unit [id] (0 for an empty slot). */
+        fun UnitTable.u32At(id: Int): Int = bytes.u32(unitOffset(id))
 
         fun ByteArray.u32(offset: Int): Int =
             (this[offset].toInt() and 0xFF) or

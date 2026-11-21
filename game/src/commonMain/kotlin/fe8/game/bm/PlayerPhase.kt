@@ -394,7 +394,10 @@ public class PlayerPhase(
         /** `MaybeCallEndEvent_`; stand-in until M6-E (the end event). */
         public var maybeCallEndEvent: () -> Unit = {}
 
-        /** `GetPickTrapType(unit)` (bmtrap.c) for unit id [unit]; 0 is none. M6-H stand-in. */
+        /**
+         * `GetPickTrapType(unit)` (bmtrap.c) for unit id [unit]; 0 is none. Wired in `Fe8Boot` to
+         * `MapTraps`.
+         */
         public var getPickTrapType: (unit: Int) -> Int = { 0 }
 
         /** `ExecTrap(proc, unit, 0)` for unit id [unit]; stand-in until M6-H, true (go on). */

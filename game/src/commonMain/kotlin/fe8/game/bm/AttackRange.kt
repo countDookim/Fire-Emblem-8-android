@@ -19,8 +19,7 @@ public class AttackRange(
 ) {
     /**
      * `GetBallistaItemAt(x, y)` (bmarch.c, not ported): the item loaded in the ballista at the
-     * tile, 0 when none or without uses. Returns 0 until the trap system and ballistae exist
-     * (EP-36, LG-0).
+     * tile, 0 when none or without uses. Returns 0 until ballistae exist (LG-0).
      */
     public var ballistaItemAt: (x: Int, y: Int) -> Int = { _, _ -> 0 }
 

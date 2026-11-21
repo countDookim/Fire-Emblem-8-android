@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 687 across 97 decomp files (missing reason: 0).
+Total entries: 690 across 98 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -153,6 +153,36 @@ Total entries: 687 across 97 decomp files (missing reason: 0).
 | `GetUnitItemSlot` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | captured calls have one return value; Prologue captures have no matching key/item slot; EP-29a tracks positive matches under EP-29cap |
 | `GetUnitItemSlot` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | captured calls have one return value; Prologue captures have no matching key/item slot; EP-29a tracks positive matches under EP-29cap |
 
+## src/bmtrick.c (25)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetTrapAt` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue |
+| `DisableAllLightRunes` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no Light Rune exists in the Prologue, so no capture shows a toggle with a rune in the pool |
+| `EnableAllLightRunes` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no Light Rune exists in the Prologue, so no capture shows a toggle with a rune in the pool |
+| `GetTypedTrapAt` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue |
+| `GetObstacleHpAt` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue |
+| `ClearTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue |
+| `AddTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap added in the Prologue |
+| `AddDamagingTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `AddFireTile` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `AddGasTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `AddArrowTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `AddLightRune` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `RemoveTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `RemoveLightRune` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `CountDownTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures |
+| `GenerateFireTileTrapTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists |
+| `GenerateArrowTrapTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists |
+| `GenerateGasTrapTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists |
+| `ShouldSkipGasTrapDisplay` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists |
+| `GenerateTrapDamageTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures; the empty target list is verified |
+| `sub_802EA1C` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | target list is empty in the Prologue captures |
+| `GenerateDisplayedTrapDamageTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures; the empty target list is verified |
+| `ResetCountedDownTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures |
+| `DecayTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures |
+| `UnitHideIfUnderRoof` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+
 ## src/eventscr.c (25)
 
 | Function | Kotlin file | Reason |
@@ -211,34 +241,6 @@ Total entries: 687 across 97 decomp files (missing reason: 0).
 | `EvCheck0D_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
 | `ShouldCallBattleQuote` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | no capture checks it |
 | `EnqueueTutEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-
-## src/bmtrick.c (23)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GetTrapAt` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue |
-| `GetTypedTrapAt` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue |
-| `GetObstacleHpAt` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue |
-| `ClearTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue |
-| `AddTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap added in the Prologue |
-| `AddDamagingTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
-| `AddFireTile` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
-| `AddGasTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
-| `AddArrowTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
-| `AddLightRune` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
-| `RemoveTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
-| `RemoveLightRune` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
-| `CountDownTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures |
-| `GenerateFireTileTrapTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists |
-| `GenerateArrowTrapTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists |
-| `GenerateGasTrapTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists |
-| `ShouldSkipGasTrapDisplay` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists |
-| `GenerateTrapDamageTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures; the empty target list is verified |
-| `sub_802EA1C` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | target list is empty in the Prologue captures |
-| `GenerateDisplayedTrapDamageTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures; the empty target list is verified |
-| `ResetCountedDownTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures |
-| `DecayTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures |
-| `UnitHideIfUnderRoof` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 
 ## src/eventscr_gmap.c (23)
 
@@ -1078,6 +1080,12 @@ Total entries: 687 across 97 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `DropRescueOnDeath` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no capture has a dying rescuer and the stand-in body is empty, so no mutation changes captured data |
+
+## src/bmtrap.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetPickTrapType` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no capture calls it, and the Prologue pool is empty, so only the "no trap here" result can occur |
 
 ## src/chapterdata.c (1)
 

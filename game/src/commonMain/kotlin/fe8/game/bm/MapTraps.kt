@@ -42,7 +42,8 @@ public class MapTraps(
 
         /**
          * `sub_8026414(3)` (bmtarget.c:1246): records defeat and loss in save statistics for
-         * each trap damage target whose current HP is at most the damage. Stand-in until EP-1b.
+         * each trap damage target whose current HP is at most the damage. The game wires
+         * [PhaseTargets.sub8026414] over the same target list.
          */
         public var prepareTrapDefeats: () -> Unit = {}
 

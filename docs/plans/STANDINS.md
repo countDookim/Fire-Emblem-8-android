@@ -27,7 +27,6 @@ Total entries: 228 across 47 Kotlin files.
 | EP-10c | 1 |
 | EP-12 | 27 |
 | EP-13 | 1 |
-| EP-1b | 1 |
 | EP-23b | 4 |
 | EP-24b | 1 |
 | EP-34a | 2 |
@@ -310,12 +309,6 @@ Total entries: 228 across 47 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `beginBattleAnimations` | Stand-in until EP-13: sets only the flag, so the animation ends at once. |
-
-## EP-1b (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | `prepareTrapDefeats` | Stand-in until EP-1b. |
 
 ## EP-23b (4)
 

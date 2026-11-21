@@ -1299,15 +1299,17 @@ public class Fe8Boot(
         }
         cp.decide.hooks.startCpPerform = perform.start
         main.hooks.cpPhase = cp.phaseScript
+        // `gSelectTargets` of the C: the trap damage targets (bmtrick.c) and the phase lists and
+        // `sub_8026414` (bmtarget.c) fill and read the one list. The player phase keeps its own.
+        val phaseTargetList = SelectTargets()
         val trapsObj = MapTraps(
-            trapPool, battleBmMap, units, playSt, flags, SelectTargets(),
+            trapPool, battleBmMap, units, playSt, flags, phaseTargetList,
             engine = engine, action = active.action,
         ).also {
             it.hooks.refreshEntityBmMaps = { battleEntityMaps.refreshEntityBmMaps() }
         }
-        // Phase start and end housekeeping (EP-1, EP-1b). The target list is its own; EP-w
-        // shares one list with the player phase.
-        val phaseTargetList = SelectTargets()
+        // Phase start and end housekeeping (EP-1, EP-1b), over the list shared with the traps;
+        // EP-w shares it with the player phase.
         val phaseTargets = PhaseTargets(
             rom, units, phaseTargetList, battleBmMap, trapsObj, rng,
             { id -> loader.getUnitMaxHp(units.unitOffset(id)) },
@@ -1319,6 +1321,7 @@ public class Fe8Boot(
             }
             it.hooks.recordLoseData = { pid -> pidStats.pidStatsRecordLoseData(pid) }
         }
+        trapsObj.hooks.prepareTrapDefeats = { phaseTargets.sub8026414(3) }
         val phaseStartEnd = PhaseStartEnd(
             engine, units, playSt, phaseTargetList, phaseTargets,
         ).also {

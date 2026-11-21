@@ -13,6 +13,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- `CI-text-comment`: GPT owner PC, test comment only, until ~17:15Z (2026-11-21).
+
 - `EP-11f2`: GPT owner PC Terra, until ~19:30Z (2026-11-21).
 - `PC-9i`: GPT owner PC Terra, until ~19:30Z (2026-11-21).
 

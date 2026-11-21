@@ -5,6 +5,7 @@ Flags JVM-only API in code: java.*/javax.* imports and fully-qualified uses, Sys
 """
 import pathlib
 import re
+import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -31,39 +32,45 @@ def jvm_only_uses(text: str) -> list[tuple[int, str]]:
     return [(n, line.strip()) for n, line in enumerate(text.splitlines(), 1) if JVM_ONLY.search(code_of(line))]
 
 
-def test_guard_detects_known_violations():
-    for bad in (
-        "import java.io.ByteArrayOutputStream",
-        "val out = java.io.ByteArrayOutputStream()",
-        "val x = javax.imageio.ImageIO.read(f)",
-        "System.currentTimeMillis()",
-        'String.format("%02X", v)',
-        '"%02X".format(v)',
-        "val c = Foo::class.java",
-        "s.toByteArray(Charsets.UTF_8)",
-    ):
-        assert jvm_only_uses(bad), bad
+class KmpCommonTest(unittest.TestCase):
+    def test_guard_detects_known_violations(self):
+        for bad in (
+            "import java.io.ByteArrayOutputStream",
+            "val out = java.io.ByteArrayOutputStream()",
+            "val x = javax.imageio.ImageIO.read(f)",
+            "System.currentTimeMillis()",
+            'String.format("%02X", v)',
+            '"%02X".format(v)',
+            "val c = Foo::class.java",
+            "s.toByteArray(Charsets.UTF_8)",
+        ):
+            self.assertTrue(jvm_only_uses(bad), bad)
+
+    def test_guard_ignores_comments_and_strings(self):
+        for ok in (
+            " * `java.util.zip.CRC32` replacement",
+            "/** avoids `javax.imageio` */",
+            "// System.exit(0)",
+            'val s = "java.io.File"',
+            "val t = x // String.format(y)",
+            "val m = kotlin.math.max(a, b)",
+            "fun hex(v: Int) = v.toString(16)",
+        ):
+            self.assertEqual([], jvm_only_uses(ok), ok)
+
+    def test_no_jvm_only_api_in_common_main(self):
+        offenders = []
+        checked = 0
+        for f in ROOT.glob("**/src/commonMain/**/*.kt"):
+            rel = f.relative_to(ROOT)
+            if "build" in rel.parts:
+                continue
+            checked += 1
+            for n, line in jvm_only_uses(f.read_text(encoding="utf-8")):
+                offenders.append(f"{rel.as_posix()}:{n}: {line}")
+        self.assertGreater(checked, 0)
+        self.assertEqual([], offenders, "JVM-only API in commonMain (ADR 0013):\n" + "\n".join(offenders))
 
 
-def test_guard_ignores_comments_and_strings():
-    for ok in (
-        " * `java.util.zip.CRC32` replacement",
-        "/** avoids `javax.imageio` */",
-        "// System.exit(0)",
-        'val s = "java.io.File"',
-        "val t = x // String.format(y)",
-        "val m = kotlin.math.max(a, b)",
-        "fun hex(v: Int) = v.toString(16)",
-    ):
-        assert not jvm_only_uses(ok), ok
-
-
-def test_no_jvm_only_api_in_common_main():
-    offenders = []
-    for f in ROOT.glob("**/src/commonMain/**/*.kt"):
-        rel = f.relative_to(ROOT)
-        if "build" in rel.parts:
-            continue
-        for n, line in jvm_only_uses(f.read_text(encoding="utf-8")):
-            offenders.append(f"{rel.as_posix()}:{n}: {line}")
-    assert not offenders, "JVM-only API in commonMain (ADR 0013):\n" + "\n".join(offenders)
+if __name__ == "__main__":
+    unittest.main()

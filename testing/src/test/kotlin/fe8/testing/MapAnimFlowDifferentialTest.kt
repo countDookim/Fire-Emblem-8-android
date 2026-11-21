@@ -18,6 +18,7 @@ import fe8.game.bm.MuHooks
 import fe8.game.bm.PlaySt
 import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
+import fe8.game.scene.IntConsumer
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
 import fe8.game.bm.MuProc
@@ -322,7 +323,7 @@ class MapAnimFlowDifferentialTest {
         hooks.startMapAnimInfoWindow = { x, y, p -> infoBox.startMapAnimInfoWindow(x, y, p) }
         val cameraCalls = ArrayList<IntArray>()
         val missCalls = ArrayList<IntArray>()
-        hooks.beginMissAnim = java.util.function.IntConsumer { unit ->
+        hooks.beginMissAnim = IntConsumer { unit ->
             missCalls.add(intArrayOf(currentStep, unit))
         }
         hooks.ensureCameraOntoPosition = { _, x, y ->

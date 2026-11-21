@@ -304,7 +304,7 @@ public class ItemInfo(private val rom: RomView) {
             name[0].toInt().toChar() in "AEIOUaeiou" -> if (capitalize) "An " else "an "
             else -> if (capitalize) "A " else "a "
         }
-        return article.toByteArray(Charsets.US_ASCII) + name
+        return article.encodeToByteArray() + name
     }
 
     /**

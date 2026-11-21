@@ -4,6 +4,7 @@ import fe8.game.RomView
 import fe8.game.bm.StructCodec.s8
 import fe8.game.bm.StructCodec.u32
 import fe8.game.mapanim.ApProcs
+import fe8.game.scene.IntConsumer
 import gbafe.core.flags.FlagStore
 import gbafe.proc.Proc
 import gbafe.proc.ProcBoolFunc
@@ -20,7 +21,6 @@ import gbafe.proc.ProcScripts.yield
 import gbafe.proc.TemporaryLock
 import gbafe.proc.ProcScripts.whileTrue
 import gbafe.render.BgHardware
-import java.util.function.IntConsumer
 
 /**
  * `struct MapAnimState gManimSt` (include/mapanim.h): the state of the map battle animation. The
@@ -1064,7 +1064,7 @@ public class MapAnimApi(
 
         if (spells.getSpellAssocReturnBool(weapon) == 0) {
             if ((state.hitAttributes and BattleGenerate.ATTR_MISS) != 0) {
-                hooks.beginMissAnim.accept(state.unitAddress[target])
+                hooks.beginMissAnim(state.unitAddress[target])
             }
             return
         }
@@ -1084,13 +1084,13 @@ public class MapAnimApi(
 
         if ((state.hitAttributes and BattleGenerate.ATTR_MISS) != 0) {
             hooks.playSeSpacial.play(SONG_C8, targetX)
-            hooks.beginMissAnim.accept(state.unitAddress[target])
+            hooks.beginMissAnim(state.unitAddress[target])
             return
         }
         if (state.hitDamage == 0) {
             if ((state.hitAttributes and ATTR_PETRIFY) == 0) {
                 hooks.playSeSpacial.play(SONG_2CE, targetX)
-                hooks.beginNoDamageAnim.accept(state.unitAddress[target])
+                hooks.beginNoDamageAnim(state.unitAddress[target])
             }
             return
         }

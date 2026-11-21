@@ -15,7 +15,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 
 - `EP-w`: GPT owner PC Terra, enemy-phase boot replay, until ~19:30Z (2026-11-21).
-- `EP-32`: owner PC Claude, until ~19:58Z.
+- `EP-33`: owner PC Claude, until ~20:47Z.
 - `EP-34a`: owner PC Claude, until ~20:19Z.
 
 
@@ -36,7 +36,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
   re-extracts `ch1.fe8s` & publishes `extracted.tar.xz` (otherwise `RomImporterTest`, `ScriptRoundTripRomTest` and
   `ci_check_extraction.sh` fail). Next: `EP-3d`, `TEST-3` (in progress).
 
-- 2026-11-21 owner PC Claude: **EP-31 done** (`c1aa4a04`, Ride trap lookup wired `100e12d2`); **EP-36** trap lookups and Light Rune toggles Transcribed and wired (`b44d3d2e`), row open until a trap capture exists; READABILITY CpPerform done (`0af1c5df`). **Master is red since `49074486` (GPT, `[skip ci]`):** adding `ram_trace_prologue_end` to `M4aRuns` makes `M4aPitchTest` fail at `r06620` channel 0 (9495 expected, 9460); reproduced on plain origin/master. BUG-bmxfade-weather and BUG-mapanim-pal fixed (`46ace61f`); READABILITY CpEquip/BmxFade/MapAnimApi done (`8b940d62`). Next: EP-32 (in progress), EP-33.
+- 2026-11-21 owner PC Claude: **EP-31 done** (`c1aa4a04`, Ride trap lookup wired `100e12d2`); **EP-36** trap lookups and Light Rune toggles Transcribed and wired (`b44d3d2e`), row open until a trap capture exists; READABILITY CpPerform done (`0af1c5df`). **Master is red since `49074486` (GPT, `[skip ci]`):** adding `ram_trace_prologue_end` to `M4aRuns` makes `M4aPitchTest` fail at `r06620` channel 0 (9495 expected, 9460); reproduced on plain origin/master. BUG-bmxfade-weather and BUG-mapanim-pal fixed (`46ace61f`); READABILITY CpEquip/BmxFade/MapAnimApi done (`8b940d62`). EP-32 done (`5664d25b`). Next: EP-33 (in progress), EP-34a (in progress), EP-34b.
 
 - 2026-11-21 GPT: **PC-cap1 published** (private `620a70f`, `assets-620a70f`), ending → slot 0
   save → Chapter 1 player-phase idle f25580. SRAM f9799/f9802 brackets the write. 51,552 baseline

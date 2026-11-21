@@ -1,7 +1,8 @@
 /**
- * The runtime app icon built from the player's own ROM (decision 0011, CLAUDE.md rule 3): Eirika's
- * portrait cropped to a square and scaled up. The pixels exist only in memory (and in the system's
- * recents and pinned shortcut once the player asks); nothing of them is in the APK or the repo.
+ * The runtime app icon built from the player's own ROM (decision 0011, CLAUDE.md rule 3): the
+ * portrait of `CHARACTER_EIRIKA` cropped to a square and scaled up. The pixels exist only in
+ * memory (and in the system's recents and pinned shortcut once the player asks); nothing of them
+ * is in the APK or the repo.
  */
 
 package fe8.app
@@ -24,23 +25,24 @@ internal object PortraitIcon {
     /** Offset of `portraitId` (u16) in `struct CharacterData` (decomp `include/bmunit.h`). */
     private const val PORTRAIT_ID_OFFSET = 6
 
-    /** Left edge of the square crop in face pixels (the face is 64 wide, so the crop is full). */
+    /** Left edge of the square crop in face pixels (the face is 64 wide: full width). */
     private const val CROP_X = 0
 
-    /** Top edge of the square crop in face pixels; the crop is [CROP_SIZE] square. */
+    /** Top edge of the square crop in face pixels; skips the top 4 rows of the 80-row face. */
     private const val CROP_Y = 4
 
-    /** Edge of the square crop in face pixels (head and hair, a little of the collar). */
+    /** Edge of the square crop in face pixels: rows 4 to 67 of the 64 x 80 face. */
     private const val CROP_SIZE = 64
 
     /** Output edge in pixels: the crop scaled 3x with nearest-neighbour. */
     const val SIZE: Int = CROP_SIZE * 3
 
     /**
-     * Eirika's portrait id: `gCharacterData[CHARACTER_EIRIKA - 1].portraitId`.
+     * Portrait id of `CHARACTER_EIRIKA`: `gCharacterData[CHARACTER_EIRIKA - 1].portraitId`,
+     * read straight from the ROM table (little-endian u16).
      *
      * @param rom The whole FE8 (U) ROM image.
-     * @return The portrait id (entry `id - 1` of `portrait_data`).
+     * @return The portrait id; the face is entry `id - 1` of `portrait_data`.
      */
     fun portraitId(rom: ByteArray): Int {
         val o = CHARACTER_TABLE + (CHARACTER_EIRIKA - 1) * CharactersExtractor.ENTRY_SIZE +
@@ -49,7 +51,7 @@ internal object PortraitIcon {
     }
 
     /**
-     * Builds the icon: decodes Eirika's face with [PortraitsExtractor.face], crops the square
+     * Builds the icon: decodes the lord's face with [PortraitsExtractor.face], crops the square
      * and scales it up with nearest-neighbour. Palette index 0 becomes fully transparent.
      *
      * @param rom The whole FE8 (U) ROM image.
@@ -60,6 +62,10 @@ internal object PortraitIcon {
         return scale(face.image, face.palette)
     }
 
+    /**
+     * Crops the [CROP_SIZE] square out of [image] and enlarges it to [SIZE] by repeating each
+     * source pixel; palette index 0 (the GBA's transparent colour) becomes ARGB 0.
+     */
     private fun scale(image: IndexedImage, palette: IntArray): IntArray {
         val scale = SIZE / CROP_SIZE
         val out = IntArray(SIZE * SIZE)

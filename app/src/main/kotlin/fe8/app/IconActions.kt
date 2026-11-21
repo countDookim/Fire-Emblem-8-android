@@ -20,8 +20,9 @@ import androidx.core.graphics.drawable.IconCompat
 private const val SHORTCUT_ID = "fe8-launch"
 
 /**
- * Builds Eirika's portrait icon from the kept ROM, or returns null when no ROM is kept or the
- * ROM does not decode. Reads 16 MB: call off the main thread.
+ * Builds the lord portrait icon ([PortraitIcon]) from the kept ROM, or returns null when no ROM is
+ * kept or its bytes do not decode (any failure is swallowed, so the app keeps its default icon).
+ * Reads the whole ROM image (about 16 MB) from disk: call off the main thread.
  *
  * @param ctx Android context.
  * @return A [PortraitIcon.SIZE] square ARGB bitmap, or `null`.
@@ -34,7 +35,10 @@ internal fun portraitBitmap(ctx: Context): Bitmap? {
     }.getOrNull()
 }
 
-/** The [Activity] behind [this] context (Compose wraps it), or null. */
+/**
+ * The [Activity] behind [this] context, or null. Compose hands out a wrapped context, so the
+ * activity is found by unwrapping [ContextWrapper]s.
+ */
 internal fun Context.findActivity(): Activity? {
     var c: Context? = this
     while (c is ContextWrapper) {
@@ -45,7 +49,8 @@ internal fun Context.findActivity(): Activity? {
 }
 
 /**
- * Shows [icon] as the app's icon in the recents screen.
+ * Shows [icon] as the app's icon in the recents (overview) screen; the task label is "FE8".
+ * Uses the `TaskDescription(String, Bitmap)` constructor, deprecated on newer Android versions.
  *
  * @param activity The activity whose task is described.
  * @param icon The portrait bitmap.
@@ -55,7 +60,7 @@ internal fun setRecentsIcon(activity: Activity, icon: Bitmap) {
     activity.setTaskDescription(ActivityManager.TaskDescription("FE8", icon))
 }
 
-/** Whether the launcher supports pinned shortcuts. */
+/** Whether the launcher can pin shortcuts, i.e. whether offering "add to home screen" is useful. */
 internal fun canPinShortcut(ctx: Context): Boolean =
     ShortcutManagerCompat.isRequestPinShortcutSupported(ctx)
 

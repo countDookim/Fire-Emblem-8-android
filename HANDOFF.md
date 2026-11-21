@@ -13,6 +13,9 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- `EP-11f2`: GPT owner PC Terra, until ~19:30Z (2026-11-21).
+- `PC-9i`: GPT owner PC Terra, until ~19:30Z (2026-11-21).
+
 - `EP-31`: owner PC Claude, until ~18:45Z.
 - `EP-36`: owner PC Claude, until ~18:45Z.
 

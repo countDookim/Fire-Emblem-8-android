@@ -155,4 +155,32 @@ class SramSaveBlockReferenceTest {
         lib.writeLastGameSaveId(2)
         assertEquals(2, lib.readLastGameSaveId())
     }
+
+    @Test
+    @VerifiesPort("WriteGlobalSaveInfoNoChecksum")
+    fun `writeGlobalSaveInfoNoChecksum updates last_suspend_slot and leaves checksum untouched`() {
+        val lib = lib("ram_trace_first_phase", "s19312")
+        val want = ref.run("ram_trace_first_phase").sram("s19316")
+        val before = image(lib)
+        val header = ByteArray(L.HEADER_SIZE)
+        assertTrue(lib.readGlobalSaveInfo(header))
+        header[L.HEADER_LAST_SUSPEND_SLOT] = 1
+        lib.writeGlobalSaveInfoNoChecksum(header)
+        val after = image(lib)
+        assertArrayEquals(
+            want.copyOfRange(L.HEADER_OFFSET, L.HEADER_OFFSET + L.HEADER_SIZE),
+            after.copyOfRange(L.HEADER_OFFSET, L.HEADER_OFFSET + L.HEADER_SIZE),
+        )
+        for (i in L.HEADER_SIZE until L.SRAM_SIZE) {
+            assertEquals(before[i], after[i], "byte 0x${i.toString(16)}")
+        }
+
+        // Mutated checksum must be written verbatim (unlike writeGlobalSaveInfo).
+        val raw = header.copyOf()
+        val mutatedChecksumByte = (raw[L.HEADER_CHECKSUM].toInt() xor 1).toByte()
+        raw[L.HEADER_CHECKSUM] = mutatedChecksumByte
+        lib.writeGlobalSaveInfoNoChecksum(raw)
+        val written = image(lib)
+        assertEquals(mutatedChecksumByte, written[L.HEADER_CHECKSUM])
+    }
 }

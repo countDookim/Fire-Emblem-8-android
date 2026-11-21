@@ -227,8 +227,9 @@ public class PlayerPhase(
         public var canCharacterBePrepMoved: (pid: Int) -> Boolean = { false }
 
         /**
-         * Stand-in until M6-C for `sub_802C334` (zeroes `sUnknown_0203A60C`, a scratch struct of
-         * the battle code), called by `UnitBeginAction`.
+         * `sub_802C334` (zeroes `sUnknown_0203A60C`, a scratch struct of the battle code), called
+         * by `UnitBeginAction` and `UnitBeginCantoAction`; wired in `PlayerPhaseWiring` to
+         * `BmBattle.sub802C334`, default no-op for standalone tests.
          */
         public var resetBattleScratch: () -> Unit = {}
 

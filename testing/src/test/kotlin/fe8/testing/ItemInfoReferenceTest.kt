@@ -42,6 +42,24 @@ class ItemInfoReferenceTest {
         assertEquals(0xFF, items.getItemType(0), "empty item weaponType is ITYPE_ITEM (0xFF)")
     }
 
+    // Not @VerifiesPort: every item passed in ram_trace_prologue_clear f3803..3872 and
+    // CpAiFlagsDifferentialTest has useEffectId == 0, so a constant-0 implementation survives.
+    @Test
+    fun `getItemUseEffect reads useEffectId from ROM for prologue_clear and healing items`() {
+        assumeTrue(romFile.isFile, "ROM not present")
+        val items = ItemInfo(RomView.ofRom(romFile.readBytes()))
+        // Weapons exercised in ram_trace_prologue_clear f3803..3872 (ITEM_SWORD_STEEL,
+        // ITEM_LANCE_SILVER, ITEM_SWORD_RAPIER, ITEM_AXE_IRON): all 0.
+        for (item in intArrayOf(0x1E03, 0x1417, 0x2509, 0x2D1F)) {
+            assertEquals(0, items.getItemUseEffect(item), "weapon 0x${item.toString(16)}")
+        }
+        // Consumable / staff use effects from ROM gItemData: ITEM_STAFF_HEAL (0x4B -> 1),
+        // ITEM_VULNERARY (0x6C -> 0x21), ITEM_ELIXIR (0x6D -> 0x22).
+        assertEquals(1, items.getItemUseEffect(0x0F4B), "ITEM_STAFF_HEAL")
+        assertEquals(0x21, items.getItemUseEffect(0x036C), "ITEM_VULNERARY")
+        assertEquals(0x22, items.getItemUseEffect(0x036D), "ITEM_ELIXIR")
+    }
+
     private fun u16(buf: ByteArray, off: Int): Int =
         (buf[off].toInt() and 0xFF) or ((buf[off + 1].toInt() and 0xFF) shl 8)
 

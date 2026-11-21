@@ -505,6 +505,7 @@ internal class PlayerPhaseWiring(
             { combat.hooks.getBattleAnimPreconfType.get() == CombatAction.PLAY_ANIMCONF_OFF }
         h.cursorSound = PlayerPhase.SoundEffect { song -> sound.playSoundEffect(song) }
         h.playSoundEffect = PlayerPhase.SoundEffect { song -> sound.playSoundEffect(song) }
+        h.resetBattleScratch = { battle.sub802C334() }
     }
 
     /**

@@ -52,6 +52,8 @@ public class Menu(
     private val hand: UiHand,
     private val greenText: GreenText,
     private val camMoveScript: ProcScript,
+    /** Menu command overrides (`sMenuOverrides`). */
+    public val overrides: MenuOverrides = MenuOverrides(),
 ) {
     /** Services outside the ported file; the defaults do nothing. */
     public class Hooks {

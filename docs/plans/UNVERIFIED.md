@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 691 across 98 decomp files (missing reason: 0).
+Total entries: 696 across 99 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -122,7 +122,7 @@ Total entries: 691 across 98 decomp files (missing reason: 0).
 | `GmapRmBorder1_End` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | removing either sprite delete or the pulse end leaves the traced OAM, blend and palette unchanged |
 | `EndGmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | no traced call |
 
-## src/bmitem.c (26)
+## src/bmitem.c (27)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -138,6 +138,7 @@ Total entries: 691 across 98 decomp files (missing reason: 0).
 | `GetItemWeight` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
 | `GetItemMaxRange` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | a mask narrowed to 3 bits survives the traced weapons |
 | `GetItemWeaponEffect` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
+| `GetItemUseEffect` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | every usable item in `ram_trace_prologue_clear` f3803..3872 and `CpAiFlagsDifferentialTest` has `useEffectId` 0, so a constant-0 implementation survives |
 | `GetItemEffectiveness` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
 | `GetItemPowBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | the traced weapons have no stat bonuses, so a wrong field offset survives |
 | `GetItemSklBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
@@ -270,6 +271,32 @@ Total entries: 691 across 98 decomp files (missing reason: 0).
 | `EventAB_WmUnitResumeMove` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
 | `EventBB_` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
 
+## src/bmbattle.c (21)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetBattleAnimPreconfType` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | every capture has the setting OFF, so only the early return is seen; neither solo animation branch is, and inverting the test for the solo setting gives the same answer for all three battles |
+| `GetSoloAnimPreconfType` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | see [getBattleAnimPreconfType] |
+| `SetScriptedBattle` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | a plain pointer store, observable only through the unwind |
+| `GetUnitExpMultiplier` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no assassin in the captures, and the kill bonus it multiplies is 0 there |
+| `BattleCheckTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no capture has a triangle attack |
+| `BattleCheckSilencer` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced crit roll succeeds, so no mutation of it changes captured data |
+| `BattleGenerateHitTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced attacker has a triangle attack class attribute, so the first check returns every time and no mutation of the rest, nor of the scan, changes data |
+| `sub_802C334` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | `sUnknown_0203A60C` is already 0 before and after `f3804` `UnitBeginAction` in `ram_trace_prologue_clear` and is never written non-zero in the decomp, so a no-op survives against the capture |
+| `InitBattleUnitWithoutBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
+| `SetBattleUnitWeaponBallista` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
+| `ComputeBattleUnitBaseDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
+| `ComputeBattleUnitWeaponRankBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has an S rank weapon |
+| `ComputeBattleUnitStatusBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a status effect |
+| `ComputeBattleUnitSpecialWeaponStats` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no special weapon or petrified target in the trace |
+| `BattleApplyReaverEffect` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no reaver weapon in the trace |
+| `BattleInitTargetCanCounter` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no gorgon egg, uncounterable weapon or berserk actor in the trace |
+| `BattleApplyBallistaUpdates` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | only the no-ballista branch runs, and it writes nothing a capture could show |
+| `BeginBattleAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | the display writes (BG 2 clear, backdrop colour, the two map renders) are not compared; the branch it takes is verified through its callees |
+| `CanBattleUnitGainLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
+| `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
+| `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
+
 ## src/worldmap_mapmu.c (21)
 
 | Function | Kotlin file | Reason |
@@ -295,31 +322,6 @@ Total entries: 691 across 98 decomp files (missing reason: 0).
 | `sub_80BE330` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt` | no @VerifiesPort test names it |
 | `sub_80BE3E8` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt` | no @VerifiesPort test names it |
 | `MapMU_SetUnitChar` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt` | no @VerifiesPort test names it |
-
-## src/bmbattle.c (20)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GetBattleAnimPreconfType` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | every capture has the setting OFF, so only the early return is seen; neither solo animation branch is, and inverting the test for the solo setting gives the same answer for all three battles |
-| `GetSoloAnimPreconfType` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | see [getBattleAnimPreconfType] |
-| `SetScriptedBattle` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | a plain pointer store, observable only through the unwind |
-| `GetUnitExpMultiplier` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no assassin in the captures, and the kill bonus it multiplies is 0 there |
-| `BattleCheckTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no capture has a triangle attack |
-| `BattleCheckSilencer` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced crit roll succeeds, so no mutation of it changes captured data |
-| `BattleGenerateHitTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced attacker has a triangle attack class attribute, so the first check returns every time and no mutation of the rest, nor of the scan, changes data |
-| `InitBattleUnitWithoutBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
-| `SetBattleUnitWeaponBallista` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
-| `ComputeBattleUnitBaseDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
-| `ComputeBattleUnitWeaponRankBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has an S rank weapon |
-| `ComputeBattleUnitStatusBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a status effect |
-| `ComputeBattleUnitSpecialWeaponStats` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no special weapon or petrified target in the trace |
-| `BattleApplyReaverEffect` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no reaver weapon in the trace |
-| `BattleInitTargetCanCounter` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no gorgon egg, uncounterable weapon or berserk actor in the trace |
-| `BattleApplyBallistaUpdates` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | only the no-ballista branch runs, and it writes nothing a capture could show |
-| `BeginBattleAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | the display writes (BG 2 clear, backdrop colour, the two map renders) are not compared; the branch it takes is verified through its callees |
-| `CanBattleUnitGainLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-| `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-| `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 
 ## src/bmsave-bwl.c (18)
 
@@ -683,6 +685,18 @@ Total entries: 691 across 98 decomp files (missing reason: 0).
 | `sub_8009E28` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | wired by `Fe8Boot`; no dump compares the blend registers at this point |
 | `GameControlHandlePostNormalOrExtraChapter` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
 
+## src/uimenu.c (7)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `FreezeMenu` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the captures have no menu proc when it runs, f2964 and f4894 of `ram_trace_prologue_clear` start events from the bare map |
+| `ResumeMenu` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | no menu proc exists when the boss turn event ends at f3722 of `ram_trace_prologue_clear` |
+| `SyncMenuBgs` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the sync flags are consumed in VBlank before the RAM dumps |
+| `HasMenuChangedItem` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | only its callers' switch in and out branches use it, and no item of the captured menus has such callbacks |
+| `OverriddenMenuAvailability` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the override table is empty in the captures and AddMenuOverride is not ported |
+| `OverriddenMenuSelected` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | see [overriddenMenuAvailability] |
+| `GetForceDisabledMenuItems` | `game/src/commonMain/kotlin/fe8/game/ui/MenuOverrides.kt` | `sMenuOverrides` is all zeros in every reference capture, which proves the 16-byte `MENU_ITEM_NONE` write into SRAM / `gGenericBuffer`, not the `MenuAlwaysNotShown` filter branch |
+
 ## src/bmmap.c (6)
 
 | Function | Kotlin file | Reason |
@@ -726,17 +740,6 @@ Total entries: 691 across 98 decomp files (missing reason: 0).
 | `NextRN_N` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
 | `Roll1RN` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
 | `Roll2RN` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
-
-## src/uimenu.c (6)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `FreezeMenu` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the captures have no menu proc when it runs, f2964 and f4894 of `ram_trace_prologue_clear` start events from the bare map |
-| `ResumeMenu` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | no menu proc exists when the boss turn event ends at f3722 of `ram_trace_prologue_clear` |
-| `SyncMenuBgs` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the sync flags are consumed in VBlank before the RAM dumps |
-| `HasMenuChangedItem` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | only its callers' switch in and out branches use it, and no item of the captured menus has such callbacks |
-| `OverriddenMenuAvailability` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the override table is empty in the captures and AddMenuOverride is not ported |
-| `OverriddenMenuSelected` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | see [overriddenMenuAvailability] |
 
 ## src/worldmap_automu.c (5)
 
@@ -959,6 +962,13 @@ Total entries: 691 across 98 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `DecodeString` | `engine/text/src/commonMain/kotlin/gbafe/text/MsgHuffman.kt` | shares its loop with [decode], which carries the verified port tag |
 | `DrawGlyph` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | exercised only through the Text_DrawCharacter test |
+
+## src/bmdifficulty.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SaveDungeonState` | `game/src/commonMain/kotlin/fe8/game/bm/BmDifficulty.kt` | `gDungeonState` is all zeros in every reference capture, which proves the 12-byte target write into SRAM / `gGenericBuffer`, not non-zero dungeon state or the post-copy `unk_0B_4 = type` update |
+| `SaveDungeonRecords` | `game/src/commonMain/kotlin/fe8/game/bm/BmDifficulty.kt` | `gDungeonState.dungeon` is all zeros in every reference capture, which proves the 24-byte target write into SRAM / `gGenericBuffer`, not non-zero dungeon records |
 
 ## src/cgtext.c (2)
 

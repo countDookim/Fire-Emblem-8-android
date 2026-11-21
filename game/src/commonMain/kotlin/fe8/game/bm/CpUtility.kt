@@ -157,8 +157,7 @@ public class CpUtility(
         ) {
             flags = AI_UNIT_FLAG_6
         }
-        // `GetItemUseEffect`.
-        when (rom.u8(items.getItemData(items.getItemIndex(item)) + 0x1E)) {
+        when (items.getItemUseEffect(item)) {
             0x01, 0x02, 0x03, 0x04, 0x05, 0x21, 0x22 -> flags = flags or AI_UNIT_FLAG_2
         }
         units.setAiFlags(id, units.aiFlags(id) or flags)

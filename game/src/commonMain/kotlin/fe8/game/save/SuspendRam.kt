@@ -14,6 +14,7 @@ import fe8.game.bm.BmSt
 import fe8.game.bm.PlaySt
 import fe8.game.bm.UnitTable
 import fe8.game.event.EventState
+import fe8.game.ui.MenuOverrides
 import fe8.game.worldmap.GmData
 import gbafe.core.flags.EventFlags
 import gbafe.core.rng.RngService
@@ -45,6 +46,9 @@ import gbafe.core.time.GameClock
  * @property gmData Optional `gGMData` world map state; when non-null, `WriteSuspendSave`
  *   serializes it via [BmSaveGmap.writeWorldMapStuff] instead of copying the raw [worldMapStuff]
  *   stand-in.
+ * @property menuOverrides Optional `sMenuOverrides` table; when non-null, `WriteSuspendSave`
+ *   derives the 16 force-disabled command ids via [MenuOverrides.getForceDisabledMenuItems]
+ *   instead of copying the raw [menuOverride] stand-in.
  */
 public class SuspendRam(
     public val playSt: PlaySt,
@@ -60,6 +64,7 @@ public class SuspendRam(
     ),
     public val convoy: ByteArray = ByteArray(CONVOY_BYTES),
     public val gmData: GmData? = null,
+    public val menuOverrides: MenuOverrides? = null,
 ) {
     /** Supply convoy accessor over [convoy] (`gConvoyItemArray`). */
     public val container: BmContainer = BmContainer(convoy)

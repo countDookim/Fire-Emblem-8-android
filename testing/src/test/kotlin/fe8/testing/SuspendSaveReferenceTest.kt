@@ -1,6 +1,7 @@
 package fe8.testing
 
 import fe8.game.RomView
+import fe8.game.bm.BmDifficulty
 import fe8.game.bm.BmSt
 import fe8.game.event.EventState
 import fe8.game.bm.PlaySt
@@ -12,13 +13,16 @@ import fe8.game.save.BmSuspendSave
 import fe8.game.save.Fe8SramLayout as L
 import fe8.game.save.Fe8SuspendLayout as S
 import fe8.game.save.SuspendRam
+import fe8.game.ui.MenuOverrides
 import fe8.game.worldmap.GmData
 import gba.core.VerifiesPort
 import gba.core.sram.CartSram
 import gba.testkit.ReferenceData
 import gbafe.core.rng.RngService
 import gbafe.core.time.GameClock
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -92,7 +96,8 @@ class SuspendSaveReferenceTest {
     // supportBits and the status bits are zero for all 5 units), and for
     // WriteSwappedSuspendSaveId only the 0 -> 1 branch (last_suspend_slot starts 0).
     @VerifiesPort(
-        "WriteSuspendSave", "WriteSwappedSuspendSaveId", "WritePidStats", "WriteChapterFlags",
+        "WriteSuspendSave", "WriteSwappedSuspendSaveId", "WriteGlobalSaveInfoNoChecksum",
+        "WritePidStats", "WriteChapterFlags",
         "WritePermanentFlags", "WriteWorldMapStuff", "WriteWorldMapUnits",
     )
     fun `suspend save from r19315 reproduces the sram of s19316`() {
@@ -135,6 +140,150 @@ class SuspendSaveReferenceTest {
         assertEquals(entry + S.PID_STATS, f.lib.pidStatsSaveLoc)
     }
 
+    // Not @VerifiesPort: SaveDungeonRecords, SaveDungeonState, and GetForceDisabledMenuItems are
+    // all-zero in every capture, so non-zero records, the post-copy unk_0B_4 = type update, and
+    // the MenuAlwaysNotShown filter branch are covered by unit checks below while reference
+    // buffers verify the exact 24 / 12 / 16-byte target writes.
+    @Test
+    fun `dungeon save helpers and getForceDisabledMenuItems match reference captures`() {
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        val clear = ref.run("ram_trace_prologue_clear")
+        val r4272 = clear.region("r04272", "ewram")
+        val r4273 = clear.region("r04273", "ewram")
+        val gbBase = GGENERIC_BUF - EWRAM
+        val menuStart = gbBase + S.MENU_OVERRIDE
+        val menuEnd = menuStart + S.MENU_OVERRIDE_MAX
+        assertNotEquals(
+            r4272.copyOfRange(menuStart, menuEnd).toList(),
+            r4273.copyOfRange(menuStart, menuEnd).toList(),
+        )
+        assertNotEquals(
+            r4272.copyOfRange(gbBase + S.DUNGEON, gbBase + S.DUNGEON + S.DUNGEON_SIZE).toList(),
+            r4273.copyOfRange(gbBase + S.DUNGEON, gbBase + S.DUNGEON + S.DUNGEON_SIZE).toList(),
+        )
+        for (step in listOf("f03850", "f03860", "r04273")) {
+            val iwram = clear.region(step, "iwram")
+            val ewram = clear.region(step, "ewram")
+            assertDungeonAndMenuMatch(
+                iwram = iwram,
+                wantRecords = ewram.copyOfRange(
+                    gbBase + S.WM_MONSTER_UNIT,
+                    gbBase + S.WM_MONSTER_UNIT + BmDifficulty.DUNGEON_RECORDS_SIZE,
+                ),
+                wantDungeon = ewram.copyOfRange(
+                    gbBase + S.DUNGEON,
+                    gbBase + S.DUNGEON + BmDifficulty.DUNGEON_SIZE,
+                ),
+                wantMenuOverride = ewram.copyOfRange(
+                    gbBase + S.MENU_OVERRIDE,
+                    gbBase + S.MENU_OVERRIDE + S.MENU_OVERRIDE_MAX,
+                ),
+                label = "ram_trace_prologue_clear/$step",
+            )
+        }
+
+        val ch2Iwram = ref.run("ram_trace_ch2_scroll").region("r01142", "iwram")
+        val ch2Sav = ref.run("sram_chapter2_boot").sram("s00001")
+        assertDungeonAndMenuMatch(
+            iwram = ch2Iwram,
+            wantRecords = ch2Sav.copyOfRange(
+                L.SUSPEND0_OFFSET + S.WM_MONSTER_UNIT,
+                L.SUSPEND0_OFFSET + S.WM_MONSTER_UNIT + BmDifficulty.DUNGEON_RECORDS_SIZE,
+            ),
+            wantDungeon = ch2Sav.copyOfRange(
+                L.SUSPEND0_OFFSET + S.DUNGEON,
+                L.SUSPEND0_OFFSET + S.DUNGEON + BmDifficulty.DUNGEON_SIZE,
+            ),
+            wantMenuOverride = ch2Sav.copyOfRange(
+                L.SUSPEND0_OFFSET + S.MENU_OVERRIDE,
+                L.SUSPEND0_OFFSET + S.MENU_OVERRIDE + S.MENU_OVERRIDE_MAX,
+            ),
+            label = "chapter2.sav SUS0",
+        )
+
+        val ch6Iwram = ref.run("ram_trace_ch6_start").region("r01142", "iwram")
+        val ch6Sav = ref.run("sram_chapter6_boot").sram("s00001")
+        val gameRecordsOut = ByteArray(BmDifficulty.DUNGEON_RECORDS_SIZE) { 0x5A }
+        val ch6Dng = ch6Iwram.copyOfRange(
+            GDUNGEON - IWRAM, GDUNGEON - IWRAM + BmDifficulty.DUNGEON_STATE_SIZE,
+        )
+        BmDifficulty.saveDungeonRecords(ch6Dng, BmDifficulty.DUNGEON_RECORDS_OFFSET, gameRecordsOut)
+        assertArrayEquals(
+            ch6Sav.copyOfRange(
+                L.GAME1_OFFSET + GAME_DUNGEONS,
+                L.GAME1_OFFSET + GAME_DUNGEONS + BmDifficulty.DUNGEON_RECORDS_SIZE,
+            ),
+            gameRecordsOut,
+            "chapter6.sav GAME1 dungeon records",
+        )
+    }
+
+    @Test
+    fun `saveDungeonState preserves saved unk_0B_4 and getForceDisabledMenuItems filters`() {
+        val state = ByteArray(BmDifficulty.DUNGEON_STATE_SIZE)
+        for (i in 0 until BmDifficulty.DUNGEON_SIZE) state[i] = (i + 1).toByte()
+        state[BmDifficulty.DUNGEON_UNK_0B_OFFSET] = 0x25.toByte()
+        state[BmDifficulty.DUNGEON_TYPE_OFFSET] = 1
+
+        val saved = ByteArray(BmDifficulty.DUNGEON_SIZE) { 0x5A }
+        BmDifficulty.saveDungeonState(state, saved)
+        assertEquals(0x25, saved[BmDifficulty.DUNGEON_UNK_0B_OFFSET].toInt() and 0xFF)
+        assertEquals(0x15, state[BmDifficulty.DUNGEON_UNK_0B_OFFSET].toInt() and 0xFF)
+
+        val overrides = MenuOverrides()
+        overrides.setOverride(
+            0, 0x11, MenuOverrides.MENU_OVERRIDE_ISAVAILABLE, MenuOverrides.MENU_ALWAYS_NOT_SHOWN,
+        )
+        overrides.setOverride(1, 0x22, MenuOverrides.MENU_OVERRIDE_ONSELECT, 0x0804F455)
+        overrides.setOverride(
+            2, 0x33, MenuOverrides.MENU_OVERRIDE_NONE, MenuOverrides.MENU_ALWAYS_NOT_SHOWN,
+        )
+        val out = ByteArray(MenuOverrides.MENU_OVERRIDE_MAX) { 0x5A }
+        overrides.getForceDisabledMenuItems(out)
+        assertEquals(0x11, out[0].toInt() and 0xFF)
+        for (i in 1 until MenuOverrides.MENU_OVERRIDE_MAX) {
+            assertEquals(MenuOverrides.MENU_ITEM_NONE, out[i].toInt() and 0xFF, "slot $i")
+        }
+    }
+
+    private fun assertDungeonAndMenuMatch(
+        iwram: ByteArray,
+        wantRecords: ByteArray,
+        wantDungeon: ByteArray,
+        wantMenuOverride: ByteArray,
+        label: String,
+    ) {
+        val dungeonState = iwram.copyOfRange(
+            GDUNGEON - IWRAM, GDUNGEON - IWRAM + BmDifficulty.DUNGEON_STATE_SIZE,
+        )
+        val recordsOut = ByteArray(BmDifficulty.DUNGEON_RECORDS_SIZE) { 0x5A }
+        BmDifficulty.saveDungeonRecords(
+            dungeonState, BmDifficulty.DUNGEON_RECORDS_OFFSET, recordsOut,
+        )
+        assertArrayEquals(wantRecords, recordsOut, "$label dungeon records")
+
+        val stateOut = ByteArray(BmDifficulty.DUNGEON_SIZE) { 0x5A }
+        BmDifficulty.saveDungeonState(dungeonState, stateOut)
+        assertArrayEquals(wantDungeon, stateOut, "$label dungeon current")
+
+        val overrides = loadMenuOverrides(iwram)
+        val menuOut = ByteArray(MenuOverrides.MENU_OVERRIDE_MAX) { 0x5A }
+        overrides.getForceDisabledMenuItems(menuOut)
+        assertArrayEquals(wantMenuOverride, menuOut, "$label menuOverride")
+    }
+
+    private fun loadMenuOverrides(iwram: ByteArray): MenuOverrides {
+        val overrides = MenuOverrides()
+        for (i in 0 until MenuOverrides.MENU_OVERRIDE_MAX) {
+            val base = SMENUOVERRIDES - IWRAM + i * 8
+            val cmdId = u16(iwram, base)
+            val kind = u16(iwram, base + 2)
+            val func = u16(iwram, base + 4) or (u16(iwram, base + 6) shl 16)
+            overrides.setOverride(i, cmdId, kind, func)
+        }
+        return overrides
+    }
+
     private fun fixture(): Fixture {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
@@ -154,6 +303,7 @@ class SuspendSaveReferenceTest {
         val clock = GameClock()
         val eventState = EventState()
         val gmData = GmData(iwram.copyOf(0x8000), rng)
+        val menuOverrides = loadMenuOverrides(iwram)
         val ram = SuspendRam(
             playSt, bmSt, rng, units, flags, clock, eventState,
             actionData = ewram.copyOfRange(GACTION - EWRAM, GACTION - EWRAM + S.ACTION_SIZE),
@@ -162,6 +312,7 @@ class SuspendSaveReferenceTest {
             ),
             convoy = ewram.copyOfRange(GCONVOY - EWRAM, GCONVOY - EWRAM + SuspendRam.CONVOY_BYTES),
             gmData = gmData,
+            menuOverrides = menuOverrides,
         )
         // GetGameClock at the call: r19315's clock is later; gPlaySt.time_saved is what the call
         // stored (r19313..r19315 agree on it).
@@ -216,6 +367,9 @@ class SuspendSaveReferenceTest {
         const val GFLAGS = 0x03005250
         const val GEVENTSLOT = 0x03000568
         const val GDUNGEON = 0x030017A0
+        const val SMENUOVERRIDES = 0x03001870
+        const val GGENERIC_BUF = 0x02020188
+        const val GAME_DUNGEONS = 0xDB0
         const val RESERVED = 0x73A0
         const val SUPPLY_SIZE = 0xB0
     }

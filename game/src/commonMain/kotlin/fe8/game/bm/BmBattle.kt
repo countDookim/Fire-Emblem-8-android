@@ -48,6 +48,34 @@ public class BmBattle(
     /** `gBattleStats`. */
     public val stats: BattleStats = BattleStats()
 
+    /** `sUnknown_0203A60C` (`unk00`, `unk01`, `unk02`), cleared by [sub802C334]. */
+    public class BattleScratch {
+        /** `unk00`. */
+        public var unk00: Int = 0
+
+        /** `unk01`. */
+        public var unk01: Int = 0
+
+        /** `unk02`. */
+        public var unk02: Int = 0
+    }
+
+    /** `sUnknown_0203A60C`. */
+    public val battleScratch: BattleScratch = BattleScratch()
+
+    /**
+     * Transcribed from src/bmbattle.c: sub_802C334 (not verified: `sUnknown_0203A60C` is already
+     * 0 before and after `f3804` `UnitBeginAction` in `ram_trace_prologue_clear` and is never
+     * written non-zero in the decomp, so a no-op survives against the capture)
+     *
+     * Clears `sUnknown_0203A60C` (`unk00`, `unk01`, `unk02`) at the start of a unit action.
+     */
+    public fun sub802C334() {
+        battleScratch.unk00 = 0
+        battleScratch.unk01 = 0
+        battleScratch.unk02 = 0
+    }
+
     /** `gArenaState.playerWeapon` (arena battles only). */
     public var arenaPlayerWeapon: Int = 0
 

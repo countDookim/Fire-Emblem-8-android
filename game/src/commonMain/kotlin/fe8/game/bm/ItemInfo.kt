@@ -191,6 +191,16 @@ public class ItemInfo(private val rom: RomView) {
     public fun getItemWeaponEffect(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x1F)
 
     /**
+     * Transcribed from src/bmitem.c: GetItemUseEffect (not verified: every usable item in
+     *   `ram_trace_prologue_clear` f3803..3872 and `CpAiFlagsDifferentialTest` has `useEffectId`
+     *   0, so a constant-0 implementation survives)
+     *
+     * The `useEffectId` of [item] (`gItemData` offset 0x1E): 0 for weapons and non-usable items,
+     * 1..5 for healing staves, 0x21 for `ITEM_VULNERARY`, 0x22 for `ITEM_ELIXIR`, etc.
+     */
+    public fun getItemUseEffect(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x1E)
+
+    /**
      * Transcribed from src/bmitem.c: GetItemEffectiveness (not verified: no trace output depends
      *   on it)
      *

@@ -13,6 +13,7 @@
 package fe8.game.save
 
 import fe8.game.RomView
+import fe8.game.bm.BmDifficulty
 import fe8.game.bm.CombatAction
 import fe8.game.bm.PlaySt
 import fe8.game.bm.StructCodec
@@ -77,6 +78,9 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
 
     /** World map save serializer (`WriteWorldMapStuff`). */
     private val worldMapSave = BmSaveGmap()
+
+    /** Scratch for `u8 list[MENU_OVERRIDE_MAX]` in `WriteSuspendSave`. */
+    private val menuOverrideBuf = ByteArray(S.MENU_OVERRIDE_MAX)
 
     /**
      * Ported from src/bmsave.c: EncodeSuspendSavePackedUnit
@@ -337,13 +341,14 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
 
         // LoadDungeonRecords: the wmMonsterUnit slot into gDungeonState.dungeon[2].
         readSramFast(sram, src + S.WM_MONSTER_UNIT, dungeon, 0, dungeon.size)
-        dungeon.copyInto(ram.dungeonState, DUNGEON_RECORDS, 0, dungeon.size)
+        dungeon.copyInto(ram.dungeonState, BmDifficulty.DUNGEON_RECORDS_OFFSET, 0, dungeon.size)
 
         // LoadDungeonState: current = *saved, then type = current.unk_0B_4.
         readSramFast(sram, src + S.DUNGEON, dungeon, 0, S.DUNGEON_SIZE)
         dungeon.copyInto(ram.dungeonState, 0, 0, S.DUNGEON_SIZE)
-        ram.dungeonState[DUNGEON_TYPE] =
-            ((StructCodec.u8(ram.dungeonState, UNK_0B) ushr 4) and 0x0F).toByte()
+        ram.dungeonState[BmDifficulty.DUNGEON_TYPE_OFFSET] =
+            ((StructCodec.u8(ram.dungeonState, BmDifficulty.DUNGEON_UNK_0B_OFFSET) ushr 4) and 0x0F)
+                .toByte()
 
         readSramFast(sram, src + S.EVENT_SLOT_CNT, scalar, 0, 4)
         ram.eventState.setEventSlotCounter(StructCodec.u32(scalar, 0))
@@ -455,9 +460,17 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
         lib.writeChapterStats(dest + S.CHAPTER_STATS)
         writeTraps(dest + S.TRAPS, ram.traps)
 
-        writeAndVerifySramFast(
-            ram.menuOverride, 0, sram, dest + S.MENU_OVERRIDE, S.MENU_OVERRIDE_MAX,
-        )
+        val menuOverrides = ram.menuOverrides
+        if (menuOverrides != null) {
+            menuOverrides.getForceDisabledMenuItems(menuOverrideBuf)
+            writeAndVerifySramFast(
+                menuOverrideBuf, 0, sram, dest + S.MENU_OVERRIDE, S.MENU_OVERRIDE_MAX,
+            )
+        } else {
+            writeAndVerifySramFast(
+                ram.menuOverride, 0, sram, dest + S.MENU_OVERRIDE, S.MENU_OVERRIDE_MAX,
+            )
+        }
 
         val gmData = ram.gmData
         if (gmData != null) {
@@ -468,17 +481,15 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
             )
         }
 
-        // SaveDungeonRecords: gDungeonState.dungeon[2] into the wmMonsterUnit slot.
-        ram.dungeonState.copyInto(dungeon, 0, DUNGEON_RECORDS, DUNGEON_RECORDS + dungeon.size)
-        writeAndVerifySramFast(dungeon, 0, sram, dest + S.WM_MONSTER_UNIT, dungeon.size)
+        BmDifficulty.saveDungeonRecords(
+            ram.dungeonState, BmDifficulty.DUNGEON_RECORDS_OFFSET, dungeon,
+        )
+        writeAndVerifySramFast(
+            dungeon, 0, sram, dest + S.WM_MONSTER_UNIT, BmDifficulty.DUNGEON_RECORDS_SIZE,
+        )
 
-        // SaveDungeonState: the saved copy is taken before unk_0B_4 = type (as in C), so the saved
-        // record carries the previous type and only the live record gets the new one.
-        ram.dungeonState.copyInto(dungeon, 0, 0, S.DUNGEON_SIZE)
-        val unk0b = StructCodec.u8(ram.dungeonState, UNK_0B)
-        val type = StructCodec.u8(ram.dungeonState, DUNGEON_TYPE)
-        ram.dungeonState[UNK_0B] = ((unk0b and 0x0F) or ((type and 0x0F) shl 4)).toByte()
-        writeAndVerifySramFast(dungeon, 0, sram, dest + S.DUNGEON, S.DUNGEON_SIZE)
+        BmDifficulty.saveDungeonState(ram.dungeonState, dungeon)
+        writeAndVerifySramFast(dungeon, 0, sram, dest + S.DUNGEON, BmDifficulty.DUNGEON_SIZE)
 
         StructCodec.put32(scalar, 0, ram.eventState.getEventSlotCounter())
         writeAndVerifySramFast(scalar, 0, sram, dest + S.EVENT_SLOT_CNT, 4)
@@ -504,15 +515,6 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
         const val BLUE_BASE = 0
         const val RED_BASE = UnitTable.BLUE_COUNT * UnitTable.UNIT_SIZE
         const val GREEN_BASE = RED_BASE + UnitTable.RED_COUNT * UnitTable.UNIT_SIZE
-
-        /**
-         * Offsets in `struct Struct030017A0` (`gDungeonState`, include/bmdifficulty.h): the records
-         * at 0x0C, byte 0x0B of `current` (its `unk_0B_4` nibble: meaning unknown in the decomp)
-         * and `type` (tower = 0, ruins = 1).
-         */
-        const val DUNGEON_RECORDS = 0x0C
-        const val UNK_0B = 0x0B
-        const val DUNGEON_TYPE = 0x24
 
         /** Offset of `number` (the character id / class id) in `CharacterData` / `ClassData`. */
         const val CHARACTER_NUMBER = 4

@@ -10,12 +10,12 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 235 across 46 Kotlin files.
+Total entries: 234 across 46 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 13 |
-| M6-C | 7 |
+| M6-C | 6 |
 | M6-D | 13 |
 | M6-E | 43 |
 | M6-F | 16 |
@@ -58,7 +58,7 @@ Total entries: 235 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/save/SuspendRam.kt` | `SuspendRam` | The only things held here are buffers that have no owner yet (the stand-ins [actionData] and [menuOverride] until M6-B, [traps] until M6-H, [worldMapStuff] when [gmData] is null and [dungeonState]... |
 | `game/src/commonMain/kotlin/fe8/game/save/SuspendRam.kt` | `SuspendRam` | The save packs these into 0xB0 bytes. @property gmData Optional `gGMData` world map state; when non-null, `WriteSuspendSave` serializes it via [BmSaveGmap.writeWorldMapStuff] instead of copying the... |
 
-## M6-C (7)
+## M6-C (6)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -68,7 +68,6 @@ Total entries: 235 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `generateAttackRange` | `Fe8Boot` sets it (`PlayerPhaseWiring`) with the weapon case of `AttackRange.generateUnitCompleteAttackRange`; the staff range and `GenerateMagicSealMap` are a stand-in until M6-C. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getCombinedEnemyWeaponUsabilityBits` | `GetCombinedEnemyWeaponUsabilityBits`; stand-in until M6-C, default 0. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getUnitWeaponUsabilityBits` | `Fe8Boot` answers the weapon bit only (the staff bit is a stand-in until M6-C). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resetBattleScratch` | Stand-in until M6-C for `sub_802C334` (zeroes `sUnknown_0203A60C`, a scratch struct of the battle code), called by `UnitBeginAction`. |
 
 ## M6-D (13)
 

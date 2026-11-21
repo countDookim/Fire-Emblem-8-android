@@ -194,12 +194,12 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Unverified port of src/bmsave-lib.c: WriteGlobalSaveInfoNoChecksum (not on the boot path,
-     * so no reference test executes it).
+     * Ported from src/bmsave-lib.c: WriteGlobalSaveInfoNoChecksum
      *
      * Writes the 0x64 bytes of [header] to SRAM with verification, leaving its checksum as is.
-     * Fine for the two bytes that follow the checksum (`last_game_save_id`, `last_suspend_slot`,
-     * at 0x62 and 0x63): they lie outside the 0x50 checksummed bytes.
+     * Used by `WriteLastGameSaveId` and `WriteSwappedSuspendSaveId` for the two bytes that follow
+     * the checksum (`last_game_save_id`, `last_suspend_slot`, at 0x62 and 0x63), which lie outside
+     * the 0x50 checksummed bytes.
      */
     public fun writeGlobalSaveInfoNoChecksum(header: ByteArray) {
         writeAndVerifySramFast(header, 0, sram, L.HEADER_OFFSET, L.HEADER_SIZE)

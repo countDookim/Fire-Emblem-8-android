@@ -13,6 +13,7 @@ package fe8.game.save
 
 import fe8.game.RomView
 import fe8.game.bm.BmContainer
+import fe8.game.bm.BmDifficulty
 import fe8.game.bm.BmSt
 import fe8.game.bm.PlaySt
 import fe8.game.bm.StructCodec
@@ -477,8 +478,7 @@ public class BmGameSave(
                 Fe8SuspendLayout.GMAP_SAVE_INFO_SIZE,
             )
         }
-        // SaveDungeonRecords: memcpy from gDungeonState.dungeon.
-        ram.dungeons.copyInto(dungeonRecordsBuf)
+        BmDifficulty.saveDungeonRecords(ram.dungeons, 0, dungeonRecordsBuf)
         writeAndVerifySramFast(dungeonRecordsBuf, 0, lib.sram, dest + GAME_DUNGEONS, DUNGEONS_SIZE)
 
         blockInfoBuf.fill(0)

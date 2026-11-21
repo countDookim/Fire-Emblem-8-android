@@ -37,7 +37,9 @@ public object ItemIcon {
      * Bytes of one `DrawnIconLookupTable` entry (`struct IconStruct`, include/icon.h):
      * `References` at +0 (a count of the places drawing the icon, capped at 0xFF) and `Index` at
      * +1 (graphics slot plus one, 0 when the icon is not in VRAM). The table is 0x380 bytes in
-     * the ROM build, so the entries are 4 bytes.
+     * the ROM build, so the entries are 4 bytes. The decomp's `struct IconStruct` (icon.h) has only
+     * the first two (References, Index); the retail `GetIconTileIndex` indexes with `index << 2`,
+     * and captured tables use only bytes +0 and +1 of each entry (INV-iconstride, 2026-11-21).
      */
     public const val ICON_ENTRY_SIZE: Int = 4
 

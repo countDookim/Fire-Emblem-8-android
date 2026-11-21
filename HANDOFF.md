@@ -21,11 +21,11 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 
 - `PC-1`: Gemini owner PC, until ~20:10Z (`wip/pc1`).
-- `BUG-changemap`: Gemini owner PC, until ~20:10Z (`wip/bug-changemap`).
+- `PC-4i`: Gemini owner PC, until ~20:50Z (`wip/pc4i`).
 
 ## Current state
 
-- 2026-11-21 owner PC Gemini (Flash agents): **BUG-blueleader done (`2dbb6db0`)**, **PC-0 done (`aa44d3d0`)**,
+- 2026-11-21 owner PC Gemini (Flash agents): **BUG-changemap done (`4ba20f7c`)**, **BUG-blueleader done (`2dbb6db0`)**, **PC-0 done (`aa44d3d0`)**,
   **EP-3d done (`3843deff`)**, **TEST-3 done (`e4244308`)**,
   **EP-3c done (`7d28703a`)**, **BUG-evtmenu ready on `wip/bug-evtmenu` (`bba38165`)**. `BUG-blueleader` removed
   the erroneous `leaderCharIndex` write from the `FACTION_BLUE` autolevel branch of `UnitLoader.loadUnit`
@@ -33,7 +33,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
   break-checks, `:game:jvmTest`, `:game:dokkaGenerate` & untargeted `:testing:serialTest --rerun` (63 ok).
   `PC-0` added `PrologueEndInventoryTest` (6 ok, 0 skipped) over `ram_trace_prologue_end` (`PC-cap1`) and
   documented exact `PC-1`/`PC-2`/`PC-2a`/`PC-3a..3d`/`PC-5` boundaries in `M6C-J-breakdown.md`
-  (`No ProcScr_WorldMapWrapper`; `PC-3` split into `PC-3a..3d`). `EP-3d` ported
+  (`No ProcScr_WorldMapWrapper`; `PC-3` split into `PC-3a..3d`). `BUG-changemap` fixed `EventChangeMap.event25ChangeMap` (`Event25_ChangeMap`, `eventscr.c:1896-1938`) to remove the `sub_8009E28` backdrop/blend tail, wire `refreshUnitSprites`, `refreshBMapGraphics`, and `changeUnitSpritePalette`, and clear/sync BG0/BG1 (verified vs `r09518` with palettes, blend, BG0/BG1 and break-checks; `:game:jvmTest`, `:game:dokkaGenerate` & untargeted `:testing:serialTest --rerun` green). `EP-3d` ported
   `BmSaveLib.writeGlobalSaveInfoNoChecksum`, `BmDifficulty.saveDungeonRecords`/`saveDungeonState`,
   `MenuOverrides.getForceDisabledMenuItems`, `ItemInfo.getItemUseEffect` (`CpUtility` reused), and
   `BmBattle.sub802C334` (wired in `PlayerPhaseWiring`; all 5 remain `Transcribed` per Rule 4 because captures
@@ -49,7 +49,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
   changing `scripts/ch1.fe8s:550` (`EVENT_MENUOVERRIDE_STAFF` -> `EVENT_MENUOVERRIDE_WEAPON2`) and leaving
   `swap_class` faithful to `Event35_UnitClassChanging`; parked on `origin/wip/bug-evtmenu` until the ROM repo
   re-extracts `ch1.fe8s` & publishes `extracted.tar.xz` (otherwise `RomImporterTest`, `ScriptRoundTripRomTest` and
-  `ci_check_extraction.sh` fail). Next: `PC-1`, `BUG-changemap` (in progress).
+  `ci_check_extraction.sh` fail). Next: `PC-1`, `PC-4i` (in progress).
 
 - 2026-11-21 owner PC Claude: **EP-31 done** (`c1aa4a04`, Ride trap lookup wired `100e12d2`); **EP-36** trap lookups and Light Rune toggles Transcribed and wired (`b44d3d2e`), row open until a trap capture exists; READABILITY CpPerform done (`0af1c5df`). **Master is red since `49074486` (GPT, `[skip ci]`):** adding `ram_trace_prologue_end` to `M4aRuns` makes `M4aPitchTest` fail at `r06620` channel 0 (9495 expected, 9460); reproduced on plain origin/master. BUG-bmxfade-weather and BUG-mapanim-pal fixed (`46ace61f`); READABILITY CpEquip/BmxFade/MapAnimApi done (`8b940d62`). EP-32 done (`5664d25b`). EP-34a done (rescue/take target lists, wired). EP-33 (`f27ae8d3`) and EP-34b (`4e5bfbee`) done: all unit menu availability callbacks and the menu target lists are in. Next: EP1b-trapwire, last READABILITY row (both in progress).
 

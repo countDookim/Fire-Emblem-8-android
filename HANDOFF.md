@@ -13,6 +13,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- `PC-4f`: scheduled, until ~23:35Z.
+- `PC-6i-event`: scheduled, until ~23:35Z.
 - `PC-2`: owner PC Claude (finishing Gemini's `wip/pc2`), until ~01:37Z.
 - `PC-4a1`: owner PC Claude (finishing Gemini's `wip/pc4a1`), until ~01:37Z.
 - `BUG-evtmenu`: owner PC Claude (ROM release `assets-d978739` published; merging Gemini's fix), until ~01:37Z.

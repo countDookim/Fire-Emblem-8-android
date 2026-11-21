@@ -13,7 +13,6 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- `PC-cap1`: GPT owner PC Terra, original ending/save/Chapter 1 capture, until ~19:30Z (2026-11-21).
 
 - `EP-w`: GPT owner PC Terra, enemy-phase boot replay, until ~19:30Z (2026-11-21).
 
@@ -25,6 +24,15 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 - `BUG-evtmenu`: Gemini owner PC, until ~17:50Z (`wip/bug-evtmenu`).
 
 ## Current state
+
+- 2026-11-21 GPT: **PC-cap1 published** (private `620a70f`, `assets-620a70f`), ending → slot 0
+  save → Chapter 1 player-phase idle f25580. SRAM f9799/f9802 brackets the write. 51,552 baseline
+  archive members preserved except the documented root provenance append; 10,839 new entries verified.
+  Runtime references refreshed; private Actions remain disabled. Next: PC-0 / PC-4i / PC-6i inventories.
+- 2026-11-21 GPT: **EP-11f2 and PC-9i done**; 11 UI-focused + 2 inventory tests passed;
+  untargeted serialTest 63 passed, zero failures/skips; game Dokka passed. SpacialSe source readability
+  review required no edits. EP-w correctness replay passes after the missing berserk-phase hook;
+  allocation acceptance is still under investigation. Manual checks updated for published run 793.
 
 - 2026-11-21 GPT: corrected an existing test comment rejected by the game-text guard (CI 44506430764/44926779720). No test behavior changed; local guard passes.
 

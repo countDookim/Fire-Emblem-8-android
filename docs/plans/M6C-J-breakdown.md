@@ -1390,3 +1390,17 @@ setup, input scripts, manifests, and full RAM/video/SRAM around boundaries.
 EP-11f2 evidence: event.c EventEngine_OnEnd -> ReadGameSaveCoreGfx (event type 5); bm.c ReadGameSaveCoreGfx -> ResetText; fontgrp.c ResetText -> InitTextFont -> InitSystemTextFont, ApplyPalette(Pal_Text, palid), color 0 zero. Capture f3720->3721 color 14 tested through production TalkScene host, full bank compared. Other event-end mid-frame VRAM timing exclusions remain as existing tests. Face fade uses default layout; other SetupFaceGfxData layouts remain unsupported. No new port tags or mutation checks.
 
 SpacialSe readability review, decomp src/bmlib.c Screen2Pan and PlaySeSpacial and include/soundwrapper.h PlaySoundEffect: class KDoc describes spatial pan and MU footsteps consistent with callers; Screen2Pan KDoc matches both clamps and integer range, capture limits correctly stated; PlaySeSpacial KDoc matches macro, player selection, immediate init and pan control, and states capture limit. Sound disabled only skips starting the effect; init and pan still run, matching decomp. No comments/names changes warranted.
+
+## PC-cap1 ending and Chapter 1 capture (2026-11-21)
+
+Published private release `assets-620a70f`, run `ram_trace_prologue_end`. Preserves the first 5,000
+input frames of the clear run; representative EWRAM/IWRAM checkpoints match its prefix. Slot 0 save
+is bracketed by s09799/s09802 (write f9800..9802). Save-menu proc f9444..9862; chapter intro starts
+f9872; Chapter 1 opening event ends f25426; first idle around f25510, final checkpoint f25580 is
+chapter 1, player faction, turn 1, PlayerPhase command 16, no event engine. Last input is A f25400.
+Per-step procs; RAM every ten frames after f5000 plus dense windows 5001..5100, 9350..10100,
+10200..10500 and 25380..25580; graphics every 100 frames and transition boundaries; SRAM9350..10100.
+Callbacks remain inferred from source/cursors, not directly instrumented. Only this dialogue/slot path
+is covered. Archive verification retained 51,552 baseline members' contents (root provenance append
+excepted), and checked all 10,839 new entries. Audio remains excluded with the known clear-run divergence;
+this is not verified audio coverage. PC-0/PC-4i/PC-6i are now available; no Android chapter-completion claim.

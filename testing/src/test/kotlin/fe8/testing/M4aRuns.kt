@@ -36,4 +36,6 @@ internal val M4A_UNCOVERED_RUNS: Set<String> = setOf(
     "ram_trace_prologue_attack_noanim", "ram_trace_prologue_kill",
     "ram_trace_prologue_enemy_phase", "ram_trace_prologue_clear",
     "ram_trace_prologue_levelup", "ram_trace_battle_item_helpers", "ram_trace_ai_danger_calls",
+    // Same resume/input prefix and RAM as the uncovered clear run; audio stays unverified.
+    "ram_trace_prologue_end",
 )

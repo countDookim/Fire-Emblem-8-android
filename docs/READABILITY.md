@@ -103,7 +103,7 @@ fe8.game.worldmap files that had none (sizes on that date).
 | game | fe8.game.bm (MoveLimitView, UnitFacing, UnitSpriteHover, ActiveUnit, BestMovementScript) | 5 | 617 | done 2026-11-15 b9433f12 |
 | game | fe8.game.bm (CpPerform) | 1 | 479 | todo |
 | game | fe8.game.bm (CpEquip, BmxFade, MapAnimApi) | 3 | 778 | todo |
-| game | fe8.game (SpacialSe) | 1 | 42 | done 2026-11-21; source audit, no edits (EP-11f2) |
+| game | fe8.game (SpacialSe) | 1 | 42 | done 2026-11-21 659406ef; source audit, no edits |
 | app | fe8.app (IconActions, PortraitIcon) | 2 | 153 | todo |
 | game | fe8.game.worldmap (WorldMapMain, WorldMapBeginning, WorldMapNodes, WorldMapApHost) | 4 | 769 | done 2026-11-15 9305e93a |
 | game | fe8.game.worldmap (WorldMapMainScript, WorldMapBigMapEvents, WorldMapFaceEvents, WorldMapMiscEvents, WorldMapSpawnEvents, WorldMapTextEvents) | 6 | 717 | done 2026-11-15 9c716cea |

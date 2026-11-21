@@ -9,6 +9,9 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
 
 ## Test now
 
+Map battles, MISS effects, EXP and level-up portraits are included in published run 793
+(`702e364`, 2026-11-21). The enemy-phase replay fix described in later commits requires a newer APK.
+
 - **APP-icon:** (1) The launcher icon is a gold shield with a sword on dark blue (original art, not
   from the game). (2) After importing the ROM (and on each later start), recents shows Eirika's
   portrait as the app icon. (3) After an import a dialog offers "Add to home screen"; the launcher
@@ -32,19 +35,19 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
   then the next scene fades in over ~16 frames and plays normally (it waits for A at its first
   text box).
 
-- **EP-18/EP-26 map battle info box and exp bar (needs a build with EP-26):** attack an enemy with Eirika (PP-17 step 3d) and
+- **EP-18/EP-26 map battle info box and exp bar:** attack an enemy with Eirika (PP-17 step 3d) and
   let the Soldiers attack at End (step 5). Expected: when the fight starts, a two-row box with both
   units' names and HP appears next to the fighters (top or bottom of the screen) over a coloured
   vertical gradient; it closes after the fight, and the map, menus and windows look as before
   afterwards (no leftover tiles or wrong colours). The fight takes about a third of a second longer
   than before. Each round: the attacker lunges towards the target and steps back, the target
   flashes white on a hit with the hit sound, and the HP number and bar in the box drain. A unit at
-  0 HP fades out, and a miss shows the MISS sprite above the defender (**needs a build with EP-24**).
+  0 HP fades out, and a miss shows the MISS sprite above the defender.
   Limits: a 0-damage hit shows no NO DAMAGE text (`EP-24b`);
   a critical hit has no crit flash or screen shake (EP-23b).
   After the fight, when a player unit gained exp (Eirika attacking, or surviving an enemy attack),
   an exp bar window opens in the middle of the screen and fills from the old to the new exp with a
-  ticking sound, then closes. When the bar reaches 100 (level up, **needs a build with MC-18/MC-18d-face**), the
+  ticking sound, then closes. When the bar reaches 100 (level up), the
   level-up announcement slides in the stat panel with the unit's portrait and animates gained stats before closing
   cleanly.
 
@@ -67,10 +70,10 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
         towards it. The forecast window slides in from the side away from the enemy: both names,
         HP, damage, hit and crit, weapon icons, weapon triangle arrows and a swaying x2 mark.
      c. B (cancel sound) slides the forecast out and reopens the weapon list; B again closes it.
-     d. A on the target (confirm sound): the fight resolves at once. The enemy's HP drops by the
-        forecast damage (or stays on a miss), the weapon's uses drop, Eirika greys out as after
+     d. A on the target (confirm sound): the map battle plays as described above. HP and weapon
+        uses update after the rounds, and Eirika greys out as after
         Wait. HP and uses stay as they are after Wait and End turn.
-     e. A kill (Seth can kill on turn 1): the enemy vanishes from its tile at once; the tile is
+     e. A kill (Seth can kill on turn 1): the enemy fades out after the death dialogue, if any; its tile is
         empty, the cursor can stand on it and A there opens the map menu. It does not return
         after End.
   4. B in the unit menu. Expected: she is back at her start tile and selected again, the range shows.
@@ -78,14 +81,14 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
   5. Press A on an empty tile. Expected: the map menu (Unit, Status, Guide, Options, Suspend,
      End). Choose End. Expected: the "Enemy Phase" banner, then the two Soldiers walk one after the
      other to the tile next to Eirika with the target cursor on her (about 1 second each) and
-     attack her. The result applies at once: one Soldier hits her (the HP of the unit at (4, 5)
-     drops by 9) and each Soldier dies to her counter and vanishes. After each Soldier the game
+     attack her through the map battle display above. With the captured initial positions and no earlier
+     combat, one Soldier deals 9 damage and both die to her counter. Different player actions can
+     change that outcome. Dismiss any post-battle dialogue with A. After each Soldier the game
      pauses for about 0.3 s (the map fade; the tiles do not change, so it is only a pause). Each
      walk has footstep sounds panned by the walker's screen position (needs sound effects on).
      Then the "Player Phase" banner of turn 2 and Eirika is no longer grey.
-  - Limits: frame timing matches the captures except the five frames the original spends writing
-    the suspend save after Wait. The save is written at each turn start as in the original, not at
-    an action. Everything else missing here is listed under "Ignore".
+  - Limits: resulting game state is checked against the original; whole-flow timing still needs
+    comparison. Missing systems are listed under "Ignore".
 
 ## Ignore (known gaps, not bugs)
 

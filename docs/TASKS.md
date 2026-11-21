@@ -84,7 +84,6 @@ EP-cap1/2.
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| PC-cap1 | CAP | Continue EP-cap2 through ending, one slot save, Chapter 1 opening to idle turn 1 | Named event/save/chapter windows; SRAM before/after save; publish run | EP-cap2 | todo |
 | PC-cap2 | CAP | `ram_trace_prologue_gameover`: animations off; Eirika dies; game over screen; back to the title | Run published | EP-cap1 | todo |
 | PC-0 | INV | Ending event and GameControl switch only: PC-cap1 | PrologueEndInventoryTest; exact windows for PC-1/2/2a/3/5; no whole-menu inventory | PC-cap1 | todo |
 | PC-1 | PORT | Win condition: the ending event starts through the wait-event path (`RunPotentialWaitEvents` > `CheckForWaitEvents` > `RunWaitEvents` > `EvCheck01_AFEV`, all Ported; `SetPermanentFlag`). `ShouldCallEndEvent`, `MaybeCallEndEvent`, `CallEndEvent` are never entered (EP-0b): leave unwritten | Event engine start step f4894 and flags in EP-cap2; end-event functions stay out until a capture enters them | PC-0, MC-16 | todo |
@@ -378,6 +377,8 @@ Scenario scopes and stop conditions: [M6 task scopes](plans/M6-task-scopes.md).
 Readability remains owner-paused until ~2026-11-17 (HANDOFF).
 
 ## Done
+
+- **GPT owner PC 2026-11-21:** PC-cap1 published (`assets-620a70f`): ending, postchapter slot save and Chapter 1 idle; older archive member contents preserved.
 
 - **GPT owner PC 2026-11-21:** EP-11f2 (shared UI helpers, event-end text palette reference); PC-9i (difficulty/slot capture inventory). Focused tests green; batch validation pending.
 

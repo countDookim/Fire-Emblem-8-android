@@ -72,7 +72,7 @@ public class BmxFade(
      */
     public fun bmxfadeInit(proc: Proc) {
         (proc.state as BmxFadeState).counter = START_COUNT
-        hardware.initBmBgLayers(playSt.chapterWeatherId == WEATHER_CLOUDS)
+        hardware.initBmBgLayers(playSt.chapterWeatherId == ChapterMapGfx.WEATHER_CLOUDS)
         hardware.lcd.setBlendTargetA(0, 0, 1, 0, 0)
         hardware.lcd.setBlendTargetB(0, 0, 0, 1, 1)
     }
@@ -151,11 +151,5 @@ public class BmxFade(
 
         /** `BG_EnableSyncByMask(4)`: the BG2 bit. */
         const val BG2_SYNC_BIT = 4
-
-        /**
-         * Meant to be `WEATHER_CLOUDS` (types.h: 7, see [ChapterMapGfx.WEATHER_CLOUDS]); the
-         * decomp enum has `WEATHER_RAIN` = 4. Left as is: this pass does not change behaviour.
-         */
-        const val WEATHER_CLOUDS = 4
     }
 }

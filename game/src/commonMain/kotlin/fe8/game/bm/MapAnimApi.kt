@@ -720,10 +720,9 @@ public class MapAnimApi(
      * [actorNum]) and special sprite (`CLASS_MANAKETE`, `Pal_MapAnimManaketeMu`) when it is a
      * `CLASS_MANAKETE_MYRRH` unit that is not asleep or petrified (`UNIT_STATUS_SLEEP`,
      * `_PETRIFY`, `_13`), holds `ITEM_DIVINESTONE` and the opposing weapon is not one of
-     * `ITEM_STAFF_SILENCE`, `_SLEEP`, `_BERSERK` or `ITEM_MONSTER_STONE`. The early return for
-     * two units of one faction differs from the C: the C returns unless one of the two battle
-     * units is an obstacle (`BUNIT_IS_OBSTACLE`, by terrain), this code tests for a missing
-     * character instead (behaviour left unchanged here).
+     * `ITEM_STAFF_SILENCE`, `_SLEEP`, `_BERSERK` or `ITEM_MONSTER_STONE`. Two units of one
+     * faction return early unless one of the two battle units is an obstacle
+     * (`BUNIT_IS_OBSTACLE`: terrain `TERRAIN_WALL_DAMAGED` or `TERRAIN_SNAG`).
      */
     public fun setBattleMuPaletteByIndex(actorNum: Int) {
         val b0 = state.unitBytes[0] ?: return
@@ -733,9 +732,9 @@ public class MapAnimApi(
         val faction0 = b0[o0 + OFF_INDEX].toInt() and 0xC0
         val faction1 = b1[o1 + OFF_INDEX].toInt() and 0xC0
         if (faction0 == faction1) {
-            val isObstacle0 = u32(b0, o0 + OFF_CHARACTER) == 0
-            val isObstacle1 = u32(b1, o1 + OFF_CHARACTER) == 0
-            if (!isObstacle0 && !isObstacle1) return
+            val obstacle0 = isObstacle(state.bu[0] ?: return)
+            val obstacle1 = isObstacle(state.bu[1] ?: return)
+            if (!obstacle0 && !obstacle1) return
         }
 
         val bActor = state.unitBytes[actorNum] ?: return
@@ -1362,6 +1361,10 @@ public class MapAnimApi(
         if (hooks.eventEngineExists()) mu.endAllMus()
         hooks.afterCleanup()
     }
+
+    /** `BUNIT_IS_OBSTACLE` (bmbattle.h): the battle unit stands on a damaged wall or a snag. */
+    private fun isObstacle(bu: BattleUnit): Boolean =
+        bu.terrainId == TERRAIN_WALL_DAMAGED || bu.terrainId == TERRAIN_SNAG
 
     /** `UNIT_CHAR_ID` of actor [actor]'s unit (0 for no character): the character number. */
     private fun charId(actor: Int): Int {

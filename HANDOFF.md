@@ -16,7 +16,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 - `EP-w`: GPT owner PC Terra, enemy-phase boot replay, until ~19:30Z (2026-11-21).
 - `EP1b-trapwire`: owner PC Claude, until ~21:58Z.
-- READABILITY `fe8.app (IconActions, PortraitIcon)`: owner PC Claude, until ~21:58Z.
+- `PC-2a`: owner PC Claude, until ~22:07Z.
 
 
 

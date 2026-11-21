@@ -157,7 +157,7 @@ public class UnitActionMenu(
         /**
          * `MakeRescueTargetList(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the number
          * of adjacent units [unit] can rescue.
-         * Stand-in until EP-34a ports rescue target lists.
+         * The game wires [MenuTargets.makeRescueTargetList] (EP-34a).
          */
         public var rescueTargetCount: (unit: Int) -> Int = { _ -> 0 }
 
@@ -192,7 +192,7 @@ public class UnitActionMenu(
         /**
          * `MakeTakeTargetList(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the number
          * of adjacent allies [unit] can take a rescued unit from.
-         * Stand-in until EP-34a ports take target lists.
+         * The game wires [MenuTargets.makeTakeTargetList] (EP-34a).
          */
         public var takeTargetCount: (unit: Int) -> Int = { _ -> 0 }
 

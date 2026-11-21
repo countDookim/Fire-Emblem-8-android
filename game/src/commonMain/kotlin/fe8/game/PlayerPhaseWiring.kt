@@ -259,6 +259,10 @@ internal class PlayerPhaseWiring(
             menuTargets.makeRescueTargetList(unit)
             menuTargets.targets.getSelectTargetCount()
         }
+        unitMenu.hooks.takeTargetCount = { unit ->
+            menuTargets.makeTakeTargetList(unit)
+            menuTargets.targets.getSelectTargetCount()
+        }
         unitMenu.hooks.makeTargetListForWeapon = { unit, item ->
             attackTargets.makeTargetListForWeapon(unit, item)
         }

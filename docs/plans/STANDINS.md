@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 234 across 46 Kotlin files.
+Total entries: 232 across 46 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -30,7 +30,7 @@ Total entries: 234 across 46 Kotlin files.
 | EP-23b | 4 |
 | EP-24b | 1 |
 | EP-33 | 3 |
-| EP-34a | 4 |
+| EP-34a | 2 |
 | EP-34b | 3 |
 | EP-7 | 2 |
 | IS-2 | 1 |
@@ -336,14 +336,12 @@ Total entries: 234 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `hasConvoyAccess` | Stand-in until EP-33 ports `HasConvoyAccess`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `unportedUsability` | The game's stand-in answers `MENU_NOTSHOWN` for all of them, so only the ported commands appear; EP-33 ports the remaining callbacks. |
 
-## EP-34a (4)
+## EP-34a (2)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `dropTargetCount` | Stand-in until EP-34a ports drop target lists. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `giveTargetCount` | Stand-in until EP-34a ports give target lists. |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `rescueTargetCount` | Stand-in until EP-34a ports rescue target lists. |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `takeTargetCount` | Stand-in until EP-34a ports take target lists. |
 
 ## EP-34b (3)
 

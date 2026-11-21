@@ -537,7 +537,7 @@ Total entries: 700 across 100 decomp files (missing reason: 0).
 | `DeleteEventEngines` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
 | `EnqueueEventCall` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
 | `CallNextQueuedEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
-| `CallEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
+| `CallEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the enqueue branch when a standard engine is already running is not exercised in any capture; the empty-queue branch calling [create] is exercised at f4893 -> f4894 of `ram_trace_prologue_end` |
 | `EventEngine_OnEnd` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
 | `EventEngine_CanStartSkip` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the captured events never press START, so the result is not observable; the engine only acts on it together with START |
 | `SetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | the only reference value is 0, so a no-op survives |

@@ -259,9 +259,10 @@ public class EventEngine(
      * The usual way to run an event script: starts it now, or queues it when an event is already
      * running so scripts never overlap.
      *
-     * Transcribed from src/event.c: CallEvent (not verified: the call queue is empty in the
-     *   prologue). Enqueues the call if a standard engine is running,
-     * else starts it now.
+     * Transcribed from src/event.c: CallEvent (not verified: the enqueue branch when a standard
+     *   engine is already running is not exercised in any capture; the empty-queue branch calling
+     *   [create] is exercised at f4893 -> f4894 of `ram_trace_prologue_end`). Enqueues the call
+     * if a standard engine is running, else starts it now.
      */
     public fun callEvent(events: Int, execType: Int) {
         if (findStd() != null) enqueueEventCall(events, execType) else create(events, execType)

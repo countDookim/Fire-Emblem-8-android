@@ -356,8 +356,9 @@ public class EventInfos(
      *
      * Starts the found entry: sets its flag and runs its script as a cutscene-type event. If the
      * script won the chapter (`EVFLAG_WIN`) the allies are refreshed and the blinking icon is
-     * hidden. The `EVENT_NOSCRIPT` and `EVFLAG_WIN` branches are not verified: the captured turn
-     * event has a script and does not set the win flag.
+     * hidden. The `EVFLAG_WIN` branch is verified on the Prologue win (`f4893 -> f4894` of
+     * `ram_trace_prologue_end`); the `EVENT_NOSCRIPT` branch is not verified: every captured
+     * entry has a script.
      */
     public fun startEventFromInfo(info: EventInfo, execType: Int) {
         if (info.script == 0) return
@@ -537,8 +538,9 @@ public class EventInfos(
      * word 2) matches when the required flag is 0 (none), 100 (not named in the decomp's
      * event-flags.h; meaning unknown) or set.
      *
-     * Verified for an entry whose required flag is clear (no match) and one that needs no flag
-     * (matches); the entry that needs flag 100 or a set flag is not in a trace.
+     * Verified for an entry whose required flag is clear (no match), one that needs no flag
+     * (matches), and one whose required flag is set (`EVFLAG_DEFEAT_BOSS` on the Prologue win,
+     * `f4893 -> f4894` of `ram_trace_prologue_end`); the flag 100 branch is not in a trace.
      */
     public fun evCheck01Afev(info: EventInfo): Int {
         val entry = info.listScript

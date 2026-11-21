@@ -296,7 +296,7 @@ public class BattleForecast(
      * Transcribed from src/bksel.c: BattleForecast_OnEnd (not verified: the frame palette it
      *   restores is the window's own in the capture, so no mutation changes captured data)
      *
-     * The end callback: puts the window frame graphics and palette back (`UnpackUiFrameBuffered`).
+     * The end callback: puts the window frame graphics and palette back (`LoadUiFrameGraphics`).
      */
     private fun forecastOnEnd() {
         UiFrame.loadUiFrameGraphics(hardware, rom, playSt.windowColor)

@@ -4,10 +4,13 @@ import fe8.game.RomView
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterMapGfx
 import fe8.game.bm.PlaySt
+import fe8.game.scene.TalkScene
 import fe8.game.ui.ItemIcon
 import fe8.game.ui.UiFrame
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
+import gbafe.core.rng.LcgRng
+import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
@@ -17,6 +20,9 @@ import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.TemporaryLock
 import gbafe.render.BgHardware
 import gbafe.render.PaletteFade
+import gbafe.render.SpriteLayers
+import gbafe.text.MsgHuffman
+import gbafe.text.MsgStrings
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -83,6 +89,24 @@ class EventEndGraphicsDifferentialTest {
         assertEquals(captured(want, 1), bank(hardware, 1))
         assertEquals(List(16) { 0 }, bank(hardware, 0))
         assertEquals(List(16) { 0 }, bank(hardware, 2))
+    }
+
+    @Test
+    fun `reset text restores the captured system text palette at event end`() {
+        available()
+        val run = ref.run(RUN)
+        val bytes = romFile.readBytes()
+        val before = run.region(dumpName(3720), "ewram")
+        val after = run.region(dumpName(3721), "ewram")
+        val hardware = hardwareAt(before)
+        val scene = TalkScene(
+            RomView.ofRom(bytes), bytes, hardware, ProcEngine(), SpriteLayers(), KeyStatus(),
+            { 0 }, MsgStrings(bytes, MsgHuffman(bytes, 0, 0), 0), {}, { 0 }, {}, LcgRng(),
+        )
+
+        assertNotEquals(captured(before, 0)[14], captured(after, 0)[14], "color 14 changed")
+        scene.text.resetText()
+        assertEquals(captured(after, 0), bank(hardware, 0))
     }
 
     @Test

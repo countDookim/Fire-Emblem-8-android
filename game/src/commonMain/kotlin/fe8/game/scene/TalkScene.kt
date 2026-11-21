@@ -14,7 +14,7 @@ import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
 import gbafe.proc.ProcScripts.mark
 import gbafe.proc.ProcScripts.repeat
-import gbafe.proc.ProcScripts.yield
+import gbafe.proc.TemporaryLock
 import gbafe.render.BgHardware
 import gbafe.render.PaletteFade
 import gbafe.render.SpriteLayers
@@ -102,16 +102,7 @@ public class TalkScene(
         "gProcScr_TalkSkipListener",
         listOf(mark(Talk.PROC_MARK_TALK), repeat(ProcFunc { skipListenerOnIdle(it) }), end()),
     )
-    private val lockScript = ProcScript(
-        "ProcScr_TemporaryLock",
-        listOf(yield(), repeat(ProcFunc { lockOnLoop(it) }), end()),
-    ) { LockState() }
-
-    /** State of the temporary lock proc. */
-    private class LockState {
-        /** Remaining frames to keep the parent proc locked. */
-        var frames = 0
-    }
+    private val temporaryLock = TemporaryLock(procs)
 
     private val arrowLut: Array<SpriteObject> by lazy {
         Array(ARROW_LUT_SIZE) { rom.objN(rom.u32(ARROW_LUT + 4 * it)) }
@@ -368,19 +359,13 @@ public class TalkScene(
     override fun startFaceFadeOut(face: Int) {
         val slot = face - TalkFace.FACE_HANDLE
         val target = this.face.gFaces[slot] ?: return
-        paletteFade.start(BLACK_PALETTE, 0x16 + slot, 12, target)
+        paletteFade.startPalFadeToBlack(0x16 + slot, 12, target)
         this.face.endFaceIn8Frames(target)
     }
 
     /** `StartTemporaryLock(proc, frames)` (`src/bmlib.c`): blocks [proc] for [frames] frames. */
     override fun startTemporaryLock(proc: Proc, frames: Int) {
-        val lockProc = procs.startBlocking(lockScript, proc) ?: return
-        (lockProc.state as LockState).frames = frames
-    }
-
-    private fun lockOnLoop(proc: Proc) {
-        val lockState = proc.state as LockState
-        if (lockState.frames == 0) procs.breakProc(proc) else lockState.frames--
+        temporaryLock.start(proc, frames)
     }
 
     override fun moveTalkFace(from: Int, to: Int) {
@@ -637,9 +622,6 @@ public class TalkScene(
             0x0859100C, 0x08591026, 0x08591040, 0x08591066,
             0x0859108C, 0x085910BE, 0x085910F0, 0x08591122, 0x08590F4C, 0x08590F8C,
         )
-
-        /** The all-black palette a face fades out to. */
-        private val BLACK_PALETTE = ShortArray(16)
 
         /** Start of the cartridge ROM in the GBA address space. */
         private const val ROM_BASE = 0x08000000

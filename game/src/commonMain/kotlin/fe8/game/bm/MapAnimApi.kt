@@ -124,13 +124,16 @@ public fun interface SeSpacial {
 }
 
 /**
- * The start of the map battle animation: `BeginBattleAnimations` (bmbattle.c) and the
- * `src/mapanim_api.c` functions it reaches (`BeginBattleMapAnims` down to the MOVEUNIT set-up),
- * which fill [state] (`gManimSt`), start one `ProcScr_Mu` per actor and the map animation proc
- * ([script]).
+ * The map battle animation (a fight shown on the map, not with battle animations):
+ * `BeginBattleAnimations` (bmbattle.c) and the `src/mapanim_api.c` functions it reaches
+ * (`BeginBattleMapAnims` down to the MOVEUNIT set-up), which fill [state] (`gManimSt`) and start
+ * one `ProcScr_Mu` per actor and the map animation proc ([script]), plus the per-round and
+ * end steps of src/mapanim.c and src/mapanim_spellassoc.c that [script], [endScript] and
+ * [roundScript] run.
  *
- * [script] drives the map animation proc through talk reset, camera, battle quotes,
- * MOVEUNIT palette, info box and round execution. Not written (no capture runs them; they fail
+ * [script] drives the map animation proc through the text reset, camera, battle quotes,
+ * MOVEUNIT palette, info box and round execution, then jumps to [endScript].
+ * Not written (no capture runs them; they fail
  * loudly): the dance / refresh animation (`BeginMapAnimForDance`), the event battle script
  * (`ProcScr_MapAnimEventBattle`) and the link-arena style battle animations
  * (`BeginAnimsOnBattleAnimations`, EP-15).
@@ -242,7 +245,7 @@ public class MapAnimApi(
 
         /**
          * `MapAnim_BeginMISSAnim(unit)` (src/mapanim_specialeffect.c) for the unit at GBA address
-         * `unit`: the "MISS" text.
+         * `unit`: the miss effect.
          */
         public var beginMissAnim: IntConsumer = IntConsumer {}
 
@@ -266,7 +269,7 @@ public class MapAnimApi(
 
         /**
          * `MapAnim_BeginNODAMAGEAnim(unit)` (src/mapanim_specialeffect.c) for the unit at GBA
-         * address `unit`: the "NO DAMAGE" text. Stand-in until EP-24b (needs a 0-damage hit
+         * address `unit`: the no-damage effect. Stand-in until EP-24b (needs a 0-damage hit
          * capture): nothing happens.
          */
         public var beginNoDamageAnim: IntConsumer = IntConsumer {}
@@ -395,8 +398,11 @@ public class MapAnimApi(
     public val state: ManimSt = ManimSt()
 
     /**
-     * `ProcScr_MapAnimBattle` (0x089A3508): 21 commands driving the map battle animation from lock
-     * through battle quotes, MOVEUNIT palettes, info box, round loop and ending jump.
+     * `ProcScr_MapAnimBattle` (0x089A3508): locks the game, then (with the frame waits of the
+     * decomp) the text reset, camera onto the subject, battle quotes (waiting for the event
+     * engine), MOVEUNIT palettes and facing, info box, and the round loop: advance the round
+     * (jumping to [endScript] at the end entry), show the round's animation, show the poison
+     * effect, wait, repeat.
      */
     public val script: ProcScript = ProcScript(
         "ProcScr_MapAnimBattle",
@@ -426,9 +432,9 @@ public class MapAnimApi(
     )
 
     /**
-     * `ProcScr_MapAnimEnd` (0x089A35B0): the end of the animation, 19 commands: the defeat
-     * quote, the death fade, the info box end, the steal popup, the exp bar, the popups, the
-     * camera, the game unlock and the clean-up.
+     * `ProcScr_MapAnimEnd` (0x089A35B0): the end of the animation: the defeat quote, the death
+     * fade, the info box end, the steal popup, the exp bar, the weapon-broke and weapon-rank
+     * popups, the camera back onto the subject, the game unlock and the clean-up.
      */
     public val endScript: ProcScript = ProcScript(
         "ProcScr_MapAnimEnd",
@@ -455,7 +461,7 @@ public class MapAnimApi(
         ),
     )
 
-    /** The `struct Unit` fields `StartMu` reads, refilled for each MOVEUNIT. */
+    /** The `struct Unit` fields `StartMu` reads, refilled for each MOVEUNIT (allocation-free). */
     private val muUnit = MuUnit(address = 0, xPos = 0, yPos = 0, classId = 0, state = 0)
 
     /**
@@ -463,9 +469,10 @@ public class MapAnimApi(
      *   (not verified: the display writes (BG 2 clear, backdrop colour, the two map renders) are
      *   not compared; the branch it takes is verified through its callees)
      *
-     * Clears BG 2 and the backdrop colour, redraws the map, then (battle animations off, the
-     * only case seen) ends all MOVEUNITs, redraws the map, starts the map animation and sets
-     * `BATTLE_CONFIG_MAPANIMS`. With battle animations on (`sub_8055BC4`, EP-15) it fails loudly.
+     * Clears BG 2 and the backdrop colour (palette entry 0), redraws the map, then (battle
+     * animations off, the only case seen) ends all MOVEUNITs, redraws the map, starts the map
+     * animation and sets `BATTLE_CONFIG_MAPANIMS`. With battle animations on (`sub_8055BC4`
+     * true, then `BeginAnimsOnBattleAnimations`, EP-15) it fails loudly.
      */
     public fun beginBattleAnimations() {
         hardware?.let {
@@ -485,8 +492,10 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim_api.c: BeginBattleMapAnims
      *
-     * Sets up `gManimSt` and the MOVEUNITs and starts [script]. The dance and refresh battles
-     * (`BeginMapAnimForDance`) and the event battle script are not written.
+     * Sets up `gManimSt` and the MOVEUNITs and starts [script] in `PROC_TREE_3`. A refresh or
+     * dance-ring battle (`BATTLE_CONFIG_REFRESH`, `BATTLE_CONFIG_DANCERING`:
+     * `BeginMapAnimForDance`) and the event battle script (`ProcScr_MapAnimEventBattle`, used
+     * while an event engine runs) are not written.
      */
     public fun beginBattleMapAnims() {
         check((battle.stats.config and (CONFIG_REFRESH or CONFIG_DANCERING)) == 0) {
@@ -505,8 +514,10 @@ public class MapAnimApi(
      *
      * (The special script is 0 in every capture, so that field is not break-checked.)
      *
-     * Sets the actor count (1 or 2), the current round (the start of the hit array) and the
-     * spell's map animation script from the actor's weapon at battle start.
+     * Sets the actor count (1 or 2: `GetSpellAssocCharCount`), the current round (the start of
+     * the hit array; the decomp's `hit` argument is always `gBattleHitArray`) and the spell's
+     * map animation script (0 when the weapon has none) from the actor's weapon at battle start
+     * (`weaponBefore`).
      */
     public fun setupMapAnimSpellData(actor: BattleUnit) {
         state.actorCount = spells.getSpellAssocCharCount(actor.weaponBefore)
@@ -518,13 +529,15 @@ public class MapAnimApi(
      * Ported from src/mapanim_api.c: SetupMapBattleAnim
      *
      * Starts the MOVEUNIT of the actor and, in a two-actor animation, hides the target's map
-     * sprite and starts the target's; a triangle attack also starts those of its two partners
-     * (and hides their sprites). Then faces them, orders their sprite layers and sets each
-     * actor's HP (`hpInitial`, `GetUnitMaxHp`).
+     * sprite and starts the target's; a triangle attack (`BATTLE_HIT_ATTR_TATTACK` on the first
+     * hit) also starts those of its two partners (`taUnitA`, `taUnitB`, which attack as the
+     * actor's battle unit) and hides their sprites. Then faces them, orders their sprite layers
+     * and sets each actor's HP (`hpInitial`, `GetUnitMaxHp`) and the default colour effects.
      */
     public fun setupMapBattleAnim(actor: BattleUnit, target: BattleUnit) {
         makeBattleMoveUnit(0, actor, actor.bytes, 0, GBATTLE_ACTOR)
         if (state.actorCount > 1) {
+            // The decomp hides gBattleTarget's sprite here, not the `target` argument's.
             hooks.hideUnitSprite(s8(battle.target.bytes, OFF_INDEX) and 0xFF)
             makeBattleMoveUnit(1, target, target.bytes, 0, GBATTLE_TARGET)
         }
@@ -548,9 +561,11 @@ public class MapAnimApi(
      * Ported from src/mapanim_api.c: MakeBattleMOVEUNIT
      *
      * Fills actor [index] of `gManimSt` with the unit at [offset] of [bytes] (GBA address
-     * [address]) and its battle unit [bu], and starts its MOVEUNIT. An obstacle's MOVEUNIT is
-     * hidden and a petrified unit's gets the gray palette; neither occurs in a capture (not
-     * written: they fail loudly).
+     * [address]) and its battle unit [bu], and starts its MOVEUNIT. The decomp then hides the
+     * MOVEUNIT of an obstacle (`BUNIT_IS_OBSTACLE`: terrain `TERRAIN_WALL_DAMAGED` or
+     * `TERRAIN_SNAG`) and gives a unit with status `UNIT_STATUS_PETRIFY` or `UNIT_STATUS_13` the
+     * palette `BM_OBJPAL_UNIT_GRAYED`; neither occurs in a capture (not written: they fail
+     * loudly).
      */
     public fun makeBattleMoveUnit(
         index: Int,
@@ -587,8 +602,9 @@ public class MapAnimApi(
      * Ported from src/mapanim_api.c: SetBattleAnimFacing
      *
      * Turns the MOVEUNIT of actor [actor] toward actor [opponent] (`MA_FACING_OPPONENT`), to its
-     * class's default facing (`MA_FACING_DEFAULT`) or toward the map origin (`MA_FACING_UNK`);
-     * `MA_FACING_STANDING` changes nothing.
+     * class's default facing (`MA_FACING_DEFAULT`) or toward the map origin (`MA_FACING_UNK`:
+     * the decomp passes tile (0, 0), purpose unknown); `MA_FACING_STANDING` has no case in the
+     * decomp and changes nothing.
      */
     public fun setBattleAnimFacing(actor: Int, opponent: Int, facing: Int) {
         val proc = state.mu[actor]?.state as MuProc? ?: return
@@ -610,13 +626,14 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim_api.c: SetupBattleMOVEUNITs
      *
-     * Orders the MOVEUNITs' sprite layers ([sub807B4D0]) and faces them as the actor's weapon
-     * asks (`GetSpellAssocFacing`): the actor toward the target and, with two actors, the target
-     * toward the actor; a triangle attack's partners face the target too.
+     * Orders the MOVEUNITs' sprite layers ([orderActorSpriteLayers]) and faces them as the
+     * actor's weapon asks (`GetSpellAssocFacing`, one of the `MA_FACING_*` modes): the actor
+     * toward the target and, with two actors, the target toward the actor; a triangle attack's
+     * partners face the target too.
      */
     public fun setupBattleMoveUnits() {
         val facing = spells.getSpellAssocFacing(state.bu[0]!!.weaponBefore)
-        sub807B4D0()
+        orderActorSpriteLayers()
         when (state.actorCount) {
             2 -> {
                 if (tattack()) {
@@ -630,6 +647,7 @@ public class MapAnimApi(
         }
     }
 
+    /** `array` of `sub_807B4D0`: the actor indices in drawing order. */
     private val order = IntArray(ManimSt.ACTORS)
 
     /**
@@ -637,9 +655,11 @@ public class MapAnimApi(
      *   sprite animation layer, the display hook [Hooks.setMuAnimLayer], in no captured value)
      *
      * Sorts the actors by map position (row first, then column, the upper left first) and gives
-     * their MOVEUNIT sprite animations the layers 10, 9, 8, 7 in that order.
+     * their MOVEUNIT sprite animations the object layers 10, 9, 8, 7 (`gUnknown_08205714`) in that
+     * order, so the unit nearest the top of the map is drawn on top (the lower number is assumed
+     * to be the front; the decomp does not say). `sub_807B4D0` in the decomp.
      */
-    public fun sub807B4D0() {
+    public fun orderActorSpriteLayers() {
         var count = state.actorCount
         if (count == 2 && tattack()) count += 2
         for (i in 0 until count) order[i] = i
@@ -664,7 +684,7 @@ public class MapAnimApi(
     /**
      * Transcribed from src/mapanim.c: MapAnim_PrepareBattleTalk (not verified: text display only).
      *
-     * Resets active text for battle talk.
+     * Resets the text system (`ResetText`) before the battle quote events.
      */
     public fun mapAnimPrepareBattleTalk() {
         hooks.resetText()
@@ -673,7 +693,7 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim.c: MapAnim_MoveCameraOntoSubject
      *
-     * Ensures camera is centered on actor 0 (the battle subject).
+     * Moves the camera onto actor 0's tile (the attacker; `EnsureCameraOntoPosition`).
      */
     public fun mapAnimMoveCameraOntoSubject(proc: Proc) {
         hooks.ensureCameraOntoPosition(proc, x(0), y(0))
@@ -682,7 +702,8 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim.c: MapAnim_CallBattleQuoteEvents
      *
-     * Triggers pre-battle quotes if both combatants are present.
+     * With two actors, runs the battle quote events (`CallBattleQuoteEventsIfAny`) for the
+     * characters of actor 0 and actor 1.
      */
     public fun mapAnimCallBattleQuoteEvents() {
         if (state.actorCount == 2) {
@@ -691,10 +712,18 @@ public class MapAnimApi(
     }
 
     /**
-     * Transcribed from src/mapanim.c: SetBattleMuPaletteByIndex (not verified: no Manakete/Myrrh
-     * actor appears in any Prologue capture, so the non-Myrrh return leaves MU palettes unchanged)
+     * Transcribed from src/mapanim.c: SetBattleMuPaletteByIndex (not verified: no
+     * `CLASS_MANAKETE_MYRRH` actor appears in any Prologue capture, so the early return leaves MU
+     * palettes unchanged)
      *
-     * Configures the MOVEUNIT palette and special sprite for transformed Manaketes.
+     * Gives actor [actorNum]'s MOVEUNIT the special palette (`BM_OBJPAL_BANIM_SPECIALMU` +
+     * [actorNum]) and special sprite (`CLASS_MANAKETE`, `Pal_MapAnimManaketeMu`) when it is a
+     * `CLASS_MANAKETE_MYRRH` unit that is not asleep or petrified (`UNIT_STATUS_SLEEP`,
+     * `_PETRIFY`, `_13`), holds `ITEM_DIVINESTONE` and the opposing weapon is not one of
+     * `ITEM_STAFF_SILENCE`, `_SLEEP`, `_BERSERK` or `ITEM_MONSTER_STONE`. The early return for
+     * two units of one faction differs from the C: the C returns unless one of the two battle
+     * units is an obstacle (`BUNIT_IS_OBSTACLE`, by terrain), this code tests for a missing
+     * character instead (behaviour left unchanged here).
      */
     public fun setBattleMuPaletteByIndex(actorNum: Int) {
         val b0 = state.unitBytes[0] ?: return
@@ -742,10 +771,12 @@ public class MapAnimApi(
     }
 
     /**
-     * Transcribed from src/mapanim.c: SetBattleMuPalette (not verified: no Manakete/Myrrh actor
-     * appears in any Prologue capture, so the non-Myrrh return leaves MU palettes unchanged)
+     * Transcribed from src/mapanim.c: SetBattleMuPalette (not verified: no
+     * `CLASS_MANAKETE_MYRRH` actor appears in any Prologue capture, so the early return leaves MU
+     * palettes unchanged)
      *
-     * Sets MOVEUNIT palettes for participating actors.
+     * Runs [setBattleMuPaletteByIndex] for the target (when there are two actors) and then the
+     * actor.
      */
     public fun setBattleMuPalette() {
         when (state.actorCount) {
@@ -762,7 +793,14 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim.c: MapAnim_InitInfoBox
      *
-     * Initializes the map animation battle info box window position.
+     * Resets the colour effects and, unless this is a steal or refresh animation or the weapon
+     * shows no HP change (`GetSpellAssocReturnBool` false), opens the info box at x tile 15
+     * (`StartMapAnimInfoWindow`) with a y chosen to keep clear of the fighters. Screen y is
+     * tile y * 16 minus the camera. One actor: 40 above it when its screen y is 112 or more,
+     * else 24 below it. Two actors 80 or more apart: 64. Otherwise the lower one on the screen
+     * (greater y) decides: if its screen y is 112 or more, 40 above the other one, else 24
+     * below it. The
+     * window gets y / 8, a tile row.
      */
     public fun mapAnimInitInfoBox(proc: Proc) {
         hooks.setDefaultColorEffects()
@@ -796,7 +834,10 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim.c: MapAnim_AdvanceBattleRound
      *
-     * Advances to the next battle round and sets attacker/defender and hit fields.
+     * Reads the hit at `pCurrentRound` into `gManimSt`: the subject is actor 1 when the hit is
+     * a retaliation (`BATTLE_HIT_INFO_RETALIATION`) else actor 0, the target the other one (both
+     * 0 with one actor), plus the hit's attributes (truncated to 16 bits, the field is a u16),
+     * info and HP change; then moves to the next hit.
      */
     public fun mapAnimAdvanceBattleRound() {
         val hit = generate.hitArray[state.currentRound]
@@ -822,7 +863,9 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim.c: MapAnim_PrepareNextBattleRound
      *
-     * Prepares next battle round or ends the battle if terminating entry reached.
+     * The repeat step of [script]: at the terminating hit (`BATTLE_HIT_INFO_END`) it breaks and
+     * jumps to [endScript]; otherwise it takes the next round ([mapAnimAdvanceBattleRound]) and
+     * the spell script of the new subject's weapon, then breaks to the next command.
      */
     public fun mapAnimPrepareNextBattleRound(proc: Proc) {
         val hit = generate.hitArray[state.currentRound]
@@ -881,7 +924,8 @@ public class MapAnimApi(
      * Ported from src/mapanim_spellassoc.c: MapAnim_GetRoundProcScript
      *
      * The script of the current round: [roundScript] unless the weapon has a map animation script
-     * of its own (`gManimSt.specialProcScr`, a spell; none in the Prologue's windows).
+     * of its own (`gManimSt.specialProcScr`, a spell; none in the Prologue's windows, so that
+     * branch is a `TODO`, EP-23b).
      */
     public fun mapAnimGetRoundProcScript(): ProcScript {
         if (state.specialProcScr != 0) {
@@ -902,7 +946,8 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim_spellassoc.c: MapAnimMoveUnitTowardsTargetExt
      *
-     * Moves [mu1] 16 units (1 px) toward [mu2] on each axis where they differ.
+     * Moves [mu1] 16 units (1 px; the positions are Q4 fixed point) toward [mu2] on each axis
+     * where they differ.
      */
     public fun mapAnimMoveUnitTowardsTargetExt(mu1: MuProc, mu2: MuProc) {
         mu1.xQ4 += Integer.signum(mu2.xQ4 - mu1.xQ4) * 0x10
@@ -912,7 +957,9 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim_spellassoc.c: MapAnim_MoveSubjectsTowardsTarget
      *
-     * Moves the subject toward the target and, in a triangle attack, its two partners too.
+     * Moves the subject's MOVEUNIT toward the target's and, in a triangle attack
+     * (`BATTLE_HIT_ATTR_TATTACK`), the two partners' (actors 2 and 3) too. Run four times at the
+     * start of a round ([roundScript]).
      */
     public fun mapAnimMoveSubjectsTowardsTarget() {
         val target = muProc(state.targetActorId)
@@ -926,7 +973,8 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim_spellassoc.c: MapAnimMoveUnitAwayFromTargetExt
      *
-     * Moves [mu1] 16 units (1 px) away from [mu2] on each axis where they differ.
+     * Moves [mu1] 16 units (1 px; Q4 fixed point) away from [mu2] on each axis where they
+     * differ.
      */
     public fun mapAnimMoveUnitAwayFromTargetExt(mu1: MuProc, mu2: MuProc) {
         val dx = mu1.xQ4 - mu2.xQ4
@@ -961,7 +1009,7 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim_spellassoc.c: MapAnim_MoveCameraOnTarget
      *
-     * Moves the camera onto the target's tile.
+     * Moves the camera onto the round's target tile (`targetActorId`; `EnsureCameraOntoPosition`).
      */
     public fun mapAnimMoveCameraOnTarget(proc: Proc) {
         hooks.ensureCameraOntoPosition(proc, x(state.targetActorId), y(state.targetActorId))
@@ -981,7 +1029,9 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim_spellassoc.c: MapAnim_WaitForHPToEndChangingMaybe
      *
-     * Ends the wait once the info box's HP drain has finished (`hpChanging` is 0).
+     * The repeat step of [roundScript]: ends the wait once `hp_changing` is 0 again. The info
+     * box clears it when its displayed HP has caught up with `hp_cur`
+     * (src/mapanim_infobox.c line 165); the decomp's name has "Maybe".
      */
     public fun mapAnimWaitForHpToEndChangingMaybe(proc: Proc) {
         if (state.hpChanging == 0) engine.breakProc(proc)
@@ -990,12 +1040,18 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim_spellassoc.c: MapAnim_BeginRoundSpecificAnims
      *
-     * The hit of the round: registers the HP change, then plays the miss, no-damage or hit
-     * effect on the target. Verified: the hit and the miss round. The critical hit and the
-     * damaged wall / snag branches are 1:1 from the C but no capture runs them (their callees
-     * are [Hooks.startMuCritFlash], [Hooks.newBg0Shaker] and [Hooks.beginWallBreakAnim],
-     * stand-ins until EP-23b); the miss text is [Hooks.beginMissAnim] and the uncaptured
-     * no-damage text is [Hooks.beginNoDamageAnim] (EP-24b).
+     * The hit of the round, on the round's target (the subject itself for `BATTLE_HIT_ATTR_DEVIL`):
+     * with no HP-changing weapon only the miss effect; otherwise sets `hp_changing`, registers
+     * the HP change (on the subject, healed, instead of the target when actor 0 has
+     * `UNIT_STATUS_RECOVER`; on the subject too for `BATTLE_HIT_ATTR_HPSTEAL`) and then plays
+     * the miss, no-damage
+     * (unless `BATTLE_HIT_ATTR_PETRIFY`), wall break (target on `TERRAIN_WALL_DAMAGED` or
+     * `TERRAIN_SNAG`), critical or normal hit effect with its sound.
+     * Verified: the hit and the miss round. The critical hit and the damaged wall / snag
+     * branches are 1:1 from the C but no capture runs them (their callees are
+     * [Hooks.startMuCritFlash], [Hooks.newBg0Shaker] and [Hooks.beginWallBreakAnim], stand-ins
+     * until EP-23b); the miss effect is [Hooks.beginMissAnim] and the uncaptured no-damage
+     * effect is [Hooks.beginNoDamageAnim] (EP-24b).
      */
     public fun mapAnimBeginRoundSpecificAnims() {
         val actor = state.subjectActorId
@@ -1068,8 +1124,9 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim_specialeffect.c: MapAnim_BeginMISSAnim
      *
-     * Decompresses the MISS graphic into OBJ VRAM and starts the AP proc at the target's screen
-     * position.
+     * Decompresses the miss graphic (`Img_MapAnimMISS`) into OBJ VRAM at tile
+     * `BM_OBJCHR_BANIM_EFFECT` and starts its sprite animation (`Obj_MapAnimMISS`, via
+     * [ApProcs]) at the unit's screen position (tile * 16 + 8, + 16), object layer 2.
      */
     public fun mapAnimBeginMissAnim(unitAddress: Int) {
         val hw = hardware
@@ -1167,8 +1224,9 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim.c: MapAnim_DisplayDeathQuote
      *
-     * When an actor died, clears `EVFLAG_GAMEOVER` for Eirika and Ephraim (the lord's death is
-     * decided later) and, if the dead character has a defeat quote, ends the info box and shows it.
+     * When an actor died ([deadActor]), clears `EVFLAG_GAMEOVER` if the dead character is
+     * `CHARACTER_EIRIKA` or `CHARACTER_EPHRAIM` (the decomp does not say why) and, if the dead
+     * character has a defeat quote (`CheckBattleDefeatTalk`), ends the info box and shows it.
      */
     public fun mapAnimDisplayDeathQuote() {
         val actorNum = deadActor()
@@ -1188,7 +1246,7 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim.c: MapAnim_DisplayDeathFade
      *
-     * Starts the death fade of the dead actor's MOVEUNIT.
+     * Starts the death fade (`MU_StartDeathFade`) of the dead actor's MOVEUNIT ([deadActor]).
      */
     public fun mapAnimDisplayDeathFade() {
         val actorNum = deadActor()
@@ -1219,8 +1277,9 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim.c: BattleUnit_ShouldDisplayWpnBroke
      *
-     * Returns true if [bu] belongs to the player faction and broke its weapon in battle (the true
-     * broken-weapon branch is not exercised by any Prologue capture).
+     * Returns true if [bu] belongs to the player faction (`FACTION_BLUE`) and broke its weapon
+     * in battle (`DidBattleUnitBreakWeapon`; the true branch is not exercised by any Prologue
+     * capture).
      */
     public fun battleUnitShouldDisplayWpnBroke(bu: BattleUnit): Boolean {
         if ((s8(bu.bytes, OFF_INDEX) and 0xC0) == UnitLoader.FACTION_BLUE) {
@@ -1252,8 +1311,9 @@ public class MapAnimApi(
     /**
      * Ported from src/mapanim.c: BattleUnit_ShouldDisplayWRankUp
      *
-     * Returns true if [bu] belongs to the player faction and gained a weapon level in battle (the
-     * true rank-up branch is not exercised by any Prologue capture).
+     * Returns true if [bu] belongs to the player faction (`FACTION_BLUE`) and gained a weapon
+     * level in battle (`HasBattleUnitGainedWeaponLevel`; the true branch is not exercised by any
+     * Prologue capture).
      */
     public fun battleUnitShouldDisplayWRankUp(bu: BattleUnit): Boolean {
         if ((s8(bu.bytes, OFF_INDEX) and 0xC0) == UnitLoader.FACTION_BLUE) {
@@ -1289,8 +1349,8 @@ public class MapAnimApi(
      * set-up, and the capture's only difference is the one skipped branch: `EndAllMus` runs only
      * while an event engine exists, none does at the end of the capture's animation)
      *
-     * Resets the MOVEUNIT animations, text font, info box and BG layers and UI graphics after the
-     * animation.
+     * Resets the MOVEUNIT animations, text font, info box, BG layers, UI frame graphics and
+     * object UI graphics after the animation, and ends all MOVEUNITs when an event engine runs.
      */
     public fun mapAnimCleanup() {
         mu.resetMuAnims()
@@ -1303,6 +1363,7 @@ public class MapAnimApi(
         hooks.afterCleanup()
     }
 
+    /** `UNIT_CHAR_ID` of actor [actor]'s unit (0 for no character): the character number. */
     private fun charId(actor: Int): Int {
         val bytes = state.unitBytes[actor] ?: return 0
         val offset = state.unitOffset[actor]
@@ -1311,63 +1372,162 @@ public class MapAnimApi(
         return rom.u8(charPtr + 4)
     }
 
-    /** The default [Hooks.afterCleanup]. */
+    /** The default [Hooks.afterCleanup]: ends the MOVEUNITs and shows the target's sprite again. */
     private fun endAnimation() {
         mu.endAllMus()
         if (state.actorCount > 1) hooks.showUnitSprite(s8(battle.target.bytes, OFF_INDEX) and 0xFF)
     }
 
-    /** Constants. */
+    /** Decomp constants (include/ and constants/ headers) and ROM addresses used above. */
     public companion object {
+        /** `CHARACTER_EIRIKA` (constants/characters.h). */
         private const val CHARACTER_EIRIKA = 0x01
+
+        /** `CHARACTER_EPHRAIM`. */
         private const val CHARACTER_EPHRAIM = 0x0F
+
+        /** `EVFLAG_GAMEOVER` (constants/event-flags.h). */
         private const val EVFLAG_GAMEOVER = 0x65
+
+        /** `MA_FACING_OPPONENT` (include/mapanim.h). `MA_FACING_STANDING` (3) has no case. */
         private const val MA_FACING_OPPONENT = 0
+
+        /** `MA_FACING_DEFAULT`. */
         private const val MA_FACING_DEFAULT = 1
+
+        /** `MA_FACING_UNK`. */
         private const val MA_FACING_UNK = 2
+
+        /** GBA address of `gBattleActor`. */
         private const val GBATTLE_ACTOR = 0x0203A4EC
+
+        /** GBA address of `gBattleTarget`. */
         private const val GBATTLE_TARGET = 0x0203A56C
+
+        /** `BATTLE_HIT_ATTR_TATTACK` (bmbattle.h): triangle attack. */
         private const val ATTR_TATTACK = 1 shl 10
+
+        /** `BATTLE_HIT_ATTR_DEVIL`. */
         private const val ATTR_DEVIL = 1 shl 7
+
+        /** `BATTLE_HIT_ATTR_HPSTEAL`. */
         private const val ATTR_HPSTEAL = 1 shl 8
+
+        /** `BATTLE_HIT_ATTR_PETRIFY`. */
         private const val ATTR_PETRIFY = 1 shl 13
+
+        /** `UNIT_STATUS_RECOVER` (bmunit.h). */
         private const val STATUS_RECOVER = 10
+
+        /** `SONG_C8` (constants/songs.h). */
         private const val SONG_C8 = 0xC8
+
+        /** `SONG_2CE`. */
         private const val SONG_2CE = 0x2CE
+
+        /** The raw sound id `0x3C9` the decomp passes (no `SONG_` constant). */
         private const val SONG_3C9 = 0x3C9
+
+        /** `SONG_D2`: the sound of a normal hit (the decomp passes the literal `0xD2`). */
         private const val SONG_D2 = 0xD2
+
+        /** `SONG_D5`: the sound of a hit with `BATTLE_HIT_INFO_FINISHES` (literal `0xD5` in C). */
         private const val SONG_D5 = 0xD5
+
+        /** `SONG_D8`. */
         private const val SONG_D8 = 0xD8
+
+        /** `SONG_AF`: obstacle destroyed (end). */
         private const val SONG_AF = 0xAF
+
+        /** `SONG_B0`: obstacle destroyed (mid). */
         private const val SONG_B0 = 0xB0
+
+        /** `BATTLE_CONFIG_REFRESH` (bmbattle.h). */
         private const val CONFIG_REFRESH = 1 shl 6
+
+        /** `BATTLE_CONFIG_DANCERING`. */
         private const val CONFIG_DANCERING = 1 shl 9
+
+        /** `TERRAIN_WALL_DAMAGED` (constants/terrains.h). */
         private const val TERRAIN_WALL_DAMAGED = 0x1B
+
+        /** `TERRAIN_SNAG`. */
         private const val TERRAIN_SNAG = 0x33
+
+        /** `UNIT_STATUS_SLEEP`. */
         private const val STATUS_SLEEP = 2
+
+        /** `UNIT_STATUS_PETRIFY`. */
         private const val STATUS_PETRIFY = 0xB
+
+        /** `UNIT_STATUS_13`. */
         private const val STATUS_13 = 0xD
+
+        /** `struct Unit` offset of `pCharacterData`. */
         private const val OFF_CHARACTER = 0x00
+
+        /** `struct Unit` offset of `pClassData`. */
         private const val OFF_CLASS = 0x04
+
+        /** `struct Unit` offset of `index` (faction in bits 6-7). */
         private const val OFF_INDEX = 0x0B
+
+        /** `struct Unit` offset of `state`. */
         private const val OFF_STATE = 0x0C
+
+        /** `struct Unit` offset of `xPos`. */
         private const val OFF_X = 0x10
+
+        /** `struct Unit` offset of `yPos`. */
         private const val OFF_Y = 0x11
+
+        /** `struct Unit` offset of `statusIndex` (low nibble). */
         private const val OFF_STATUS = 0x30
+
+        /** `CLASS_MANAKETE` (constants/classes.h). */
         private const val CLASS_MANAKETE = 0x0E
+
+        /** `CLASS_MANAKETE_MYRRH`. */
         private const val CLASS_MANAKETE_MYRRH = 0x3C
+
+        /** `ITEM_STAFF_SILENCE` (constants/items.h). */
         private const val ITEM_STAFF_SILENCE = 0x51
+
+        /** `ITEM_STAFF_SLEEP`. */
         private const val ITEM_STAFF_SLEEP = 0x52
+
+        /** `ITEM_STAFF_BERSERK`. */
         private const val ITEM_STAFF_BERSERK = 0x53
+
+        /** `ITEM_DIVINESTONE`. */
         private const val ITEM_DIVINESTONE = 0xAA
+
+        /** `ITEM_MONSTER_STONE`. */
         private const val ITEM_MONSTER_STONE = 0xB5
+
+        /** `BM_OBJPAL_BANIM_SPECIALMU` (bmio.h): first of its two OBJ palette banks. */
         private const val BM_OBJPAL_BANIM_SPECIALMU = 8
+
+        /** ROM address of `Pal_MapAnimManaketeMu`. */
         private const val PAL_MAP_ANIM_MANAKETE_MU = 0x089A8F74
+
+        /** ROM address of `Img_MapAnimMISS`. */
         private const val IMG_MAP_ANIM_MISS = 0x089AC0A4
+
+        /** ROM address of `Obj_MapAnimMISS`. */
         private const val OBJ_MAP_ANIM_MISS = 0x089AC194
+
+        /** `BM_OBJCHR_BANIM_EFFECT` (bmio.h): first OBJ tile of the effect graphics. */
         private const val BM_OBJCHR_BANIM_EFFECT = 384
+
+        /** `OBJ_VRAM0` as an offset into VRAM. */
         private const val OBJ_VRAM0 = 0x10000
+
+        /** Bytes of one 4bpp tile (`0x20`). */
         private const val CHR_SIZE = 0x20
+
+        /** `gUnknown_08205714`: the sprite object layers handed out by [orderActorSpriteLayers]. */
         private val LAYERS = intArrayOf(10, 9, 8, 7)
     }
 }

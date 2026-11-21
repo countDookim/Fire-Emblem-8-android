@@ -699,8 +699,8 @@ Total entries: 691 across 98 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `MapAnim_PrepareBattleTalk` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | text display only |
-| `SetBattleMuPaletteByIndex` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no Manakete/Myrrh actor appears in any Prologue capture, so the non-Myrrh return leaves MU palettes unchanged |
-| `SetBattleMuPalette` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no Manakete/Myrrh actor appears in any Prologue capture, so the non-Myrrh return leaves MU palettes unchanged |
+| `SetBattleMuPaletteByIndex` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no `CLASS_MANAKETE_MYRRH` actor appears in any Prologue capture, so the early return leaves MU palettes unchanged |
+| `SetBattleMuPalette` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no `CLASS_MANAKETE_MYRRH` actor appears in any Prologue capture, so the early return leaves MU palettes unchanged |
 | `MapAnim_ShowPoisonEffectIfAny` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no hit of the capture poisons, so the taken branch is a no-op the capture cannot tell from a stand-in |
 | `MapAnim_StoleItemPopup` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no steal in the capture; the branch is the stolen item popup, a stand-in hook |
 | `MapAnim_Cleanup` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | its calls are display set-up, and the capture's only difference is the one skipped branch: `EndAllMus` runs only while an event engine exists, none does at the end of the capture's animation |

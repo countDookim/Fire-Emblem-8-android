@@ -3,11 +3,13 @@ package fe8.game.bm
 import fe8.game.RomView
 
 /**
- * The AI's weapon choice after a move without an action: `CpPerform_EquipBest` of
- * src/cp_perform.c and its helpers of src/cp_0803E2F4.c. A unit that moved only (and is not
- * berserk or cantoing) puts the weapon first that suits the damage the player units could do
- * on its tile: a melee weapon when the melee danger is at least the ranged one, else a ranged
- * weapon.
+ * The AI's weapon choice after its move: `CpPerform_EquipBest` of src/cp_perform.c and its
+ * helpers of src/cp_0803E2F4.c. A unit that is not cantoing, not berserk and whose decision is
+ * not an attack sums the damage the opposing units could deal on its destination tile and moves
+ * the strongest weapon of the fitting kind to the first item slot: a melee weapon (range 1)
+ * when the melee danger is at least the ranged one, else a ranged weapon (minimum range above
+ * 1). With no danger it changes nothing. Equipping is `EquipUnitItemSlot`: the chosen item moves
+ * to slot 0 and the items before it shift back by one.
  */
 public class CpEquip(
     rom: RomView,
@@ -23,6 +25,8 @@ public class CpEquip(
     private val util: CpUtility,
 ) {
     private val items = ItemInfo(rom)
+
+    /** `equip_flags` of `CpPerform_EquipBest`: [aiEquipGetFlags] output, one word per slot. */
     private val flags = IntArray(UNIT_ITEM_COUNT + 1)
 
     /**
@@ -41,7 +45,10 @@ public class CpEquip(
         }
     }
 
+    /** `range_danger` (out-parameter of `AiEquipGetDanger`): total of the ranged attackers. */
     private var rangeDanger = 0
+
+    /** `melee_danger`: total of the attackers with maximum range 1. */
     private var meleeDanger = 0
 
     /**
@@ -63,15 +70,16 @@ public class CpEquip(
      * Ported from src/cp_0803E2F4.c: AiEquipGetFlags
      *
      * Fills [out] (6 entries) with one flag word per inventory slot of the active unit: 1 for a
-     * weapon of range 1 only, 2 for one with a minimum range above 1, 4 for one worn down to 10
-     * percent of its uses, 8 for a usable staff (which also sets the unit's AI flag for healing
-     * or repair staves), each with the item's might in the high byte; 0 for a slot that is no
-     * usable weapon or staff. Returns false for an empty inventory. Deviation: the C ends without
-     * a return, so the value for a non-empty inventory is whatever the register held; here it is
-     * true (the captured call of the boss, which has one weapon, goes on to the danger query).
-     * Verified: the true result for a one-weapon inventory. Not seen: the staff branch, the
-     * worn-down flag and the weapon range flags (they show only through the equip, which needs
-     * two items).
+     * weapon with maximum range 1, 2 for one with a minimum range above 1, 4 for one worn down to
+     * 10 percent of its uses or less, 8 for a usable staff (which also sets the unit's AI flags
+     * for the staves of `sub_803EC18`), each with the item's might in the high byte (the
+     * value [aiEquipBestMatch] ranks by); 0 for a slot that is no usable weapon or staff or that
+     * is `IA_LOCK_3`. The first empty slot ends the loop. Returns false for an empty inventory.
+     * Deviation: the C ends without a return, so the value for a non-empty inventory is whatever
+     * the register held; here it is true (the captured call of the boss, which has one weapon,
+     * goes on to the danger query). Verified: the true result for a one-weapon inventory. Not
+     * seen: the staff branch, the worn-down flag and the weapon range flags (they show only
+     * through the equip, which needs two items).
      */
     public fun aiEquipGetFlags(out: IntArray): Boolean {
         val unit = active.unit
@@ -91,7 +99,7 @@ public class CpEquip(
                 val percent = items.getItemUses(item) * 100 / items.getItemMaxUses(item)
                 if (percent <= 10) out[i] = out[i] or 4
             } else {
-                sub803EC18(item)
+                setStaffAiFlags(item)
                 out[i] = out[i] or 8
             }
             out[i] = out[i] or (items.getItemMight(item) shl 8)
@@ -102,25 +110,32 @@ public class CpEquip(
     /**
      * Transcribed from src/cp_0803E2F4.c: sub_803EC18 (not verified: no staff in the capture)
      *
-     * Marks the active unit as a healer (`AI_UNIT_FLAG_2`) for the heal, mend, recover, physic
-     * and fortify staves, and as a repairer (`AI_UNIT_FLAG_4`) for the repair staff.
+     * Records which kind of staff the active unit carries in its `aiFlags`: `AI_UNIT_FLAG_2` for
+     * `ITEM_STAFF_HEAL`, `_MEND`, `_RECOVER`, `_PHYSIC` and `_FORTIFY`, `AI_UNIT_FLAG_4` for
+     * `ITEM_STAFF_REPAIR`. The decomp does not name the flags; src/cp_utility.c also sets them.
+     * Named for what it does since `sub_803EC18` says nothing.
      */
-    private fun sub803EC18(item: Int) {
+    private fun setStaffAiFlags(item: Int) {
         val unit = active.unit
         when (items.getItemIndex(item)) {
-            0x4B, 0x4C, 0x4D, 0x4E, 0x4F -> units.setAiFlags(unit, units.aiFlags(unit) or (1 shl 2))
-            0x57 -> units.setAiFlags(unit, units.aiFlags(unit) or (1 shl 4))
+            ITEM_STAFF_HEAL, ITEM_STAFF_MEND, ITEM_STAFF_RECOVER, ITEM_STAFF_PHYSIC,
+            ITEM_STAFF_FORTIFY,
+            -> units.setAiFlags(unit, units.aiFlags(unit) or AI_UNIT_FLAG_2)
+            ITEM_STAFF_REPAIR -> units.setAiFlags(unit, units.aiFlags(unit) or AI_UNIT_FLAG_4)
         }
     }
 
     /**
      * Ported from src/cp_0803E2F4.c: AiEquipGetDanger
      *
-     * Clears `gBmMapOther`, then for each valid shown enemy of the active unit (ids 1 to 0xBF
-     * that are not hidden or rescued) within its flying distance of ([x], [y]) floods its
-     * movement map and, when it can reach the tile, adds its attack (power plus the might of its
-     * equipped weapon) to the ranged ([rangeDanger]: minimum range above 1) or melee
-     * ([meleeDanger]: maximum range 1) total and to every tile it can reach, saturating at 255.
+     * Clears `gBmMapOther`, then for each valid, shown, not rescued unit that is not allied with
+     * the active unit (ids 1 to 0xBF) and is within its movement of ([x], [y]) in a straight
+     * rectangular distance ([aiIsWithinFlyingDistance], a cheap pre-filter) floods its movement
+     * map and, when it can reach the tile, adds its attack (power plus the might of its equipped
+     * weapon, `StoreItemAndGetUnitAttack`) to the ranged ([rangeDanger]: minimum range above 1)
+     * or melee ([meleeDanger]: maximum range 1) total and to every tile it can reach
+     * (`gBmMapMovement` up to `MAP_MOVEMENT_MAX`) in `gBmMapOther`, saturating at 255. The C
+     * also stores `combined_danger` (their sum), which nothing reads.
      * Verified: the clear, the flood of the last unit in range (it stays in `gBmMapMovement`)
      * and a total of 0 (no player unit can reach the boss's tile). Not seen: a non-zero danger.
      */
@@ -152,7 +167,8 @@ public class CpEquip(
     /**
      * Ported from src/cp_0803E2F4.c: AiIsWithinFlyingDistance
      *
-     * Whether the unit's movement is at least its rectangular distance to ([x], [y]).
+     * Whether the unit's movement (`UNIT_MOV`) is at least its rectangular (Manhattan) distance
+     * to ([x], [y]), ignoring terrain and blockers.
      */
     public fun aiIsWithinFlyingDistance(unit: Int, x: Int, y: Int): Boolean {
         val dx = x - units.xPos(unit)
@@ -164,8 +180,10 @@ public class CpEquip(
      * Transcribed from src/cp_0803E2F4.c: AiEquipBestConsideringDanger (not verified: with the
      * danger 0 it does nothing, and the boss has one item, so no equip happens)
      *
-     * With any danger, equips the best melee weapon (flag 1) when the melee danger is at least
-     * the ranged one, else the best ranged weapon (flag 2): [aiEquipBestMatch].
+     * With any danger (melee plus ranged non-zero), equips the best melee weapon (flag 1) when
+     * the melee danger is at least the ranged one, else the best ranged weapon (flag 2):
+     * [aiEquipBestMatch]. The decomp's third danger argument (`combined_danger`) is unused and
+     * left out here.
      */
     public fun aiEquipBestConsideringDanger(range: Int, melee: Int, equipFlags: IntArray) {
         if (melee + range != 0) {
@@ -177,7 +195,8 @@ public class CpEquip(
      * Transcribed from src/cp_0803E2F4.c: AiEquipBestMatch (not verified: never reached, see
      * [aiEquipBestConsideringDanger])
      *
-     * Equips the slot (after the first) whose flags hold [equipFlag] and have the highest might.
+     * Equips the slot whose flags hold [equipFlag] and have the highest might (the first such
+     * slot on a tie); nothing happens when no slot matches or slot 0 wins (it is already first).
      */
     private fun aiEquipBestMatch(equipFlag: Int, equipFlags: IntArray) {
         var slot = -1
@@ -194,12 +213,48 @@ public class CpEquip(
         if (slot > 0) items.equipUnitItemSlot(units.bytes, units.unitOffset(active.unit), slot)
     }
 
+    /** Decomp constants used above (bmunit.h, cp_common.h, bmmap.h, constants/items.h). */
     private companion object {
+        /** `UNIT_ITEM_COUNT`. */
         const val UNIT_ITEM_COUNT = 5
+
+        /** `AI_ACTION_COMBAT`. */
         const val AI_ACTION_COMBAT = 1
+
+        /** `US_HIDDEN`. */
         const val US_HIDDEN = 1
+
+        /** `US_RESCUED`. */
         const val US_RESCUED = 1 shl 5
+
+        /** `US_CANTOING` (alias of `US_HAS_MOVED`). */
         const val US_CANTOING = 1 shl 6
+
+        /** `MAP_MOVEMENT_MAX`: the largest value of `gBmMapMovement` that means "reachable". */
         const val MAP_MOVEMENT_MAX = 120
+
+        /** `AI_UNIT_FLAG_2` (`Unit::aiFlags`). */
+        const val AI_UNIT_FLAG_2 = 1 shl 2
+
+        /** `AI_UNIT_FLAG_4`. */
+        const val AI_UNIT_FLAG_4 = 1 shl 4
+
+        /** `ITEM_STAFF_HEAL`. */
+        const val ITEM_STAFF_HEAL = 0x4B
+
+        /** `ITEM_STAFF_MEND`. */
+        const val ITEM_STAFF_MEND = 0x4C
+
+        /** `ITEM_STAFF_RECOVER`. */
+        const val ITEM_STAFF_RECOVER = 0x4D
+
+        /** `ITEM_STAFF_PHYSIC`. */
+        const val ITEM_STAFF_PHYSIC = 0x4E
+
+        /** `ITEM_STAFF_FORTIFY`. */
+        const val ITEM_STAFF_FORTIFY = 0x4F
+
+        /** `ITEM_STAFF_REPAIR`. */
+        const val ITEM_STAFF_REPAIR = 0x57
     }
 }

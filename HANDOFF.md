@@ -20,12 +20,20 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 
 
-- `EP-3d`: Gemini owner PC, until ~19:00Z (`wip/ep3d`).
-- `TEST-3`: Gemini owner PC, until ~19:00Z (`wip/test3`).
+- `PC-0`: Gemini owner PC, until ~19:50Z (`wip/pc0`).
+- `BUG-blueleader`: Gemini owner PC, until ~19:40Z (`wip/bug-blueleader`).
 
 ## Current state
 
-- 2026-11-21 owner PC Gemini (Flash agents): **EP-3c done (`7d28703a`)**, **BUG-evtmenu ready on
+- 2026-11-21 owner PC Gemini (Flash agents): **EP-3d done (`3843deff`)**, **TEST-3 done (`e4244308`)**,
+  **EP-3c done (`7d28703a`)**, **BUG-evtmenu ready on `wip/bug-evtmenu` (`bba38165`)**. `EP-3d` ported
+  `BmSaveLib.writeGlobalSaveInfoNoChecksum`, `BmDifficulty.saveDungeonRecords`/`saveDungeonState`,
+  `MenuOverrides.getForceDisabledMenuItems`, `ItemInfo.getItemUseEffect` (`CpUtility` reused), and
+  `BmBattle.sub802C334` (wired in `PlayerPhaseWiring`; all 5 remain `Transcribed` per Rule 4 because captures
+  zero/skip those fields). `TEST-3` converted `tools/tests/test_kmp_common.py` to `unittest` (`56` Python tests
+  now run in CI vs `53`) and removed JVM-only `Charsets.US_ASCII` (`ItemInfo`) and `java.util.function.IntConsumer`
+  (`MapAnimApi`); `:app:assembleDebug` and untargeted `:testing:serialTest --rerun` green. 
+  Previously: **EP-3c done (`7d28703a`)**, **BUG-evtmenu ready on
   `wip/bug-evtmenu` (`bba38165`)**. `EP-3c` ported `BmSaveGmap` (`WriteWorldMapNodes`, `WriteWorldMapPaths`,
   `WriteWorldMapUnits`, `WriteWorldMapStuff`; `WriteWorldMapSkirmishes` Transcribed), `BmContainer.getConvoyItemArray`,
   `BmSaveLib.sramOffsetToAddr`, and fixed `GmData.NODE_SIZE = 4`; verified against `ram_trace_prologue_clear`
@@ -34,7 +42,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
   changing `scripts/ch1.fe8s:550` (`EVENT_MENUOVERRIDE_STAFF` -> `EVENT_MENUOVERRIDE_WEAPON2`) and leaving
   `swap_class` faithful to `Event35_UnitClassChanging`; parked on `origin/wip/bug-evtmenu` until the ROM repo
   re-extracts `ch1.fe8s` & publishes `extracted.tar.xz` (otherwise `RomImporterTest`, `ScriptRoundTripRomTest` and
-  `ci_check_extraction.sh` fail). Next: `EP-3d`, `TEST-3` (in progress).
+  `ci_check_extraction.sh` fail). Next: `PC-0`, `BUG-blueleader` (in progress).
 
 - 2026-11-21 owner PC Claude: **EP-31 done** (`c1aa4a04`, Ride trap lookup wired `100e12d2`); **EP-36** trap lookups and Light Rune toggles Transcribed and wired (`b44d3d2e`), row open until a trap capture exists; READABILITY CpPerform done (`0af1c5df`). **Master is red since `49074486` (GPT, `[skip ci]`):** adding `ram_trace_prologue_end` to `M4aRuns` makes `M4aPitchTest` fail at `r06620` channel 0 (9495 expected, 9460); reproduced on plain origin/master. BUG-bmxfade-weather and BUG-mapanim-pal fixed (`46ace61f`); READABILITY CpEquip/BmxFade/MapAnimApi done (`8b940d62`). EP-32 done (`5664d25b`). Next: EP-33 (in progress), EP-34a (in progress), EP-34b.
 

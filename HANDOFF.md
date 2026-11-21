@@ -18,6 +18,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 - `EP-31`: owner PC Claude, until ~18:45Z.
 - `EP-36`: owner PC Claude, until ~18:45Z.
+- `EP-3c`: Gemini owner PC, until ~17:50Z (`wip/ep3c`).
+- `BUG-evtmenu`: Gemini owner PC, until ~17:50Z (`wip/bug-evtmenu`).
 
 ## Current state
 

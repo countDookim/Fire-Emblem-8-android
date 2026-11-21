@@ -65,15 +65,23 @@ public class UnitSprites(
     public var clockSource: GameClock? = null
 
     /** The current game clock tick: [clockSource] when set, otherwise [gameClock]. */
-    private fun now(): Int = clockSource?.frames?.toInt() ?: gameClock()
+    private fun now(): Int {
+        // Not `clockSource?.frames?.toInt() ?: ...`: the nullable chain boxes the clock.
+        val source = clockSource
+        return if (source != null) source.frames.toInt() else gameClock()
+    }
 
     /**
      * Hook for `RegisterDataMove(src, dst, size)` of [forceSyncUnitSpriteSheet]: gets the
      * frame number (0 to 2) and the byte count; the default copies at once into OBJ VRAM instead
      * of queueing the transfer for `FlushTiles`.
      */
-    public var registerDataMove: (frame: Int, size: Int) -> Unit = { frame, size ->
-        copyFrame(frame, size)
+    public var registerDataMove: DataMove = DataMove { frame, size -> copyFrame(frame, size) }
+
+    /** A transfer of the unit sprite sheet's [frame] ([size] bytes); no boxed `Int` arguments. */
+    public fun interface DataMove {
+        /** Moves frame [frame] (0 to 2), [size] bytes. */
+        public operator fun invoke(frame: Int, size: Int)
     }
 
     /** Copies the first [size] bytes of animation frame [frame] (0 to 2) into OBJ VRAM. */

@@ -25,7 +25,9 @@ internal class MuSpriteAnim(
     // Primitive keys avoid boxing on each lookup; the arrays grow only for new compositions.
     private var objectAddresses = IntArray(16)
     private var objects = arrayOfNulls<SpriteObject>(16)
-    private var objectCount = 0
+    /** The sprite objects parsed and cached so far (grows once per first-shown frame). */
+    var objectCount = 0
+        private set
 
     /** `gMUGfxBuffer`: one decompressed sheet per slot. */
     private val gfxBuffer = ByteArray(MU_GFX_MAX_SIZE * Mu.MU_MAX_COUNT)

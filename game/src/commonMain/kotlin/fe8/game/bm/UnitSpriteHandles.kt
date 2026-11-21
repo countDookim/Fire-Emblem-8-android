@@ -139,6 +139,12 @@ public class UnitSpriteHandles(
         handles[configOffset] = (handles[configOffset].toInt() and 0x80.inv()).toByte()
     }
 
+    /** `gBmMapUnit` read: the unit id on tile ([x], [y]), 0 for none (no boxed `Int` result). */
+    public fun interface MapUnitAt {
+        /** Returns the unit id on tile ([x], [y]). */
+        public operator fun invoke(x: Int, y: Int): Int
+    }
+
     /**
      * Ported from src/bmudisp.c: RefreshUnitSprites (the ballista, trap, hidden-by-fog and
      * petrify branches are not exercised by the trace)
@@ -153,7 +159,7 @@ public class UnitSpriteHandles(
      * the sheet is copied to VRAM at once. Called by the player phase procs (src/playerphase.c),
      * after unit moves (src/bmunit.c, src/bmusailment.c), by event commands and by many screens.
      */
-    public fun refreshUnitSprites(mapUnitAt: (x: Int, y: Int) -> Int, traps: ByteArray) {
+    public fun refreshUnitSprites(mapUnitAt: MapUnitAt, traps: ByteArray) {
         handleIt = 0
         // Head sentinel: no successor yet, yDisplay 0x400 above every real position.
         put32(handles, 0, 0)

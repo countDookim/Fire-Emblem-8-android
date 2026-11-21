@@ -1,5 +1,6 @@
 package fe8.testing
 
+import fe8.game.Fe8Boot
 import fe8.game.Fe8Game
 import fe8.game.Fe8Sound
 import fe8.game.RomView
@@ -14,6 +15,13 @@ import org.junit.jupiter.api.Test
 
 /** Checks repeated, sustained opening walks through the production tick and GPU pack path. */
 class WalkingAllocationTest {
+    /** The number of valid units, to see a unit load (the event adds a unit). */
+    private fun loadedUnits(boot: Fe8Boot): Int {
+        var n = 0
+        for (i in 1 until 0xC0 + 6) if (boot.units.isValid(i)) n++
+        return n
+    }
+
     @Test
     fun `steady walking contains allocation-free windows`() {
         val rom = File(
@@ -43,10 +51,20 @@ class WalkingAllocationTest {
             (frame < 1000 || boot.engine.find(boot.playerPhaseScript) == null ||
                 boot.eventEngine.eventEngineExists())
         ) {
+            val parsedBefore = boot.muSpriteObjectsParsed
+            val loadedBefore = loadedUnits(boot)
             val before = AllocationMeter.current()
             game.tick()
             game.present(0f)
-            val bytes = AllocationMeter.current() - before
+            // A MU sprite frame shown for the first time parses its object once and caches it
+            // (48 B each, `MuSpriteAnim.objectAt`): a one-time fill, not a per-frame cost, so it
+            // is taken out of the frame. Anything else in that frame still counts.
+            val bytes = AllocationMeter.current() - before -
+                48L * (boot.muSpriteObjectsParsed - parsedBefore)
+            // A unit load (an event's LOAD, f11039 of this replay: ~71 KB, mostly the JVM linking
+            // the MU start's lambdas on first use) is a transition, not steady walking: the
+            // window around it is not counted.
+            val loading = loadedUnits(boot) != loadedBefore
             // Approximate a 48 kHz single consumer; this does not reproduce audio thread timing.
             pcm.render(output, 804)
             val walking = boot.mu.configs.any {
@@ -62,7 +80,7 @@ class WalkingAllocationTest {
                     break
                 }
             }
-            consecutive = if (walking && visibleMu) consecutive + 1 else 0
+            consecutive = if (walking && visibleMu && !loading) consecutive + 1 else 0
             if (consecutive > 25) {
                 windowFrames++
                 windowBytes += bytes
@@ -86,9 +104,13 @@ class WalkingAllocationTest {
         println("Sustained visible walking: $windows windows, $zeroWindows allocation-free")
         // Other game systems can allocate at animation and event transitions. Each counted window
         // contains ten visible walking frames after the first 25, so idle cannot hide cache boxing.
-        // Before the `Mu.muExistsActive` iterator fix 1-2 of 26 were free (3 needed, flaky); now 8
-        // in every run, so 5 leaves margin while a per-frame allocation still leaves 0.
+        // Before the `Mu.muExistsActive` iterator fix 1-2 of 26 were free; with the one-time MU
+        // sprite fills and the unit load taken out (above) and the boxed `Int`s of a MU's end
+        // (`UnitSpriteHandles.refreshUnitSprites`' map lookup, `UnitSprites` data move) removed,
+        // 23 of 24 are free in every run: the dirty one holds the MU leg start that follows the
+        // unit load (`MuCtrl.execReda`, f11004 and f11034: a few hundred bytes per leg start).
+        // 20 leaves margin while a per-frame allocation still leaves 0.
         assertTrue(windows >= 10, "too few sustained walking windows: $windows")
-        assertTrue(zeroWindows >= 5, "allocation-free walking windows: $zeroWindows of $windows")
+        assertTrue(zeroWindows >= 20, "allocation-free walking windows: $zeroWindows of $windows")
     }
 }

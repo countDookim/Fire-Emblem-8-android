@@ -859,6 +859,13 @@ public class Fe8Boot(
     /** MU animation owner retained to flush its registered tile moves during VBlank. */
     private var muSpriteAnim: MuSpriteAnim? = null
 
+    /**
+     * How many MU sprite objects have been parsed from the ROM so far. Each first show of a MU
+     * sprite frame parses one (48 B) and caches it; a test uses the growth to tell that one-time
+     * fill from a per-frame allocation.
+     */
+    public val muSpriteObjectsParsed: Int get() = muSpriteAnim?.objectCount ?: 0
+
     /** `PlaySeSpacial` over the game's [SoundWrapper] (the MU step sounds). */
     private val spacialSe: SpacialSe by lazy { SpacialSe(control.sound) }
 
@@ -1423,7 +1430,7 @@ public class Fe8Boot(
             it.terrainAt = { x, y -> map.terrain[y, x] }
         }
         val traps = trapPool
-        val mapUnitAt = { x: Int, y: Int -> map.unit[y, x] }
+        val mapUnitAt = UnitSpriteHandles.MapUnitAt { x, y -> map.unit[y, x] }
         val refresh = { handles.refreshUnitSprites(mapUnitAt, traps) }
         spriteHandles = handles
         refreshSprites = refresh

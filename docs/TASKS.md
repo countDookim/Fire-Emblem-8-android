@@ -371,14 +371,13 @@ Scenario scopes and stop conditions: [M6 task scopes](plans/M6-task-scopes.md).
 | BUG-deadmovestat | CAP+PORT | `MoveActiveUnit` (PlayerPhase.kt `moveActiveUnit`) skips `PidStatsAddSquaresMoved` for an actor killed in its action (EP-9: `AiRefreshMap` after a Soldier dies to the counter); the C reads `pCharacterData->number` through NULL (BIOS address 4) and `GetPidStats` may accept that pid, adding the move count and favval 2 to a real character | `gBWLDataArray` before and after f2018 and f2723 (`ram_trace_prologue_enemy_phase`): if an entry changes, port the read (BIOS open-bus value as mGBA returns it) | - | todo |
 | INV-iconstride | INV | `ItemIcon.ICON_ENTRY_SIZE` is 4 (from the 0x380-byte `DrawnIconLookupTable` in the build map) but `struct IconStruct` (include/icon.h) is 2 bytes with `MAX_ICON_COUNT` 224 (0x1C0): check which stride the game uses against a capture that draws item icons | Stride confirmed by a RAM dump; fix and test if wrong | - | todo |
 | D09-3 | PORT | Remaining item-popup branches (gold, full inventory, red/root, unit-name/number) | Each branch against a capture that reaches it, else not written | — | low priority; Rapier popup confirmed on device 11-11 |
-| BUG-bmxfade-weather | BUG | `BmxFade.WEATHER_CLOUDS` is 4 (`WEATHER_RAIN`); decomp `WEATHER_CLOUDS` is 7, so `bmxfadeInit` keeps BG3 level with BG2 in rain instead of clouds. Fix + unit test | `InitBmBgLayers` flag true only for weather 7 | — | todo |
-| BUG-mapanim-pal | BUG | `MapAnimApi.setBattleMuPaletteByIndex` early return for same-faction units tests a missing character; C tests `BUNIT_IS_OBSTACLE` (mapanim.c 317-355). Fix with a test | Return path equals the C for an obstacle target | — | todo |
 
 Readability remains owner-paused until ~2026-11-17 (HANDOFF).
 
 ## Done
 
 - **Gemini 2026-11-21:** EP-3c (`7d28703a`; `WriteWorldMapNodes`, `WriteWorldMapPaths`, `WriteWorldMapUnits`, `WriteWorldMapStuff` (`WriteWorldMapSkirmishes` Transcribed), `BmContainer.getConvoyItemArray`, `BmSaveLib.sramOffsetToAddr`, `GmData.NODE_SIZE = 4` fix; verified against `ram_trace_prologue_clear` `f03850`/`f03860`/`r04273`, `prologue.sav`, `s19316`, `ch2`, `ch6`; `:game:jvmTest`, `:game:dokkaGenerate` & untargeted `:testing:serialTest --rerun` green).
+- **Claude 2026-11-21 (fixes):** BUG-bmxfade-weather and BUG-mapanim-pal (`46ace61f`; clouds weather id 7, `BUNIT_IS_OBSTACLE` palette check; found in the MapAnimApi readability review).
 - **Claude 2026-11-21:** EP-31 (`c1aa4a04`, `100e12d2`; `ExitCommandUsability`, `GiveUsability`, `ItemSubMenu_IsTradeAvailable`, `PickCommandUsability`, `PlayCommandUsability`, `RescueUsability`, `RideCommandUsability` Ported via `UnitActionMenuDifferentialTest` f4181 (first guard each; all NOTSHOWN), target lists are EP-34a/b and M6-H stand-ins, Ride's trap lookup wired to `MapTraps`). EP-36 partial (`b44d3d2e`; trap lookups and Light Rune toggles Transcribed and wired; row stays open for a capture).
 - **GPT owner PC 2026-11-21:** PC-cap1 published (`assets-620a70f`): ending, postchapter slot save and Chapter 1 idle; older archive member contents preserved.
 

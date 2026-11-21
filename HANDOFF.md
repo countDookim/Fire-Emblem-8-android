@@ -13,13 +13,11 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-
-- `EP-w`: GPT owner PC Terra, enemy-phase boot replay, until ~19:30Z (2026-11-21).
-
-
-
-- `PC-2`: owner PC Claude (finishing Gemini's `wip/pc2`, stopped ~21:08Z), until ~00:06Z.
-- `PC-4a1`: owner PC Claude (finishing Gemini's `wip/pc4a1`, stopped ~21:08Z), until ~00:06Z.
+- `PC-2`: owner PC Claude (finishing Gemini's `wip/pc2`), until ~01:37Z.
+- `PC-4a1`: owner PC Claude (finishing Gemini's `wip/pc4a1`), until ~01:37Z.
+- `BUG-evtmenu`: owner PC Claude (ROM release `assets-d978739` published; merging Gemini's fix), until ~01:37Z.
+- `BUG-m4apitch`: owner PC Claude (M4aPitchTest red on `ram_trace_prologue_end` since `49074486`), until ~01:37Z.
+- `EP-w`: owner PC Claude (finishing GPT's unmerged `wip/gpt-nov21-enemy`, claim expired 19:30Z), until ~01:37Z.
 
 ## Current state
 

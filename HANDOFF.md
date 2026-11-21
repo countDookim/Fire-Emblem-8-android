@@ -13,7 +13,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-Nothing claimed.
+- `EP-31`: owner PC Claude, until ~18:45Z.
+- `EP-36`: owner PC Claude, until ~18:45Z.
 
 ## Current state
 

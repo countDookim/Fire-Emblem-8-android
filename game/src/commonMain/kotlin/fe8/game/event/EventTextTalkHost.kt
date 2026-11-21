@@ -105,14 +105,13 @@ public class EventTextTalkHost(
      * Ported from src/eventscr.c: Event23_DisaleMapDisp
      *
      * "Lock game graphics": the first time (`EV_STATE_GFXLOCKED` clear) suspends the map display
-     * (`BMapDispSuspend`) and blocks every map unit proc (`LockMus` is
-     * `Proc_BlockEachMarked(PROC_MARK_MU)`), so units stop animating under a full-screen scene.
+     * (`BMapDispSuspend`) and blocks every map unit proc (`LockMus`), so units stop animating under a full-screen scene.
      * Always sets the flag and yields.
      */
     override fun disableMapDisp(proc: EventEngineProc): Int {
         if (proc.evStateBits and EventConst.EV_STATE_GFXLOCKED == 0) {
             suspendMapDisp()
-            procs.blockEachMarked(Mu.PROC_MARK_MU)
+            Mu.lockMus(procs)
         }
         proc.evStateBits = proc.evStateBits or EventConst.EV_STATE_GFXLOCKED
         return EventConst.EVC_ADVANCE_YIELD
@@ -145,7 +144,7 @@ public class EventTextTalkHost(
     override fun enableMapDisp(proc: EventEngineProc): Int {
         if (proc.evStateBits and EventConst.EV_STATE_GFXLOCKED != 0) {
             resumeMapDisp()
-            procs.unblockEachMarked(Mu.PROC_MARK_MU)
+            Mu.releaseMus(procs)
         }
         proc.evStateBits = proc.evStateBits and EventConst.EV_STATE_GFXLOCKED.inv()
         return EventConst.EVC_ADVANCE_YIELD

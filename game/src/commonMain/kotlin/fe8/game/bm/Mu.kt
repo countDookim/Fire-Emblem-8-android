@@ -1181,6 +1181,24 @@ public class Mu(
         /** `PROC_MARK_MU`. */
         public const val PROC_MARK_MU: Int = 4
 
+        /**
+         * Blocks every MU proc, so the map units stop under a full-screen scene.
+         *
+         * Ported from src/mu.c: LockMus
+         */
+        public fun lockMus(procs: ProcEngine) {
+            procs.blockEachMarked(PROC_MARK_MU)
+        }
+
+        /**
+         * Unblocks every MU proc.
+         *
+         * Ported from src/mu.c: ReleaseMus
+         */
+        public fun releaseMus(procs: ProcEngine) {
+            procs.unblockEachMarked(PROC_MARK_MU)
+        }
+
         /** `MU_STATE_SLEEPING`. */
         public const val MU_STATE_SLEEPING: Int = 3
 

@@ -35,7 +35,7 @@ class ProcMarkedDifferentialTest {
     private val names = ProcArrayDump.romNames()
 
     /** The array after the emulated frame [step], as the dump the call at [step] left behind. */
-    private fun at(trace: WatchTrace, step: Int) = ProcArrayDump.ofWatch(trace, step, names)
+    internal fun at(trace: WatchTrace, step: Int) = ProcArrayDump.ofWatch(trace, step, names)
 
     @Test
     @VerifiesPort("Proc_BlockEachMarked", "Proc_UnblockEachMarked")
@@ -177,7 +177,7 @@ class ProcMarkedDifferentialTest {
      * count, flags and the tree links. Ours are allocated in slot order, so the dummies of the
      * free slots are ended again.
      */
-    private fun seed(dump: ProcArrayDump): ProcEngine {
+    internal fun seed(dump: ProcArrayDump): ProcEngine {
         val engine = ProcEngine()
         val dummy = ProcScript("dummy", listOf(ProcScripts.yield(), ProcScripts.end()))
         val top = dump.live.maxOf { it.slot }
@@ -212,7 +212,7 @@ class ProcMarkedDifferentialTest {
      * be unchanged in ours wherever the game's dump left it unchanged too (other code runs in the
      * same frame).
      */
-    private fun assertMatches(
+    internal fun assertMatches(
         engine: ProcEngine,
         before: ProcArrayDump,
         after: ProcArrayDump,

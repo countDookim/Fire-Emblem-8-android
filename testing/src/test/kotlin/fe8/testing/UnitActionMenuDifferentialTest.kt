@@ -10,6 +10,7 @@ import fe8.game.bm.PlaySt
 import fe8.game.bm.CamMove
 import fe8.game.bm.ActiveUnit
 import fe8.game.bm.ItemInfo
+import fe8.game.bm.MapTraps
 import fe8.game.bm.UnitActionMenu
 import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
@@ -178,6 +179,166 @@ class UnitActionMenuDifferentialTest {
         assertEquals(Menu.MENU_NOTSHOWN, menu.attackBallistaCommandUsability(0, 2))
     }
 
+    @Test
+    @VerifiesPort(
+        "ExitCommandUsability",
+        "GiveUsability",
+        "ItemSubMenu_IsTradeAvailable",
+        "PickCommandUsability",
+        "PlayCommandUsability",
+        "RescueUsability",
+        "RideCommandUsability",
+    )
+    fun `unit menu build at f4181 evaluates usability B callbacks to NOTSHOWN`() {
+        assumeInputs()
+        val sim = Sim("ram_trace_prologue_clear", 4181)
+        sim.start()
+        // The GBA's menu holds only Attack, Item and Wait, so every other callback answered
+        // MENU_NOTSHOWN (a menu item is created only for a shown or disabled answer).
+        assertEquals(listOf(1 to 1, 25 to 1, 28 to 1), sim.items, "items (number to availability)")
+        val menu = sim.unitMenu
+        val results = listOf(
+            "RideCommandUsability" to menu.rideCommandUsability(itemDef(4), 4),
+            "ExitCommandUsability" to menu.exitCommandUsability(itemDef(5), 5),
+            "PlayCommandUsability" to menu.playCommandUsability(itemDef(6), 6),
+            "PickCommandUsability" to menu.pickCommandUsability(itemDef(11), 11),
+            "RescueUsability" to menu.rescueUsability(itemDef(21), 21),
+            "GiveUsability" to menu.giveUsability(itemDef(24), 24),
+            "ItemSubMenu_IsTradeAvailable" to menu.itemSubMenuIsTradeAvailable(itemDef(26), 26),
+        )
+        for ((name, result) in results) {
+            assertEquals(Menu.MENU_NOTSHOWN, result, name)
+        }
+        for (number in listOf(4, 5, 6, 11, 21, 24, 26)) {
+            assertEquals(null, sim.items.find { it.first == number }, "item $number not built")
+        }
+    }
+
+    @Test
+    fun `usability B callbacks branch coverage`() {
+        assumeInputs()
+        val sim = Sim("ram_trace_prologue_clear", 4181)
+        sim.start()
+        val menu = sim.unitMenu
+        val units = sim.units
+        val unit = sim.active.unit
+        val o = units.unitOffset(unit)
+        val saved = units.bytes.copyOfRange(o, o + 8)
+        val savedState = units.state(unit)
+        fun reset() {
+            saved.copyInto(units.bytes, o)
+            units.setState(unit, savedState)
+            sim.bmSt.takenAction = 0
+            sim.bmSt.umTmpItem = 0
+        }
+        fun use(attribute: Int) {
+            reset()
+            val ptr = ATTRIBUTE_OWNERS.firstNotNullOf { (table, size, count) ->
+                (0 until count).map { table + size * it }.firstOrNull {
+                    sim.rom.u32(it + OFF_ATTRIBUTES) and attribute != 0
+                }?.let { it to table }
+            }
+            val at = if (ptr.second == CHARACTER_DATA) o else o + 4
+            put32(units.bytes, at, ptr.first)
+        }
+        val hooks = menu.hooks
+
+        // RescueUsability
+        hooks.rescueTargetCount = { 1 }
+        assertEquals(Menu.MENU_ENABLED, menu.rescueUsability(0, 21))
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.rescueUsability(0, 21))
+        for (bit in listOf(UnitTable.US_IN_BALLISTA, UnitTable.US_RESCUING)) {
+            units.setState(unit, savedState or bit)
+            assertEquals(Menu.MENU_NOTSHOWN, menu.rescueUsability(0, 21))
+        }
+        reset()
+        hooks.rescueTargetCount = { 0 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.rescueUsability(0, 21))
+
+        // GiveUsability
+        hooks.giveTargetCount = { 1 }
+        units.setState(unit, savedState or UnitTable.US_RESCUING)
+        assertEquals(Menu.MENU_ENABLED, menu.giveUsability(0, 24))
+        sim.bmSt.takenAction = UnitActionMenu.BM_TAKEN_ACTION_TAKE
+        assertEquals(Menu.MENU_NOTSHOWN, menu.giveUsability(0, 24))
+        sim.bmSt.takenAction = 0
+        units.setState(unit, savedState or UnitTable.US_RESCUING or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.giveUsability(0, 24))
+        units.setState(unit, savedState or UnitTable.US_RESCUING)
+        hooks.giveTargetCount = { 0 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.giveUsability(0, 24))
+        reset()
+        hooks.giveTargetCount = { 1 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.giveUsability(0, 24))
+
+        // ItemSubMenu_IsTradeAvailable
+        hooks.tradeTargetCount = { 1 }
+        assertEquals(Menu.MENU_ENABLED, menu.itemSubMenuIsTradeAvailable(0, 26))
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.itemSubMenuIsTradeAvailable(0, 26))
+        reset()
+        sim.bmSt.takenAction = UnitActionMenu.BM_TAKEN_ACTION_TRADE
+        assertEquals(Menu.MENU_NOTSHOWN, menu.itemSubMenuIsTradeAvailable(0, 26))
+        use(UnitActionMenu.CA_SUPPLY)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.itemSubMenuIsTradeAvailable(0, 26))
+        reset()
+        hooks.tradeTargetCount = { 0 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.itemSubMenuIsTradeAvailable(0, 26))
+
+        // PickCommandUsability
+        hooks.pickTargetCount = { 1 }
+        put32(units.bytes, o + 4, CLASS_DATA + CLASS_SIZE * (CLASS_ROGUE - 1))
+        assertEquals(Menu.MENU_ENABLED, menu.pickCommandUsability(0, 11))
+        hooks.pickTargetCount = { 0 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.pickCommandUsability(0, 11))
+        hooks.pickTargetCount = { 1 }
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.pickCommandUsability(0, 11))
+        reset()
+        assertEquals(Menu.MENU_NOTSHOWN, menu.pickCommandUsability(0, 11))
+
+        // PlayCommandUsability (delegates to the Transcribed sub_80230F0)
+        use(UnitActionMenu.CA_PLAY)
+        hooks.refreshTargetCount = { 1 }
+        assertEquals(Menu.MENU_ENABLED, menu.playCommandUsability(0, 6))
+        assertEquals(UnitActionMenu.ITEM_UNK_CD, sim.bmSt.umTmpItem)
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.playCommandUsability(0, 6))
+
+        // RideCommandUsability
+        use(UnitActionMenu.CA_BALLISTAE)
+        hooks.trapTypeAt = { _, _ -> MapTraps.TRAP_BALLISTA }
+        assertEquals(Menu.MENU_ENABLED, menu.rideCommandUsability(0, 4))
+        hooks.trapTypeAt = { _, _ -> MapTraps.TRAP_OBSTACLE }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.rideCommandUsability(0, 4))
+        hooks.trapTypeAt = { _, _ -> -1 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.rideCommandUsability(0, 4))
+        hooks.trapTypeAt = { _, _ -> MapTraps.TRAP_BALLISTA }
+        for (bit in listOf(
+            UnitTable.US_RESCUING, UnitTable.US_RESCUED, UnitTable.US_IN_BALLISTA,
+        )) {
+            units.setState(unit, savedState or bit)
+            assertEquals(Menu.MENU_NOTSHOWN, menu.rideCommandUsability(0, 4))
+        }
+        units.setState(unit, savedState)
+        sim.bmSt.takenAction = UnitActionMenu.BM_TAKEN_ACTION_BALLISTA
+        assertEquals(Menu.MENU_NOTSHOWN, menu.rideCommandUsability(0, 4))
+        reset()
+        assertEquals(Menu.MENU_NOTSHOWN, menu.rideCommandUsability(0, 4))
+
+        // ExitCommandUsability
+        units.setState(unit, savedState or UnitTable.US_IN_BALLISTA)
+        assertEquals(Menu.MENU_ENABLED, menu.exitCommandUsability(0, 5))
+        sim.bmSt.takenAction = UnitActionMenu.BM_TAKEN_ACTION_BALLISTA
+        assertEquals(Menu.MENU_NOTSHOWN, menu.exitCommandUsability(0, 5))
+        reset()
+        assertEquals(Menu.MENU_NOTSHOWN, menu.exitCommandUsability(0, 5))
+    }
+
+    /** The `MenuItemDef` address of `gUnitActionMenuItems[index]`. */
+    private fun itemDef(index: Int) = UNIT_ACTION_MENU_ITEMS + ITEM_DEF_SIZE * index
+
     private fun assumeInputs() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
@@ -202,6 +363,7 @@ class UnitActionMenuDifferentialTest {
         val active = ActiveUnit()
         val itemInfo = ItemInfo(rom)
         val unitMenu: UnitActionMenu
+        val bmSt = BmSt()
         val targetCountCalls = ArrayList<Pair<Int, Int>>()
         val selectCallbacks = ArrayList<Int>()
         var selectResult = -1
@@ -224,7 +386,7 @@ class UnitActionMenuDifferentialTest {
             unitMenu = UnitActionMenu(
                 units, active, itemInfo, loader, map,
                 AttackRange(map, units, itemInfo, EntityBmMaps(map, units, PlaySt()), loader),
-                hw,
+                hw, bmSt,
             )
         }
 
@@ -237,6 +399,7 @@ class UnitActionMenuDifferentialTest {
             // holds the unit and the action the caller (PP-11) leaves.
             val e = ewram(first)
             units.loadFrom(e)
+            bmSt.decode(e, BM_ST - EWRAM)
             readAction(e, iwram(first))
             keys.readFrom(e, KEY_STATUS - EWRAM)
             text.initTextFont(null, 0x06001000, 0x80, 0)
@@ -364,6 +527,24 @@ class UnitActionMenuDifferentialTest {
         const val ACTION_DATA = 0x0203A958
         const val GACTIVEUNIT = 0x03004E50
         const val MENU_SCRIPT = 0x085B64D0
+        const val UNIT_ACTION_MENU_ITEMS = 0x0859CA34
+        const val ITEM_DEF_SIZE = 0x24
+        const val US_HAS_MOVED = 1 shl 6
+        const val CLASS_ROGUE = 0x33
+        const val CHARACTER_DATA = 0x08803D64
+        const val CLASS_DATA = 0x08807164
+        const val CLASS_SIZE = 0x54
+        const val OFF_ATTRIBUTES = 0x28
+
+        /** The (table, entry size, entry count) of `gCharacterData` and `gClassData`. */
+        val ATTRIBUTE_OWNERS = listOf(
+            Triple(CHARACTER_DATA, 0x34, 0x100),
+            Triple(CLASS_DATA, CLASS_SIZE, 0x7F),
+        )
+
+        fun put32(b: ByteArray, at: Int, v: Int) {
+            for (k in 0..3) b[at + k] = (v ushr (8 * k)).toByte()
+        }
 
         fun u16(b: ByteArray, at: Int) =
             (b[at].toInt() and 0xFF) or ((b[at + 1].toInt() and 0xFF) shl 8)

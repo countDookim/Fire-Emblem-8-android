@@ -15,11 +15,13 @@ import gbafe.text.Text
  * src/menu_def.c) for the Prologue: the availability of the Attack (`AttackCommandUsability`),
  * Item (`ItemCommandUsability`), usability A commands (`ArenaCommandUsability`,
  * `ArmoryCommandUsability`, `AttackBallistaCommandUsability`, `ChestCommandUsability`,
- * `DanceCommandUsability`, `DoorCommandUsability`, `DropUsability`), and the effect of Wait
- * (`EffectWait`).
+ * `DanceCommandUsability`, `DoorCommandUsability`, `DropUsability`), usability B commands
+ * (`ExitCommandUsability`, `GiveUsability`, `ItemSubMenu_IsTradeAvailable`,
+ * `PickCommandUsability`, `PlayCommandUsability`, `RescueUsability`, `RideCommandUsability`),
+ * and the effect of Wait (`EffectWait`).
  * [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s
- * hold, together with a stand-in for the availability callback of every other command (EP-31,
- * EP-32 and EP-33 port the real ones; see [Hooks.unportedUsability]).
+ * hold, together with a stand-in for the availability callback of every other command (EP-32
+ * and EP-33 port the real ones; see [Hooks.unportedUsability]).
  *
  * It also holds the weapon select menu the Attack command opens (`gWeaponSelectMenuDef`): its
  * start, its availability, draw and switch-in callbacks, and its choice and cancel
@@ -87,7 +89,7 @@ public class UnitActionMenu(
          * items whose `isAvailable` callbacks are not ported (every item but the ported ones and
          * Wait, whose callback is `MenuAlwaysEnabled`), given the `MenuItemDef` address and the
          * item number. The game's stand-in answers `MENU_NOTSHOWN` for all of them, so only the
-         * ported commands appear; EP-31 to EP-33 port the remaining callbacks.
+         * ported commands appear; EP-32 and EP-33 port the remaining callbacks.
          */
         public var unportedUsability: (itemDef: Int, number: Int) -> Int = { _, _ ->
             error("unit menu item availability is not ported")
@@ -147,6 +149,41 @@ public class UnitActionMenu(
         public var ballistaAttackUsability: (unit: Int, x: Int, y: Int) -> Int = { _, _, _ ->
             Menu.MENU_NOTSHOWN
         }
+
+        /**
+         * `MakeRescueTargetList(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the number
+         * of adjacent units [unit] can rescue.
+         * Stand-in until EP-34a ports rescue target lists.
+         */
+        public var rescueTargetCount: (unit: Int) -> Int = { _ -> 0 }
+
+        /**
+         * `MakeGiveTargetList(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the number
+         * of adjacent allies that can take the rescued unit from [unit].
+         * Stand-in until EP-34a ports give target lists.
+         */
+        public var giveTargetCount: (unit: Int) -> Int = { _ -> 0 }
+
+        /**
+         * `MakeTradeTargetList(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the number
+         * of adjacent allies [unit] can trade with.
+         * Stand-in until EP-34b ports trade target lists.
+         */
+        public var tradeTargetCount: (unit: Int) -> Int = { _ -> 0 }
+
+        /**
+         * `MakeTargetListForPick(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the
+         * number of adjacent locked doors and chests [unit] can pick.
+         * Stand-in until M6-H ports pick target lists.
+         */
+        public var pickTargetCount: (unit: Int) -> Int = { _ -> 0 }
+
+        /**
+         * `GetTrapAt(x, y)` (src/bmtrick.c) then `trap->type`: the type of the trap at tile
+         * ([x], [y]), or -1 if there is none.
+         * Stand-in until EP-36 ports `GetTrapAt`.
+         */
+        public var trapTypeAt: (x: Int, y: Int) -> Int = { _, _ -> -1 }
 
         /** `ResetIconGraphics`; the game wires [fe8.game.ui.ItemIcon.resetIconGraphics]. */
         public var resetIconGraphics: () -> Unit = {}
@@ -294,6 +331,22 @@ public class UnitActionMenu(
             Menu.MenuFunc { _, _, itemDef, number -> doorCommandUsability(itemDef, number) }
         menu.callbacks[DROP_USABILITY] =
             Menu.MenuFunc { _, _, itemDef, number -> dropUsability(itemDef, number) }
+        menu.callbacks[EXIT_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> exitCommandUsability(itemDef, number) }
+        menu.callbacks[GIVE_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> giveUsability(itemDef, number) }
+        menu.callbacks[ITEM_SUB_MENU_IS_TRADE_AVAILABLE] =
+            Menu.MenuFunc { _, _, itemDef, number ->
+                itemSubMenuIsTradeAvailable(itemDef, number)
+            }
+        menu.callbacks[PICK_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> pickCommandUsability(itemDef, number) }
+        menu.callbacks[PLAY_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> playCommandUsability(itemDef, number) }
+        menu.callbacks[RESCUE_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> rescueUsability(itemDef, number) }
+        menu.callbacks[RIDE_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> rideCommandUsability(itemDef, number) }
         menu.callbacks[EFFECT_WAIT] = Menu.MenuFunc { m, item, _, _ -> effectWait(m!!, item!!) }
         menu.callbacks[UNIT_ACTION_MENU_ATTACK] =
             Menu.MenuFunc { m, item, _, _ -> unitActionMenuAttack(m!!, item!!) }
@@ -566,6 +619,151 @@ public class UnitActionMenu(
             units.xPos(active.unit),
             units.yPos(active.unit),
         )
+    }
+
+    /**
+     * Ported from src/bmmenu.c: RescueUsability
+     *
+     * The Rescue command is `MENU_NOTSHOWN` if the unit has moved (`US_HAS_MOVED`), is in a
+     * ballista (`US_IN_BALLISTA`) or is already rescuing (`US_RESCUING`), or if no unit can be
+     * rescued ([Hooks.rescueTargetCount]). Otherwise `MENU_ENABLED`.
+     * At f4181 the active unit has not moved, is in no ballista and rescues no one, so the
+     * answer is `MENU_NOTSHOWN` from the empty target list. The moved, ballista and rescuing
+     * branches and a non-empty target list are unexercised at f4181.
+     */
+    public fun rescueUsability(def: Int, number: Int): Int {
+        val state = units.state(active.unit)
+        if (state and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (state and (UnitTable.US_IN_BALLISTA or UnitTable.US_RESCUING) != 0) {
+            return Menu.MENU_NOTSHOWN
+        }
+
+        if (hooks.rescueTargetCount(active.unit) == 0) return Menu.MENU_NOTSHOWN
+
+        return Menu.MENU_ENABLED
+    }
+
+    /**
+     * Ported from src/bmmenu.c: GiveUsability
+     *
+     * The Give command is `MENU_NOTSHOWN` if the unit has moved (`US_HAS_MOVED`), has taken the
+     * Take action this move (`BM_TAKEN_ACTION_TAKE` of `gBmSt.taken_action`), is not rescuing
+     * (`US_RESCUING`), or no unit can receive the rescued one ([Hooks.giveTargetCount]).
+     * Otherwise `MENU_ENABLED`.
+     * At f4181 the unit has not moved and has not taken, and is not rescuing, so the answer is
+     * `MENU_NOTSHOWN` from the `US_RESCUING` check. The moved, taken and target list branches are
+     * unexercised at f4181.
+     */
+    public fun giveUsability(def: Int, number: Int): Int {
+        val state = units.state(active.unit)
+        if (state and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (bmSt.takenAction and BM_TAKEN_ACTION_TAKE != 0) return Menu.MENU_NOTSHOWN
+
+        if (state and UnitTable.US_RESCUING == 0) return Menu.MENU_NOTSHOWN
+
+        if (hooks.giveTargetCount(active.unit) == 0) return Menu.MENU_NOTSHOWN
+
+        return Menu.MENU_ENABLED
+    }
+
+    /**
+     * Ported from src/bmmenu.c: ItemSubMenu_IsTradeAvailable
+     *
+     * The Trade command is `MENU_NOTSHOWN` if the unit has moved (`US_HAS_MOVED`), has traded
+     * this move (`BM_TAKEN_ACTION_TRADE`), has `CA_SUPPLY`, or has no trade partner
+     * ([Hooks.tradeTargetCount]). Otherwise `MENU_ENABLED`.
+     * At f4181 the unit has not moved or traded and lacks `CA_SUPPLY`, so the answer is
+     * `MENU_NOTSHOWN` from the empty target list. The moved, traded and `CA_SUPPLY` branches and
+     * a non-empty target list are unexercised at f4181.
+     */
+    public fun itemSubMenuIsTradeAvailable(def: Int, number: Int): Int {
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (bmSt.takenAction and BM_TAKEN_ACTION_TRADE != 0) return Menu.MENU_NOTSHOWN
+
+        if (units.cAttributes(active.unit) and CA_SUPPLY != 0) return Menu.MENU_NOTSHOWN
+
+        if (hooks.tradeTargetCount(active.unit) == 0) return Menu.MENU_NOTSHOWN
+
+        return Menu.MENU_ENABLED
+    }
+
+    /**
+     * Ported from src/bmmenu.c: PickCommandUsability
+     *
+     * The Pick command is `MENU_NOTSHOWN` if the unit has moved (`US_HAS_MOVED`), is not a
+     * `CLASS_ROGUE`, or has no pick target ([Hooks.pickTargetCount]). Otherwise `MENU_ENABLED`.
+     * At f4181 the unit has not moved and is not a `CLASS_ROGUE`, so the answer is
+     * `MENU_NOTSHOWN` from the class check. The moved and target list branches are unexercised
+     * at f4181.
+     */
+    public fun pickCommandUsability(def: Int, number: Int): Int {
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (units.classId(active.unit) != CLASS_ROGUE) return Menu.MENU_NOTSHOWN
+
+        return if (hooks.pickTargetCount(active.unit) != 0) {
+            Menu.MENU_ENABLED
+        } else {
+            Menu.MENU_NOTSHOWN
+        }
+    }
+
+    /**
+     * Ported from src/bmmenu.c: PlayCommandUsability
+     *
+     * The Play command is `MENU_NOTSHOWN` if the unit lacks `CA_PLAY`. Otherwise sets
+     * `gBmSt.um_tmp_item` to `ITEM_UNK_CD` and delegates to [sub80230F0].
+     * At f4181 the active unit lacks `CA_PLAY`, so the answer is `MENU_NOTSHOWN`. The `CA_PLAY`
+     * branch and [sub80230F0] are unexercised at f4181.
+     */
+    public fun playCommandUsability(def: Int, number: Int): Int {
+        if (units.cAttributes(active.unit) and CA_PLAY == 0) return Menu.MENU_NOTSHOWN
+
+        bmSt.umTmpItem = ITEM_UNK_CD
+
+        return sub80230F0(def)
+    }
+
+    /**
+     * Ported from src/bmmenu.c: RideCommandUsability
+     *
+     * The Ride command is `MENU_NOTSHOWN` if the unit lacks `CA_BALLISTAE`, is rescuing,
+     * rescued or already in a ballista (`US_RESCUING`, `US_RESCUED`, `US_IN_BALLISTA`), has
+     * used a ballista this move (`BM_TAKEN_ACTION_BALLISTA`), or stands on no trap or on a
+     * trap that is not a ballista ([Hooks.trapTypeAt] against `TRAP_BALLISTA`). Otherwise
+     * `MENU_ENABLED`.
+     * At f4181 the active unit lacks `CA_BALLISTAE`, so the answer is `MENU_NOTSHOWN`. Every
+     * later branch is unexercised at f4181.
+     */
+    public fun rideCommandUsability(def: Int, number: Int): Int {
+        if (units.cAttributes(active.unit) and CA_BALLISTAE == 0) return Menu.MENU_NOTSHOWN
+
+        val busy = UnitTable.US_RESCUING or UnitTable.US_RESCUED or UnitTable.US_IN_BALLISTA
+        if (units.state(active.unit) and busy != 0) return Menu.MENU_NOTSHOWN
+
+        if (bmSt.takenAction and BM_TAKEN_ACTION_BALLISTA != 0) return Menu.MENU_NOTSHOWN
+
+        val type = hooks.trapTypeAt(units.xPos(active.unit), units.yPos(active.unit))
+        return if (type == MapTraps.TRAP_BALLISTA) Menu.MENU_ENABLED else Menu.MENU_NOTSHOWN
+    }
+
+    /**
+     * Ported from src/bmmenu.c: ExitCommandUsability
+     *
+     * The Exit command is `MENU_NOTSHOWN` if the unit is not in a ballista (`US_IN_BALLISTA`) or
+     * has used a ballista this move (`BM_TAKEN_ACTION_BALLISTA`). Otherwise `MENU_ENABLED`.
+     * At f4181 the active unit is not in a ballista, so the answer is `MENU_NOTSHOWN`. The
+     * in-ballista branches are unexercised at f4181.
+     */
+    public fun exitCommandUsability(def: Int, number: Int): Int {
+        if (units.state(active.unit) and UnitTable.US_IN_BALLISTA == 0) return Menu.MENU_NOTSHOWN
+
+        if (bmSt.takenAction and BM_TAKEN_ACTION_BALLISTA != 0) return Menu.MENU_NOTSHOWN
+
+        return Menu.MENU_ENABLED
     }
 
     /**
@@ -896,6 +1094,27 @@ public class UnitActionMenu(
         /** ROM address of `DropUsability` (thumb). */
         public const val DROP_USABILITY: Int = 0x08022911
 
+        /** ROM address of `ExitCommandUsability` (thumb). */
+        public const val EXIT_COMMAND_USABILITY: Int = 0x0802494D
+
+        /** ROM address of `GiveUsability` (thumb). */
+        public const val GIVE_USABILITY: Int = 0x080229F5
+
+        /** ROM address of `ItemSubMenu_IsTradeAvailable` (thumb). */
+        public const val ITEM_SUB_MENU_IS_TRADE_AVAILABLE: Int = 0x08022F35
+
+        /** ROM address of `PickCommandUsability` (thumb). */
+        public const val PICK_COMMAND_USABILITY: Int = 0x08023E7D
+
+        /** ROM address of `PlayCommandUsability` (thumb). */
+        public const val PLAY_COMMAND_USABILITY: Int = 0x08023159
+
+        /** ROM address of `RescueUsability` (thumb). */
+        public const val RESCUE_USABILITY: Int = 0x080228A5
+
+        /** ROM address of `RideCommandUsability` (thumb). */
+        public const val RIDE_COMMAND_USABILITY: Int = 0x080248C5
+
         /** ROM address of `UnitActionMenu_Attack` (thumb). */
         public const val UNIT_ACTION_MENU_ATTACK: Int = 0x08022B31
 
@@ -967,6 +1186,30 @@ public class UnitActionMenu(
 
         /** `CA_DANCE` of character/class attributes. */
         public const val CA_DANCE: Int = 1 shl 4
+
+        /** `CA_PLAY` of character/class attributes. */
+        public const val CA_PLAY: Int = 1 shl 5
+
+        /** `CA_BALLISTAE` of character/class attributes. */
+        public const val CA_BALLISTAE: Int = 1 shl 7
+
+        /** `CA_SUPPLY` of character/class attributes. */
+        public const val CA_SUPPLY: Int = 1 shl 9
+
+        /** `CLASS_ROGUE`. */
+        private const val CLASS_ROGUE = 0x33
+
+        /** `ITEM_UNK_CD`, the item `PlayCommandUsability` stores in `gBmSt.um_tmp_item`. */
+        public const val ITEM_UNK_CD: Int = 0xCD
+
+        /** `BM_TAKEN_ACTION_TAKE` of `gBmSt.taken_action`. */
+        public const val BM_TAKEN_ACTION_TAKE: Int = 1 shl 0
+
+        /** `BM_TAKEN_ACTION_TRADE` of `gBmSt.taken_action`. */
+        public const val BM_TAKEN_ACTION_TRADE: Int = 1 shl 1
+
+        /** `BM_TAKEN_ACTION_BALLISTA` of `gBmSt.taken_action`. */
+        public const val BM_TAKEN_ACTION_BALLISTA: Int = 1 shl 3
 
         /** `TERRAIN_ARENA_REGULAR`. */
         public const val TERRAIN_ARENA_REGULAR: Int = 0x08

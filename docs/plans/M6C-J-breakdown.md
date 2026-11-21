@@ -1404,3 +1404,65 @@ Callbacks remain inferred from source/cursors, not directly instrumented. Only t
 is covered. Archive verification retained 51,552 baseline members' contents (root provenance append
 excepted), and checked all 10,839 new entries. Audio remains excluded with the known clear-run divergence;
 this is not verified audio coverage. PC-0/PC-4i/PC-6i are now available; no Android chapter-completion claim.
+
+## PC-0 inventory (2026-11-21)
+
+Test: `PrologueEndInventoryTest` (`testing/src/test/kotlin/fe8/testing/PrologueEndInventoryTest.kt`) over
+`ram_trace_prologue_end` (`PC-cap1`). Covers ONLY the Prologue ending event (`f4894..9440`), `GameControl`
+post-chapter switch (`f9441..9444`, resume `f9863`), and Chapter 1 start (`f9864..10298`). Save-menu
+internals (`gProcScr_SaveMenuPostChapter` `f9444..9862`) are excluded (owned by `PC-4i` / `PC-4a..4g`).
+
+Capture notes and watch alignment:
+- `procs` and all per-step watches in `PC-cap1` use 1-based step indexing (`firstStep = 1`), matching the
+  step number `N` of `fNNNNN`/`rNNNNN` snapshots (`r04893`, `r04894`, `f09441`, `r09442`, `r09443`, `f09444`,
+  `f09863`, `r09864..r09871`, `f09872`).
+- `calls.txt` holds only the two `EP-cap1` `AiComputeCombatScore` calls (`f1614`, `f2039`), and `states.txt`
+  is empty. No function-entry trace exists for `f4894..10298`; callbacks below are inferred from proc
+  script cursors, watches, dense RAM, and pinned `fireemblem8u` source.
+
+Active proc windows (`EnemyPhaseInventoryTest.rows` over `procs` watch, 1-based steps):
+
+| Window | Frames | Key procs and transitions |
+|---|---|---|
+| Ending start (`PC-1`, `PC-2`, `PC-2a`) | `f4894..5000` | `ProcScr_StdEventEngine` and `gMusicProc3Script` start `f4894` (`gProcScr_PlayerPhase` cursor `33 -> 35`); `ProcScr_FadeToBlack` `f4895..4910`; `ProcScr_Mu` locked `f4912` (`EV_STATE_GFXLOCKED`); `ProcScr_FadeFromBlack` `f4916..4931`; `gProcScr_Talk` `f4933..5000+`; `gProcScr_E_FACE` x2 `f4939..5000+` |
+| Ending dialogue | `f4933..9403` | `ProcScr_StdEventEngine` stays alive unbroken `f4894..9440` with no save-menu proc before `f9444` |
+| Ending tail + switch out (`PC-2`, `PC-3`) | `f9406..9444` | `ProcScr_FadeToBlack` `f9406..9421`; faces end `f9422`; `REMA`/`ENUT`x11/`MNC2(1)` `f9424` (`EventScr_08592170` `f9424..9437`, `Mu` unlocked); `EventScr_08592114` `f9438`; `gProc_MapTask` restarts `f9431..9439` (`LOMA(0xFFFF)`); `sProc_BMVSync` and `gProc_MapTask` end `f9440`; `StdEventEngine`/`BMapMain`/`PlayerPhase` gone `f9441`; `GameControl` `81` -> `69` (`f9442`) -> `71` (`f9443`) -> `76` (`f9444`, `gProcScr_SaveMenuPostChapter` starts) |
+| Save menu (excluded) | `f9444..9862` | Owned by `PC-4i` / `PC-4a..4g` |
+| Chapter 1 start (`PC-5`) | `f9863..10298` | `GameControl@76` unlocked `f9863` -> `52` (`f9864`, `LGAMECTRL_EXEC_BM_EXT`, `ProcScr_WorldMapWrapper` skipped) -> `53` (`f9865..9869`, `StartBattleMap`) -> `54` (`f9870`, `gProc_BMapMain@1`, `gProc_MapTask@9`, `sProc_BMVSync@3`); `gProcScr_ChapterIntro` + 6 children `f9872..10296` (skip at `A` `f10200`); `gProc_BMapMain@12` starts Chapter 1 `ProcScr_StdEventEngine@5` at `f10298` |
+
+Observed values at transitions (`PC-cap1`):
+- `f4893 -> f4894`: `gProcScr_PlayerPhase` cursor `33 -> 35`, `ProcScr_StdEventEngine` starts (`pEventCurrent = 0x089EF164` `EventScr_Prologue_EndingScene`, `evStateBits = 0x0002`), `gPermanentFlagBits[3]` `0x00 -> 0x80` (`EVFLAG_HIDE_BLINKING_ICON` = `0x84`), `gChapterFlagBits[0]` `0xC3 -> 0xE7` (`EVFLAG_WIN` = `3`, `EVFLAG_DEFEAT_ALL` = `6`).
+- `f4911 -> f4912`: `ProcScr_Mu` lock count `0 -> 1` (`LockMus`), `evStateBits` `0x0102 -> 0x1102` (`EV_STATE_GFXLOCKED`).
+- `f9423 -> f9424`: `ProcScr_Mu` lock count `1 -> 0` (`ReleaseMus`), `gPlaySt[0x4A]` `0x00 -> 0x04` (`save_menu_type = 2`), `GameControl` `nextAction` `4 -> 2` (`GAME_ACTION_USR_SKIPPED`), `nextChapter` `0 -> 1`, `pEventCurrent` -> `EventScr_08592170` (`evStateBits = 0x0D12`). Note: all 11 `ENUT` flags (`0xE0, 0xE1, 0xB7, 0xB4, 0xB5, 0xDC, 0xB9, 0xC2, 0xC3, 0xE7, 0xC9`) are already set in `prologue.sav` (`gPermanentFlagBits` unchanged at `f9424`).
+- `f9443 -> f9444`: `gPlaySt.chapterIndex` `0 -> 1`, `gRNState` `(60569, 20783, 3607)` -> `(35448, 26949, 25418)` (3 `NextRN` draws), `gGmMonsterRnState` (`f09444.iwram.bin` `0x0300534E`) equals new RNG state, `gChapterStats[0]` (`f09444.ewram.bin` `0x0203ECF4`) = `0x00360180` (chapter `0`, turn `3`, time `54`), `gPlaySt.unk_2C_04` = `0x50` and `unk_30` rankings populated, blue units (Seth `13 -> 30` HP, Eirika `7 -> 16` HP) reset with `state = 0x09` (`US_HIDDEN | US_NOT_DEPLOYED`).
+- `f9864..9870`: `GameControl` jumps to `LGAMECTRL_EXEC_BM_EXT` (no `ProcScr_WorldMapWrapper`), `StartBattleMap` runs `f9865..9869` (`faction = 0x40`, `chapterTurnNumber = 0`, `gChapterFlagBits` cleared at `f9865`; `time_chapter_started = 10739` and `US_NOT_DEPLOYED` cleared to `state = 0x01` at `f9870`; `sTrapPool` at `0x0203A614` stays all zero).
+
+Boundaries, observed functions, and codebase status (`Ported` / `Transcribed` / `Unported`):
+
+- **`PC-1`** (`f4893 -> f4894`, `r04893 -> r04894`):
+  - Already `Ported`: `RunPotentialWaitEvents` (`PlayerPhase`), `CheckForWaitEvents`, `RunWaitEvents`, `EvCheck01_AFEV`, `StartEventFromInfo`, `SetFlag`, `SetPermanentFlag` (`EventInfo`, `Fe8EventFlags`), `EventEngine_Create` (`EventEngine`).
+  - Currently `Transcribed`: `CallEvent` (`EventEngine`, empty-queue branch).
+  - Never entered (leave unwritten): `ShouldCallEndEvent`, `MaybeCallEndEvent`, `CallEndEvent`.
+  - Work: differential verification test on `f4893 -> f4894` (and `CallEvent` empty-queue verification).
+- **`PC-2`** (`f4894..5000` start, `f9406..9438` tail):
+  - Already `Ported`: `Event01_End`, `Event02_EvBitAndIdMod` (`ENUT`), `Event05_SetSlot`, `Event08_Label`, `Event0A_Call`, `Event0C_Branch`, `Event19_Checks`, `Event12_StartBGM`, `Event1A_TEXTSTART` (`REMOVEPORTRAITS`), `Event1B_TEXTSHOW` (`TEXTSHOW`/`REMA`), `Event1D_WaitForLockTalk`, `Event21_TextBg`, `Event23_DisaleMapDisp`, `Event25_ChangeMap` (`LOMA`), `SetNextGameActionId` (`GameControl`), `Sound_FadeOutBGM` (`SoundWrapper`).
+  - Currently `Transcribed`: `Event03_CheckEvBitOrId`, `Event06_SlotOperation`, `Event17_Fade`.
+  - `Unported` (3 new functions): `Event2A_MoveToChapter` (`src/eventscr.c`, `EVSUBCMD_MNC2` branch), `SetNextChapterId` (`src/gamecontrol.c`), `DeleteAll6CWaitMusicRelated` (`src/soundwrapper.c`).
+- **`PC-2a`** (`f4894`, `f4911 -> f4912`, `f9423 -> f9424`):
+  - Already `Ported`: `RefreshAllies` (`UnitTable`), `SetUnitStatus` (`UnitTable`, status `0` path).
+  - `Unported` (2 new functions): `LockMus`, `ReleaseMus` (`src/mu.c`, `Proc_BlockEachMarked`/`Proc_UnblockEachMarked` on `PROC_MARK_MU`).
+- **`PC-3`** (`f9439..9444`, resume `f9863`) — covers >8 non-trivial unported/transcribed functions across 5 source files; split into 3 sub-tasks (`<= 8` functions each):
+  - **`PC-3a`** (Prologue teardown & `GameControl` post-chapter switch, `f9439..9444` & `f9863`):
+    - `EventEngine_OnEnd` (`src/event.c`, `EV_EXEC_UNK5` + `EV_STATE_CHANGEGM` branch, `Transcribed`), `EndAllMus` (`src/mu.c`, `Transcribed`), `EndBMapMain` (`src/bmio.c`, `Transcribed`), `GameControlHandlePostNormalOrExtraChapter`, `GameControl_PostChapterSwitch` (`Partially ported`), `GameControl_RestoreChapterId` (`Transcribed`), `GameControl_ChapterSwitch` (`Unported`), `GameControl_CallPostChapterSaveMenu` (`Unported`, handoff to `Make6C_SaveMenuPostChapter`), `StoreRNState` (`RngService`, `Transcribed` -> `gGmMonsterRnState`). (`GameControl_RememberChapterId` and `NextRN` are already `Ported`.)
+  - **`PC-3b`** (Chapter stats & chapter-change unit cleanup, `f9443 -> f9444`):
+    - `src/bmsave-bwl.c` (`Unported`): `RegisterChapterTimeAndTurnCount`, `GetNextChapterStatsSlot`, `GetChapterStats` (`GetGameClock` already `Ported`).
+    - `src/bmio.c` (`Unported`): `ChapterChangeUnitCleanup` (clears phantoms/green/red, heals and resets blue units, sets `US_HIDDEN | US_NOT_DEPLOYED`).
+  - **`PC-3c`** (Chapter rankings & party gold sum, `f9443 -> f9444`; split further if gold helpers exceed 8):
+    - `src/gamerankings.c` (`Unported`): `ComputeChapterRankings`, `GetChapterTacticsRank`, `GetChapterSurvivalRank`, `GetChapterDeathCount`, `GetChapterFundsRank`, `GetChapterCombatRank`, `GetChapterWinPerc`, `GetChapterExpRank`, `GetOverallRank` (`PidStatsGetTotal*` already `Transcribed` in `PidStats`).
+    - `src/bmitem.c` (`Unported`): `GetPartyTotalGoldValue` (plus `GetConvoyItemCostSum`, `GetUnitItemCostSum`; consider `PC-3d` for `GetPartyTotalGoldValue` + `GetChapterFundsRank`/`GetChapterCombatRank`/`GetChapterExpRank` if keeping strict `<= 8` total functions per row).
+- **`PC-5`** (`f9863..10298`):
+  - Correction to plan: `ProcScr_WorldMapWrapper` is NOT entered (`MNC2(1)` sets `save_menu_type = 2`, so `GameCtrl_CheckNewGameAndBranch` jumps to `LGAMECTRL_EXEC_BM_EXT` at `f9864`).
+  - Already `Ported`: `GameControl_RememberChapterId` (`GameControl`), `StartBattleMap`, `ClearBattleMapState`, `StartBMapMain` (`BattleMapStart`), `ChapterIntro` main effects (`ChapterIntroMainPathTest`/`ChapterIntroDifferentialTest`).
+  - Currently `Transcribed`: `GameCtrl_CheckNewGameAndBranch` (`GameControl`), `BmMain_StartIntroFx` (`BMapMain`), `gProcScr_ChapterIntro` script/skip tail (`ChapterIntro_BeginFadeOut`, `ChapterIntro_BeginFastFadeToMap`, `ChapterIntro_End`), `ClearTraps` (`MapTraps`).
+  - `Unported` (2 small `StartBattleMap` hooks): `ClearTemporaryUnits` (`src/bmunit.c`), `ResetMenuOverrides` (`src/uimenu.c`). (`InitMapObstacles` and `LoadChapterTraps` remain M6-H stand-ins since Chapter 1 has no traps/obstacles in `sTrapPool`.)
+  - Ends at `f10298` (`gProc_BMapMain@12` starting Chapter 1 `ProcScr_StdEventEngine@5`, boundary of `PC-6i-load`/`PC-6i-event`).

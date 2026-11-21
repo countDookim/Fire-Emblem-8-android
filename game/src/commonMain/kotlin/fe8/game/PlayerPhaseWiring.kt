@@ -18,6 +18,7 @@ import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.ItemInfo
 import fe8.game.bm.ItemMenuLine
 import fe8.game.bm.MenuItemPanel
+import fe8.game.bm.MenuTargets
 import fe8.game.bm.ChapterMapGfx
 import fe8.game.bm.MapAnimApi
 import fe8.game.bm.MapAnimExpBar
@@ -173,6 +174,7 @@ internal class PlayerPhaseWiring(
     ) { x, y, isDown -> forecast.updateStatArrowSprites(x, y, isDown) }
     private val attackTargets =
         AttackTargets(map, units, items, attackRange, traps, SelectTargets())
+    private val menuTargets = MenuTargets(attackTargets, entityMaps, units, rom)
     private val targetSelection = TargetSelection(
         engine, attackTargets.targets, keys, camMove,
     ) { UiFrame.clearBg0Bg1(hw) }.also {
@@ -252,6 +254,10 @@ internal class PlayerPhaseWiring(
         unitMenu.hooks.weaponTargetCount = { unit, item ->
             attackTargets.makeTargetListForWeapon(unit, item)
             attackTargets.targets.getSelectTargetCount()
+        }
+        unitMenu.hooks.rescueTargetCount = { unit ->
+            menuTargets.makeRescueTargetList(unit)
+            menuTargets.targets.getSelectTargetCount()
         }
         unitMenu.hooks.makeTargetListForWeapon = { unit, item ->
             attackTargets.makeTargetListForWeapon(unit, item)

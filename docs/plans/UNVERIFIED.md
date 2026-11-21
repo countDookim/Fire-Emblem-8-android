@@ -7,7 +7,48 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 696 across 99 decomp files (missing reason: 0).
+Total entries: 698 across 99 decomp files (missing reason: 0).
+
+## src/bmunit.c (36)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetUnitPower` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a power bonus item, so the bonus term is not exercised |
+| `GetUnitSkill` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
+| `GetUnitSpeed` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
+| `GetUnitDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
+| `GetUnitResistance` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no barrier in the trace |
+| `GetUnitLuck` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
+| `UnitRemoveInvalidItems` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no trace runs it yet |
+| `CanUnitRescue` | `game/src/commonMain/kotlin/fe8/game/bm/MenuTargets.kt` | f4181 never reaches it, every adjacent unit is an enemy |
+| `GetUnitAid` | `game/src/commonMain/kotlin/fe8/game/bm/MenuTargets.kt` | no capture reaches it |
+| `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | rescuee only; no ballistae |
+| `TickActiveFactionTurn` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | no unit in a capture has a barrier, torch or status duration, so the decrements and the redraw never run; the zero guards and the empty target list are seen on the Prologue enemy phase |
+| `UnitBeginCantoAction` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no capture begins a canto action |
+| `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | rescuer and ballista, no capture has either |
+| `IsUnitMagicSealed` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | no magic weapon |
+| `UnitAutolevelRealistic` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
+| `UnitApplyBonusLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |
+| `UnitAutolevelPenalty` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |
+| `UnitAutolevelWExp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitItemCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitMaxHp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
+| `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
+| `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `ClearUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced loads fill slots that are already zero, so a skipped clear survives |
+| `FixROMUnitStructPtr` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no traced unit has `CA_BIT_23`, so a broken repoint survives |
+| `UnitCheckStatCaps` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
+| `UnitHasMagicRank` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no unit in the captures has a magic rank, and no captured decision or output depends on it |
+| `SetAllUnitNotBackSprite` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | it runs in the select window, but no unit has `US_BIT8` set there, so the clearing is unobserved |
+| `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
+| `IsUnitSlotAvailable` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic slot fill; no trace comparison yet |
 
 ## src/scene.c (35)
 
@@ -48,45 +89,6 @@ Total entries: 696 across 99 decomp files (missing reason: 0).
 | `TalkToggleInvertedPalette` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `InitTalkTextWin` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no |
-
-## src/bmunit.c (34)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GetUnitPower` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a power bonus item, so the bonus term is not exercised |
-| `GetUnitSkill` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
-| `GetUnitSpeed` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
-| `GetUnitDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
-| `GetUnitResistance` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no barrier in the trace |
-| `GetUnitLuck` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
-| `UnitRemoveInvalidItems` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no trace runs it yet |
-| `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | rescuee only; no ballistae |
-| `TickActiveFactionTurn` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | no unit in a capture has a barrier, torch or status duration, so the decrements and the redraw never run; the zero guards and the empty target list are seen on the Prologue enemy phase |
-| `UnitBeginCantoAction` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no capture begins a canto action |
-| `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | rescuer and ballista, no capture has either |
-| `IsUnitMagicSealed` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | no magic weapon |
-| `UnitAutolevelRealistic` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-| `UnitApplyBonusLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |
-| `UnitAutolevelPenalty` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |
-| `UnitAutolevelWExp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitItemCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitMaxHp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
-| `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
-| `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `ClearUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced loads fill slots that are already zero, so a skipped clear survives |
-| `FixROMUnitStructPtr` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no traced unit has `CA_BIT_23`, so a broken repoint survives |
-| `UnitCheckStatCaps` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
-| `UnitHasMagicRank` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no unit in the captures has a magic rank, and no captured decision or output depends on it |
-| `SetAllUnitNotBackSprite` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | it runs in the select window, but no unit has `US_BIT8` set there, so the clearing is unobserved |
-| `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
-| `IsUnitSlotAvailable` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic slot fill; no trace comparison yet |
 
 ## src/worldmap_rm.c (29)
 

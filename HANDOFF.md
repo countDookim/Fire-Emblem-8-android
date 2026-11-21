@@ -18,12 +18,12 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 
 
-- `EP-31`: owner PC Claude, until ~18:45Z.
-- `EP-36`: owner PC Claude, until ~18:45Z.
 - `EP-3c`: Gemini owner PC, until ~17:50Z (`wip/ep3c`).
 - `BUG-evtmenu`: Gemini owner PC, until ~17:50Z (`wip/bug-evtmenu`).
 
 ## Current state
+
+- 2026-11-21 owner PC Claude: **EP-31 done** (`c1aa4a04`, Ride trap lookup wired `100e12d2`); **EP-36** trap lookups and Light Rune toggles Transcribed and wired (`b44d3d2e`), row open until a trap capture exists; READABILITY CpPerform done (`0af1c5df`). **Master is red since `49074486` (GPT, `[skip ci]`):** adding `ram_trace_prologue_end` to `M4aRuns` makes `M4aPitchTest` fail at `r06620` channel 0 (9495 expected, 9460); reproduced on plain origin/master. New rows BUG-bmxfade-weather, BUG-mapanim-pal. Next: EP-32, EP-33.
 
 - 2026-11-21 GPT: **PC-cap1 published** (private `620a70f`, `assets-620a70f`), ending → slot 0
   save → Chapter 1 player-phase idle f25580. SRAM f9799/f9802 brackets the write. 51,552 baseline

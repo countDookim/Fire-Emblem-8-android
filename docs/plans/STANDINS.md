@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 228 across 46 Kotlin files.
+Total entries: 235 across 46 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -20,7 +20,7 @@ Total entries: 228 across 46 Kotlin files.
 | M6-E | 43 |
 | M6-F | 16 |
 | M6-G | 5 |
-| M6-H | 41 |
+| M6-H | 44 |
 | M6-I | 26 |
 | M6-J | 10 |
 | D09-3 | 3 |
@@ -29,9 +29,9 @@ Total entries: 228 across 46 Kotlin files.
 | EP-1b | 1 |
 | EP-23b | 4 |
 | EP-24b | 1 |
-| EP-32 | 2 |
-| EP-34a | 3 |
-| EP-34b | 1 |
+| EP-33 | 3 |
+| EP-34a | 4 |
+| EP-34b | 3 |
 | EP-7 | 2 |
 | IS-2 | 1 |
 | PP-10 | 1 |
@@ -167,7 +167,7 @@ Total entries: 228 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `battleAnimationsOn` | Stand-in until M6-G for `BeginAnimsOnBattleAnimations` / `sub_8055BC4` (banim-ekrbattle): whether the battle is shown with battle animations ([BanimPrepare.sub8055BC4] exists in fe8.game.bm, left u... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 
-## M6-H (41)
+## M6-H (44)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -209,8 +209,11 @@ Total entries: 228 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `canUnitUseChestKeyItem` | Stand-in until M6-H ports chest key use. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `canUnitUseItem` | Stand-in until M6-H ports item use checks. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `doorTargetCount` | Stand-in until M6-H ports door target lists. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `isAdjacentForSupply` | Stand-in until M6-H ports the convoy command. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `pickTargetCount` | Stand-in until M6-H ports pick target lists. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `refreshTargetCount` | Stand-in until M6-H ports target lists for refresh. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `stealTargetCount` | Stand-in until M6-H ports steal target lists. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `summonTargetCount` | Stand-in until M6-H ports summon target lists. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until M6-H (the sound effect players are not in `SoundWrapper` yet; no visible effect in the Prologue, which calls it in the skip branch of [postBeginningEvent] a... |
 
 ## M6-I (26)
@@ -326,25 +329,29 @@ Total entries: 228 across 46 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `beginNoDamageAnim` | Stand-in until EP-24b (needs a 0-damage hit capture): nothing happens. |
 
-## EP-32 (2)
+## EP-33 (3)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold, together with a stand-in for the availability callback of every other command (EP-32 and EP-33 port the... |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `unportedUsability` | The game's stand-in answers `MENU_NOTSHOWN` for all of them, so only the ported commands appear; EP-32 and EP-33 port the remaining callbacks. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold, together with a stand-in for the availability callback of every other command (EP-33 ports the real one... |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `hasConvoyAccess` | Stand-in until EP-33 ports `HasConvoyAccess`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `unportedUsability` | The game's stand-in answers `MENU_NOTSHOWN` for all of them, so only the ported commands appear; EP-33 ports the remaining callbacks. |
 
-## EP-34a (3)
+## EP-34a (4)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `dropTargetCount` | Stand-in until EP-34a ports drop target lists. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `giveTargetCount` | Stand-in until EP-34a ports give target lists. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `rescueTargetCount` | Stand-in until EP-34a ports rescue target lists. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `takeTargetCount` | Stand-in until EP-34a ports take target lists. |
 
-## EP-34b (1)
+## EP-34b (3)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `supportTargetCount` | Stand-in until EP-34b ports support target lists. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `talkTargetCount` | Stand-in until EP-34b ports talk target lists. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `tradeTargetCount` | Stand-in until EP-34b ports trade target lists. |
 
 ## EP-7 (2)

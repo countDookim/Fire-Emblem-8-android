@@ -18,10 +18,12 @@ import gbafe.text.Text
  * `DanceCommandUsability`, `DoorCommandUsability`, `DropUsability`), usability B commands
  * (`ExitCommandUsability`, `GiveUsability`, `ItemSubMenu_IsTradeAvailable`,
  * `PickCommandUsability`, `PlayCommandUsability`, `RescueUsability`, `RideCommandUsability`),
- * and the effect of Wait (`EffectWait`).
+ * usability C commands (`SecretShopCommandUsability`, `StaffCommandUsability`,
+ * `StealCommandUsability`, `SummonCommandUsability`, `SupplyUsability`,
+ * `SupportCommandUsability`, `TakeUsability`), and the effect of Wait (`EffectWait`).
  * [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s
- * hold, together with a stand-in for the availability callback of every other command (EP-32
- * and EP-33 port the real ones; see [Hooks.unportedUsability]).
+ * hold, together with a stand-in for the availability callback of every other command (EP-33
+ * ports the real ones; see [Hooks.unportedUsability]).
  *
  * It also holds the weapon select menu the Attack command opens (`gWeaponSelectMenuDef`): its
  * start, its availability, draw and switch-in callbacks, and its choice and cancel
@@ -44,6 +46,8 @@ public class UnitActionMenu(
     private val hardware: BgHardware,
     /** The battle map state (`gBmSt`). */
     private val bmSt: BmSt = BmSt(),
+    /** The play state (`gPlaySt`). */
+    private val playSt: PlaySt = PlaySt(),
 ) {
     /** `StartFace(slot, fid, x, y, disp)`. */
     public fun interface FaceStarter {
@@ -89,7 +93,7 @@ public class UnitActionMenu(
          * items whose `isAvailable` callbacks are not ported (every item but the ported ones and
          * Wait, whose callback is `MenuAlwaysEnabled`), given the `MenuItemDef` address and the
          * item number. The game's stand-in answers `MENU_NOTSHOWN` for all of them, so only the
-         * ported commands appear; EP-32 and EP-33 port the remaining callbacks.
+         * ported commands appear; EP-33 ports the remaining callbacks.
          */
         public var unportedUsability: (itemDef: Int, number: Int) -> Int = { _, _ ->
             error("unit menu item availability is not ported")
@@ -184,6 +188,54 @@ public class UnitActionMenu(
          * The game wires `MapTraps.getTrapAt` (Transcribed, EP-36) in `Fe8Boot`.
          */
         public var trapTypeAt: (x: Int, y: Int) -> Int = { _, _ -> -1 }
+
+        /**
+         * `MakeTakeTargetList(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the number
+         * of adjacent allies [unit] can take a rescued unit from.
+         * Stand-in until EP-34a ports take target lists.
+         */
+        public var takeTargetCount: (unit: Int) -> Int = { _ -> 0 }
+
+        /**
+         * `MakeTargetListForSupport(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the
+         * number of adjacent allies [unit] can support with.
+         * Stand-in until EP-34b ports support target lists.
+         */
+        public var supportTargetCount: (unit: Int) -> Int = { _ -> 0 }
+
+        /**
+         * `MakeTalkTargetList(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the number
+         * of units [unit] can talk to.
+         * Stand-in until EP-34b ports talk target lists.
+         */
+        public var talkTargetCount: (unit: Int) -> Int = { _ -> 0 }
+
+        /**
+         * `MakeTargetListForSteal(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the
+         * number of adjacent enemies [unit] can steal from.
+         * Stand-in until M6-H ports steal target lists.
+         */
+        public var stealTargetCount: (unit: Int) -> Int = { _ -> 0 }
+
+        /**
+         * `MakeTargetListForSummon(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the
+         * number of tiles [unit] can summon on.
+         * Stand-in until M6-H ports summon target lists.
+         */
+        public var summonTargetCount: (unit: Int) -> Int = { _ -> 0 }
+
+        /**
+         * `HasConvoyAccess()` (src/bmcontainer.c): whether the convoy can be opened.
+         * Stand-in until EP-33 ports `HasConvoyAccess`.
+         */
+        public var hasConvoyAccess: () -> Boolean = { false }
+
+        /**
+         * `IsAdjacentForSupply(pid)` (src/bmmenu.c): whether the character [pid] stands on a
+         * tile next to the active unit.
+         * Stand-in until M6-H ports the convoy command.
+         */
+        public var isAdjacentForSupply: (pid: Int) -> Boolean = { _ -> false }
 
         /** `ResetIconGraphics`; the game wires [fe8.game.ui.ItemIcon.resetIconGraphics]. */
         public var resetIconGraphics: () -> Unit = {}
@@ -290,6 +342,9 @@ public class UnitActionMenu(
 
     private lateinit var menus: Menu
 
+    /** The ROM holding `gSummonConfig`, set by [install]. */
+    private var summonConfigRom: RomView? = null
+
     /**
      * Registers the callbacks of the unit action menu and the weapon select menu in [menu]:
      * the real ones of this class, and for every `isAvailable` callback of
@@ -299,6 +354,7 @@ public class UnitActionMenu(
      */
     public fun install(menu: Menu, rom: RomView) {
         menus = menu
+        summonConfigRom = rom
         // `MenuDef.menuItems` (+0x08); the list ends at an item whose `isAvailable` (+0x0C) is 0.
         val itemDefs = rom.u32(Menu.UNIT_ACTION_MENU_DEF + 8)
         var i = 0
@@ -347,6 +403,22 @@ public class UnitActionMenu(
             Menu.MenuFunc { _, _, itemDef, number -> rescueUsability(itemDef, number) }
         menu.callbacks[RIDE_COMMAND_USABILITY] =
             Menu.MenuFunc { _, _, itemDef, number -> rideCommandUsability(itemDef, number) }
+        menu.callbacks[SECRET_SHOP_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number ->
+                secretShopCommandUsability(itemDef, number)
+            }
+        menu.callbacks[STAFF_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> staffCommandUsability(itemDef, number) }
+        menu.callbacks[STEAL_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> stealCommandUsability(itemDef, number) }
+        menu.callbacks[SUMMON_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> summonCommandUsability(itemDef, number) }
+        menu.callbacks[SUPPLY_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> supplyUsability(itemDef, number) }
+        menu.callbacks[SUPPORT_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> supportCommandUsability(itemDef, number) }
+        menu.callbacks[TAKE_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> takeUsability(itemDef, number) }
         menu.callbacks[EFFECT_WAIT] = Menu.MenuFunc { m, item, _, _ -> effectWait(m!!, item!!) }
         menu.callbacks[UNIT_ACTION_MENU_ATTACK] =
             Menu.MenuFunc { m, item, _, _ -> unitActionMenuAttack(m!!, item!!) }
@@ -446,7 +518,7 @@ public class UnitActionMenu(
     public fun dropUsability(def: Int, number: Int): Int {
         if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
 
-        if (units.state(active.unit) and US_RESCUING == 0) return Menu.MENU_NOTSHOWN
+        if (units.state(active.unit) and UnitTable.US_RESCUING == 0) return Menu.MENU_NOTSHOWN
 
         if (hooks.dropTargetCount(active.unit) == 0) return Menu.MENU_NOTSHOWN
 
@@ -764,6 +836,199 @@ public class UnitActionMenu(
         if (bmSt.takenAction and BM_TAKEN_ACTION_BALLISTA != 0) return Menu.MENU_NOTSHOWN
 
         return Menu.MENU_ENABLED
+    }
+
+    /**
+     * Ported from src/bmmenu.c: TakeUsability
+     *
+     * The Take command is `MENU_NOTSHOWN` if the unit has moved (`US_HAS_MOVED`), has taken
+     * this move (`BM_TAKEN_ACTION_TAKE`), is rescuing (`US_RESCUING`), or no unit can be taken
+     * from ([Hooks.takeTargetCount]). Otherwise `MENU_ENABLED`.
+     * At f4181 the unit has not moved, taken or rescued, so the answer is `MENU_NOTSHOWN` from
+     * the empty target list. The moved, taken and rescuing branches and a non-empty target list
+     * are unexercised at f4181.
+     */
+    public fun takeUsability(def: Int, number: Int): Int {
+        val state = units.state(active.unit)
+        if (state and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (bmSt.takenAction and BM_TAKEN_ACTION_TAKE != 0) return Menu.MENU_NOTSHOWN
+
+        if (state and UnitTable.US_RESCUING != 0) return Menu.MENU_NOTSHOWN
+
+        if (hooks.takeTargetCount(active.unit) == 0) return Menu.MENU_NOTSHOWN
+
+        return Menu.MENU_ENABLED
+    }
+
+    /**
+     * Ported from src/bmmenu.c: SupportCommandUsability
+     *
+     * The Support command is `MENU_NOTSHOWN` if the unit has moved (`US_HAS_MOVED`), has no
+     * support target ([Hooks.supportTargetCount]) or has a talk target
+     * ([Hooks.talkTargetCount]). Otherwise `MENU_DISABLED` while silenced
+     * (`UNIT_STATUS_SILENCED`) and `MENU_ENABLED` if not.
+     * At f4181 the unit has not moved and has no support target, so the answer is
+     * `MENU_NOTSHOWN`. The moved, talk and status branches are unexercised at f4181.
+     */
+    public fun supportCommandUsability(def: Int, number: Int): Int {
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (hooks.supportTargetCount(active.unit) == 0) return Menu.MENU_NOTSHOWN
+
+        if (hooks.talkTargetCount(active.unit) != 0) return Menu.MENU_NOTSHOWN
+
+        return if (units.statusIndex(active.unit) == UnitLoader.UNIT_STATUS_SILENCED) {
+            Menu.MENU_DISABLED
+        } else {
+            Menu.MENU_ENABLED
+        }
+    }
+
+    /**
+     * Ported from src/bmmenu.c: SupplyUsability
+     *
+     * The Supply command is `MENU_NOTSHOWN` without convoy access ([Hooks.hasConvoyAccess]) and
+     * for a `CLASS_PHANTOM`. Otherwise it is `MENU_ENABLED` if the unit is the lord of the
+     * route (`CHARACTER_EIRIKA`, or `CHARACTER_EPHRAIM` for `CHAPTER_MODE_EPHRAIM`) or that lord
+     * stands adjacent ([Hooks.isAdjacentForSupply]), else `MENU_NOTSHOWN`.
+     * At f4181 the convoy cannot be accessed, so the answer is `MENU_NOTSHOWN`. Every later
+     * branch is unexercised at f4181.
+     */
+    public fun supplyUsability(def: Int, number: Int): Int {
+        if (!hooks.hasConvoyAccess()) return Menu.MENU_NOTSHOWN
+
+        if (units.classId(active.unit) == CLASS_PHANTOM) return Menu.MENU_NOTSHOWN
+
+        val pid = if (playSt.chapterModeIndex == CHAPTER_MODE_EPHRAIM) {
+            CHARACTER_EPHRAIM
+        } else {
+            CHARACTER_EIRIKA
+        }
+
+        if (units.charId(active.unit) == pid) return Menu.MENU_ENABLED
+
+        return if (hooks.isAdjacentForSupply(pid)) Menu.MENU_ENABLED else Menu.MENU_NOTSHOWN
+    }
+
+    /**
+     * Ported from src/bmmenu.c: SummonCommandUsability
+     *
+     * The Summon command is `MENU_NOTSHOWN` if the unit lacks `CA_SUMMON`, has moved
+     * (`US_HAS_MOVED`), has no summon tile ([Hooks.summonTargetCount]) or its character is not a
+     * summoner of `gSummonConfig`. It then looks for the summoned character among the unit ids
+     * after `FACTION_BLUE` up to `FACTION_GREEN` (as the decomp loops): none gives
+     * `MENU_ENABLED`; one with `US_UNAVAILABLE` has that state cleared and gives `MENU_ENABLED`;
+     * any other gives `MENU_NOTSHOWN`.
+     * At f4181 the active unit lacks `CA_SUMMON`, so the answer is `MENU_NOTSHOWN`. Every later
+     * branch is unexercised at f4181.
+     */
+    public fun summonCommandUsability(def: Int, number: Int): Int {
+        if (units.cAttributes(active.unit) and CA_SUMMON == 0) return Menu.MENU_NOTSHOWN
+
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (hooks.summonTargetCount(active.unit) == 0) return Menu.MENU_NOTSHOWN
+
+        val rom = summonConfigRom!!
+        val charId = units.charId(active.unit)
+        var summonerId = -1
+        for (a in 0 until SUMMON_CONFIG_SUMMONERS) {
+            if (charId == rom.u8(SUMMON_CONFIG + 2 * a)) {
+                summonerId = a
+                break
+            }
+        }
+
+        if (summonerId == -1) return Menu.MENU_NOTSHOWN
+
+        val summoned = rom.u8(SUMMON_CONFIG + 2 * summonerId + 1)
+        for (i in FACTION_BLUE + 1 until FACTION_GREEN) {
+            if (!units.isValid(i)) continue
+
+            if (units.charId(i) != summoned) continue
+
+            if (units.state(i) and UnitTable.US_UNAVAILABLE != 0) {
+                units.setState(i, units.state(i) and UnitTable.US_UNAVAILABLE.inv())
+                return Menu.MENU_ENABLED
+            }
+
+            return Menu.MENU_NOTSHOWN
+        }
+
+        return Menu.MENU_ENABLED
+    }
+
+    /**
+     * Ported from src/bmmenu.c: StealCommandUsability
+     *
+     * The Steal command is `MENU_NOTSHOWN` if the unit lacks `CA_STEAL`, has moved
+     * (`US_HAS_MOVED`) or has no steal target ([Hooks.stealTargetCount]). Otherwise
+     * `MENU_DISABLED` with a full inventory and `MENU_ENABLED` if not.
+     * At f4181 the active unit lacks `CA_STEAL`, so the answer is `MENU_NOTSHOWN`. Every later
+     * branch is unexercised at f4181.
+     */
+    public fun stealCommandUsability(def: Int, number: Int): Int {
+        if (units.cAttributes(active.unit) and CA_STEAL == 0) return Menu.MENU_NOTSHOWN
+
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (hooks.stealTargetCount(active.unit) == 0) return Menu.MENU_NOTSHOWN
+
+        if (loader.getUnitItemCount(units.unitOffset(active.unit)) == UnitLoader.UNIT_ITEM_COUNT) {
+            return Menu.MENU_DISABLED
+        }
+
+        return Menu.MENU_ENABLED
+    }
+
+    /**
+     * Ported from src/bmmenu.c: StaffCommandUsability
+     *
+     * The Staff command is `MENU_NOTSHOWN` if the unit has moved (`US_HAS_MOVED`) or holds no
+     * staff (`ITYPE_STAFF`) it can use ([Hooks.canUnitUseItem]). With one, it is `MENU_DISABLED`
+     * while magic sealed (`IsUnitMagicSealed`) and `MENU_ENABLED` if not.
+     * At f4181 the active unit has not moved and holds no staff, so the answer is
+     * `MENU_NOTSHOWN`. The moved and staff branches are unexercised at f4181.
+     */
+    public fun staffCommandUsability(def: Int, number: Int): Int {
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        val o = units.unitOffset(active.unit)
+        for (i in 0 until UnitLoader.UNIT_ITEM_COUNT) {
+            val item = u16(units.bytes, o + OFF_ITEMS + 2 * i)
+            if (item == 0) break
+
+            if (items.getItemType(item) != ITYPE_STAFF) continue
+
+            if (!hooks.canUnitUseItem(active.unit, item)) continue
+
+            return if (isUnitMagicSealed(o)) Menu.MENU_DISABLED else Menu.MENU_ENABLED
+        }
+
+        return Menu.MENU_NOTSHOWN
+    }
+
+    /**
+     * Ported from src/bmmenu.c: SecretShopCommandUsability
+     *
+     * The Secret Shop command is `MENU_NOTSHOWN` for a `CLASS_PHANTOM`, when the unit has moved
+     * (`US_HAS_MOVED`), or when the tile lacks a secret shop event command
+     * (`TILE_COMMAND_SECRET`, [Hooks.getAvailableTileEventCommand]). Otherwise `MENU_ENABLED`.
+     * At f4181 the active unit has not moved, is not a phantom, and its tile has no tile event,
+     * so the answer is `MENU_NOTSHOWN`. The moved, phantom and secret shop branches are
+     * unexercised at f4181.
+     */
+    public fun secretShopCommandUsability(def: Int, number: Int): Int {
+        if (units.classId(active.unit) == CLASS_PHANTOM) return Menu.MENU_NOTSHOWN
+
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        val command = hooks.getAvailableTileEventCommand(
+            units.xPos(active.unit),
+            units.yPos(active.unit),
+        )
+        return if (command == TILE_COMMAND_SECRET) Menu.MENU_ENABLED else Menu.MENU_NOTSHOWN
     }
 
     /**
@@ -1115,6 +1380,27 @@ public class UnitActionMenu(
         /** ROM address of `RideCommandUsability` (thumb). */
         public const val RIDE_COMMAND_USABILITY: Int = 0x080248C5
 
+        /** ROM address of `SecretShopCommandUsability` (thumb). */
+        public const val SECRET_SHOP_COMMAND_USABILITY: Int = 0x08024091
+
+        /** ROM address of `StaffCommandUsability` (thumb). */
+        public const val STAFF_COMMAND_USABILITY: Int = 0x08023A55
+
+        /** ROM address of `StealCommandUsability` (thumb). */
+        public const val STEAL_COMMAND_USABILITY: Int = 0x0802418D
+
+        /** ROM address of `SummonCommandUsability` (thumb). */
+        public const val SUMMON_COMMAND_USABILITY: Int = 0x080243D9
+
+        /** ROM address of `SupplyUsability` (thumb). */
+        public const val SUPPLY_USABILITY: Int = 0x08023F65
+
+        /** ROM address of `SupportCommandUsability` (thumb). */
+        public const val SUPPORT_COMMAND_USABILITY: Int = 0x08023D15
+
+        /** ROM address of `TakeUsability` (thumb). */
+        public const val TAKE_USABILITY: Int = 0x0802298D
+
         /** ROM address of `UnitActionMenu_Attack` (thumb). */
         public const val UNIT_ACTION_MENU_ATTACK: Int = 0x08022B31
 
@@ -1171,9 +1457,6 @@ public class UnitActionMenu(
         private const val PANEL_X = 0xF
         private const val PANEL_Y = 0xB
 
-        /** `US_RESCUING` of `Unit.state`. */
-        public const val US_RESCUING: Int = 1 shl 4
-
         /** `US_HAS_MOVED` of `Unit.state`. */
         private const val US_HAS_MOVED = 1 shl 6
 
@@ -1210,6 +1493,37 @@ public class UnitActionMenu(
 
         /** `BM_TAKEN_ACTION_BALLISTA` of `gBmSt.taken_action`. */
         public const val BM_TAKEN_ACTION_BALLISTA: Int = 1 shl 3
+
+        /** `CA_STEAL` of character/class attributes. */
+        public const val CA_STEAL: Int = 1 shl 2
+
+        /** `CA_SUMMON` of character/class attributes. */
+        public const val CA_SUMMON: Int = 1 shl 27
+
+        /** `ITYPE_STAFF`. */
+        public const val ITYPE_STAFF: Int = 4
+
+        /** `TILE_COMMAND_SECRET`. */
+        public const val TILE_COMMAND_SECRET: Int = 0x18
+
+        /** `CHARACTER_EIRIKA`. */
+        public const val CHARACTER_EIRIKA: Int = 0x01
+
+        /** `CHARACTER_EPHRAIM`. */
+        public const val CHARACTER_EPHRAIM: Int = 0x0F
+
+        /** `CHAPTER_MODE_EPHRAIM`. */
+        public const val CHAPTER_MODE_EPHRAIM: Int = 3
+
+        /** ROM address of `gSummonConfig` (summoner, summoned character pairs). */
+        private const val SUMMON_CONFIG = 0x0895F5A4
+
+        /** The summoner rows `SummonCommandUsability` searches in `gSummonConfig`. */
+        private const val SUMMON_CONFIG_SUMMONERS = 3
+
+        /** `FACTION_BLUE` and `FACTION_GREEN`, the unit id ranges of the factions. */
+        private const val FACTION_BLUE = 0x00
+        private const val FACTION_GREEN = 0x40
 
         /** `TERRAIN_ARENA_REGULAR`. */
         public const val TERRAIN_ARENA_REGULAR: Int = 0x08

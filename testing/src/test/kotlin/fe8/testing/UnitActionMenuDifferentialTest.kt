@@ -336,6 +336,202 @@ class UnitActionMenuDifferentialTest {
         assertEquals(Menu.MENU_NOTSHOWN, menu.exitCommandUsability(0, 5))
     }
 
+    @Test
+    @VerifiesPort(
+        "SecretShopCommandUsability",
+        "StaffCommandUsability",
+        "StealCommandUsability",
+        "SummonCommandUsability",
+        "SupplyUsability",
+        "SupportCommandUsability",
+        "TakeUsability",
+    )
+    fun `unit menu build at f4181 evaluates usability C callbacks to NOTSHOWN`() {
+        assumeInputs()
+        val sim = Sim("ram_trace_prologue_clear", 4181)
+        sim.start()
+        // The GBA's menu holds only Attack, Item and Wait, so every other callback answered
+        // MENU_NOTSHOWN (a menu item is created only for a shown or disabled answer).
+        assertEquals(listOf(1 to 1, 25 to 1, 28 to 1), sim.items, "items (number to availability)")
+        val menu = sim.unitMenu
+        val results = listOf(
+            "StaffCommandUsability" to menu.staffCommandUsability(itemDef(3), 3),
+            "StealCommandUsability" to menu.stealCommandUsability(itemDef(8), 8),
+            "SummonCommandUsability" to menu.summonCommandUsability(itemDef(9), 9),
+            "SupportCommandUsability" to menu.supportCommandUsability(itemDef(13), 13),
+            "SecretShopCommandUsability" to menu.secretShopCommandUsability(itemDef(19), 19),
+            "TakeUsability" to menu.takeUsability(itemDef(23), 23),
+            "SupplyUsability" to menu.supplyUsability(itemDef(27), 27),
+        )
+        for ((name, result) in results) {
+            assertEquals(Menu.MENU_NOTSHOWN, result, name)
+        }
+        for (number in listOf(3, 8, 9, 13, 19, 23, 27)) {
+            assertEquals(null, sim.items.find { it.first == number }, "item $number not built")
+        }
+    }
+
+    @Test
+    fun `usability C callbacks branch coverage`() {
+        assumeInputs()
+        val sim = Sim("ram_trace_prologue_clear", 4181)
+        sim.start()
+        val menu = sim.unitMenu
+        val units = sim.units
+        val unit = sim.active.unit
+        val o = units.unitOffset(unit)
+        val saved = units.bytes.copyOfRange(o, o + 0x40)
+        val savedState = units.state(unit)
+        val slot = units.unitOffset(0x3E)
+        val savedSlot = units.bytes.copyOfRange(slot, slot + 0x40)
+        fun reset() {
+            saved.copyInto(units.bytes, o)
+            savedSlot.copyInto(units.bytes, slot)
+            units.setState(unit, savedState)
+            sim.bmSt.takenAction = 0
+            sim.playSt.chapterModeIndex = 2
+        }
+        fun charPtr(id: Int) = CHARACTER_DATA + 0x34 * (id - 1)
+        fun use(attribute: Int) {
+            reset()
+            val (ptr, table) = ATTRIBUTE_OWNERS.firstNotNullOf { (table, size, count) ->
+                (0 until count).map { table + size * it }.firstOrNull {
+                    sim.rom.u32(it + OFF_ATTRIBUTES) and attribute != 0
+                }?.let { it to table }
+            }
+            put32(units.bytes, if (table == CHARACTER_DATA) o else o + 4, ptr)
+        }
+        val hooks = menu.hooks
+
+        // TakeUsability
+        hooks.takeTargetCount = { 1 }
+        assertEquals(Menu.MENU_ENABLED, menu.takeUsability(0, 23))
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.takeUsability(0, 23))
+        units.setState(unit, savedState or UnitTable.US_RESCUING)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.takeUsability(0, 23))
+        units.setState(unit, savedState)
+        sim.bmSt.takenAction = UnitActionMenu.BM_TAKEN_ACTION_TAKE
+        assertEquals(Menu.MENU_NOTSHOWN, menu.takeUsability(0, 23))
+        reset()
+        hooks.takeTargetCount = { 0 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.takeUsability(0, 23))
+
+        // SupportCommandUsability
+        hooks.supportTargetCount = { 1 }
+        hooks.talkTargetCount = { 0 }
+        assertEquals(Menu.MENU_ENABLED, menu.supportCommandUsability(0, 13))
+        hooks.talkTargetCount = { 1 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.supportCommandUsability(0, 13))
+        hooks.talkTargetCount = { 0 }
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.supportCommandUsability(0, 13))
+        units.setState(unit, savedState)
+        hooks.supportTargetCount = { 0 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.supportCommandUsability(0, 13))
+        hooks.supportTargetCount = { 1 }
+        units.bytes[o + 0x30] = UNIT_STATUS_SILENCED.toByte()
+        assertEquals(Menu.MENU_DISABLED, menu.supportCommandUsability(0, 13))
+        reset()
+
+        // SecretShopCommandUsability
+        hooks.getAvailableTileEventCommand = { _, _ -> UnitActionMenu.TILE_COMMAND_SECRET }
+        assertEquals(Menu.MENU_ENABLED, menu.secretShopCommandUsability(0, 19))
+        hooks.getAvailableTileEventCommand = { _, _ -> 0 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.secretShopCommandUsability(0, 19))
+        hooks.getAvailableTileEventCommand = { _, _ -> UnitActionMenu.TILE_COMMAND_SECRET }
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.secretShopCommandUsability(0, 19))
+        reset()
+        put32(units.bytes, o + 4, CLASS_DATA + CLASS_SIZE * (CLASS_PHANTOM - 1))
+        assertEquals(Menu.MENU_NOTSHOWN, menu.secretShopCommandUsability(0, 19))
+        reset()
+
+        // StealCommandUsability
+        use(UnitActionMenu.CA_STEAL)
+        hooks.stealTargetCount = { 1 }
+        units.bytes.fill(0, o + 0x1E, o + 0x28)
+        assertEquals(Menu.MENU_ENABLED, menu.stealCommandUsability(0, 8))
+        units.bytes[o + 0x1E + 8] = 1
+        units.bytes[o + 0x1E + 9] = 1
+        assertEquals(Menu.MENU_DISABLED, menu.stealCommandUsability(0, 8))
+        hooks.stealTargetCount = { 0 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.stealCommandUsability(0, 8))
+        hooks.stealTargetCount = { 1 }
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.stealCommandUsability(0, 8))
+        reset()
+        assertEquals(Menu.MENU_NOTSHOWN, menu.stealCommandUsability(0, 8))
+
+        // StaffCommandUsability
+        val staff = (1..0xFF).first { sim.itemInfo.getItemType(it) == ITYPE_STAFF }
+        units.bytes.fill(0, o + 0x1E, o + 0x28)
+        units.bytes[o + 0x1E] = staff.toByte()
+        hooks.canUnitUseItem = { _, _ -> true }
+        hooks.isPositionMagicSealed = { _, _ -> false }
+        assertEquals(Menu.MENU_ENABLED, menu.staffCommandUsability(0, 3))
+        hooks.isPositionMagicSealed = { _, _ -> true }
+        assertEquals(Menu.MENU_DISABLED, menu.staffCommandUsability(0, 3))
+        hooks.canUnitUseItem = { _, _ -> false }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.staffCommandUsability(0, 3))
+        hooks.canUnitUseItem = { _, _ -> true }
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.staffCommandUsability(0, 3))
+        units.setState(unit, savedState)
+        units.bytes.fill(0, o + 0x1E, o + 0x28)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.staffCommandUsability(0, 3))
+        reset()
+
+        // SummonCommandUsability
+        val summoner = sim.rom.u8(SUMMON_CONFIG)
+        val summoned = sim.rom.u8(SUMMON_CONFIG + 1)
+        use(UnitActionMenu.CA_SUMMON)
+        hooks.summonTargetCount = { 1 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.summonCommandUsability(0, 9))
+        put32(units.bytes, o, charPtr(summoner))
+        if (units.cAttributes(unit) and UnitActionMenu.CA_SUMMON == 0) {
+            val summonClass = (0 until 0x7F).map { CLASS_DATA + CLASS_SIZE * it }.first {
+                sim.rom.u32(it + OFF_ATTRIBUTES) and UnitActionMenu.CA_SUMMON != 0
+            }
+            put32(units.bytes, o + 4, summonClass)
+        }
+        assertEquals(Menu.MENU_ENABLED, menu.summonCommandUsability(0, 9))
+        hooks.summonTargetCount = { 0 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.summonCommandUsability(0, 9))
+        hooks.summonTargetCount = { 1 }
+        units.setState(unit, units.state(unit) or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.summonCommandUsability(0, 9))
+        units.setState(unit, savedState)
+        put32(units.bytes, slot, charPtr(summoned))
+        units.setState(0x3E, 0)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.summonCommandUsability(0, 9))
+        units.setState(0x3E, UnitTable.US_UNAVAILABLE)
+        assertEquals(Menu.MENU_ENABLED, menu.summonCommandUsability(0, 9))
+        assertEquals(0, units.state(0x3E) and UnitTable.US_UNAVAILABLE, "state cleared")
+        reset()
+
+        // SupplyUsability
+        hooks.hasConvoyAccess = { true }
+        hooks.isAdjacentForSupply = { false }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.supplyUsability(0, 27))
+        put32(units.bytes, o, charPtr(CHARACTER_EIRIKA))
+        assertEquals(Menu.MENU_ENABLED, menu.supplyUsability(0, 27))
+        sim.playSt.chapterModeIndex = CHAPTER_MODE_EPHRAIM
+        assertEquals(Menu.MENU_NOTSHOWN, menu.supplyUsability(0, 27))
+        hooks.isAdjacentForSupply = { pid -> pid == CHARACTER_EPHRAIM }
+        assertEquals(Menu.MENU_ENABLED, menu.supplyUsability(0, 27))
+        put32(units.bytes, o, charPtr(CHARACTER_EPHRAIM))
+        hooks.isAdjacentForSupply = { false }
+        assertEquals(Menu.MENU_ENABLED, menu.supplyUsability(0, 27))
+        put32(units.bytes, o + 4, CLASS_DATA + CLASS_SIZE * (CLASS_PHANTOM - 1))
+        assertEquals(Menu.MENU_NOTSHOWN, menu.supplyUsability(0, 27))
+        reset()
+        hooks.hasConvoyAccess = { false }
+        put32(units.bytes, o, charPtr(CHARACTER_EIRIKA))
+        assertEquals(Menu.MENU_NOTSHOWN, menu.supplyUsability(0, 27))
+        reset()
+    }
+
     /** The `MenuItemDef` address of `gUnitActionMenuItems[index]`. */
     private fun itemDef(index: Int) = UNIT_ACTION_MENU_ITEMS + ITEM_DEF_SIZE * index
 
@@ -364,6 +560,7 @@ class UnitActionMenuDifferentialTest {
         val itemInfo = ItemInfo(rom)
         val unitMenu: UnitActionMenu
         val bmSt = BmSt()
+        val playSt = PlaySt()
         val targetCountCalls = ArrayList<Pair<Int, Int>>()
         val selectCallbacks = ArrayList<Int>()
         var selectResult = -1
@@ -386,7 +583,7 @@ class UnitActionMenuDifferentialTest {
             unitMenu = UnitActionMenu(
                 units, active, itemInfo, loader, map,
                 AttackRange(map, units, itemInfo, EntityBmMaps(map, units, PlaySt()), loader),
-                hw, bmSt,
+                hw, bmSt, playSt,
             )
         }
 
@@ -400,6 +597,7 @@ class UnitActionMenuDifferentialTest {
             val e = ewram(first)
             units.loadFrom(e)
             bmSt.decode(e, BM_ST - EWRAM)
+            playSt.decode(e, PLAY_ST - EWRAM)
             readAction(e, iwram(first))
             keys.readFrom(e, KEY_STATUS - EWRAM)
             text.initTextFont(null, 0x06001000, 0x80, 0)
@@ -523,6 +721,7 @@ class UnitActionMenuDifferentialTest {
         const val ROM_BASE = 0x08000000
         const val KEY_STATUS = 0x02024CC0
         const val BM_ST = 0x0202BCB0
+        const val PLAY_ST = 0x0202BCF0
         const val CLOCK = 0x03000014
         const val ACTION_DATA = 0x0203A958
         const val GACTIVEUNIT = 0x03004E50
@@ -531,6 +730,13 @@ class UnitActionMenuDifferentialTest {
         const val ITEM_DEF_SIZE = 0x24
         const val US_HAS_MOVED = 1 shl 6
         const val CLASS_ROGUE = 0x33
+        const val CLASS_PHANTOM = 0x51
+        const val UNIT_STATUS_SILENCED = 3
+        const val CHARACTER_EIRIKA = 0x01
+        const val CHARACTER_EPHRAIM = 0x0F
+        const val CHAPTER_MODE_EPHRAIM = 3
+        const val ITYPE_STAFF = 4
+        const val SUMMON_CONFIG = 0x0895F5A4
         const val CHARACTER_DATA = 0x08803D64
         const val CLASS_DATA = 0x08807164
         const val CLASS_SIZE = 0x54

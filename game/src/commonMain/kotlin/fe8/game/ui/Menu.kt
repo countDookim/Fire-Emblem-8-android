@@ -2,6 +2,7 @@ package fe8.game.ui
 
 import fe8.game.scene.IntSupplier
 import fe8.game.RomView
+import gbafe.core.collections.IntKeyMap
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
@@ -187,7 +188,7 @@ public class Menu(
     public val hooks: Hooks = Hooks()
 
     /** Callbacks by ROM address (thumb bit set, as stored in the defs). */
-    public val callbacks: HashMap<Int, MenuFunc> = HashMap()
+    public val callbacks: IntKeyMap<MenuFunc> = IntKeyMap()
 
     private val cursor = IntArray(2)
 

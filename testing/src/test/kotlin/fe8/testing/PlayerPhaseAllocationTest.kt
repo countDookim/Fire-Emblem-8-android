@@ -2,6 +2,7 @@ package fe8.testing
 
 import fe8.game.Fe8Boot
 import fe8.game.RomView
+import fe8.game.ui.Menu
 import gba.core.sram.SaveStorage
 import gba.testkit.AllocationMeter
 import gba.testkit.ReferenceData
@@ -60,15 +61,66 @@ class PlayerPhaseAllocationTest {
         }
     }
 
-    /** One replay of the select, move and Wait trace; the allocated bytes of each frame. */
-    private fun selectMoveWaitBytes(ref: ReferenceData): LongArray {
+    @Test
+    fun `menu with an idle callback on the hovered item allocates nothing`() {
+        val ref = ReferenceData.fromEnvironment()
+        assumeTrue(AllocationMeter.supported && ref.available && File(assets, "baserom.gba").isFile)
+        // Two passes, the minimum per frame (see the select move test above). No captured menu
+        // item has an idle callback, so the ROM copy gets one on every item of the menus; the
+        // wiring registers a do-nothing function for it, so the replay is unchanged. Each frame
+        // that hovers such an item looks the callback up by ROM address.
+        val hoverA = IntArray(2000)
+        val hoverB = IntArray(2000)
+        val a = selectMoveWaitBytes(ref, hoverA)
+        val b = selectMoveWaitBytes(ref, hoverB)
+        var hovered = 0
+        var best = 0
+        var current = 0
+        for (f in hoverA.indices) {
+            if (hoverA[f] == 0 || hoverB[f] == 0) {
+                current = 0
+                continue
+            }
+            hovered++
+            current = if (minOf(a[f], b[f]) == 0L) current + 1 else 0
+            best = maxOf(best, current)
+        }
+        assertTrue(hovered >= 20, "frames with an idle callback hovered: $hovered")
+        // A per-frame boxed lookup leaves no run at all; a stray JIT-time allocation may split it.
+        assertTrue(best >= hovered / 2, "longest zero run $best of $hovered hovering frames")
+    }
+
+    /** Sets `onIdle` of every item of the menus of the replay to a made-up function address. */
+    private fun withIdleCallbacks(rom: ByteArray) {
+        for (def in intArrayOf(0x0859D1CC, 0x0859D1F0, 0x0859D214)) {
+            fun u32(at: Int) =
+                (0..3).sumOf { (rom[at - ROM_BASE + it].toInt() and 0xFF) shl 8 * it }
+            val items = u32(def + 8)
+            var item = items
+            while (u32(item + 0xC) != 0) {
+                val at = item + 0x18 - ROM_BASE
+                for (i in 0..3) rom[at + i] = (FAKE_IDLE shr 8 * i).toByte()
+                item += 0x24
+            }
+        }
+    }
+
+    /**
+     * One replay of the select, move and Wait trace; the allocated bytes of each frame. When
+     * [idleHover] is given, the ROM gets idle callbacks ([withIdleCallbacks]) and the entry of
+     * each frame (indexed as the bytes) is set to 1 while a menu item with one is hovered.
+     */
+    private fun selectMoveWaitBytes(ref: ReferenceData, idleHover: IntArray? = null): LongArray {
+        val image = File(assets, "baserom.gba").readBytes()
+        if (idleHover != null) withIdleCallbacks(image)
+        val rom = RomView.ofRom(image)
         val run = ref.run("ram_trace_prologue_select_move")
         val captured = Array<Any>(2000) { if (it < run.inputs.size) run.inputs[it] else 0 }
         val pulse = arrayOf<Any>(0, 1)
         var frame = 0
         var idleAt = -1
         val boot = Fe8Boot(
-            RomView.ofRom(File(assets, "baserom.gba").readBytes()),
+            rom,
             @Suppress("UNCHECKED_CAST")
             ({
                 if (idleAt < 0) pulse[if (frame % 20 in 5..8) 1 else 0]
@@ -87,6 +139,14 @@ class PlayerPhaseAllocationTest {
             frame++
             if (idleAt < 0 && boot.engine.find(boot.playerPhaseScript)?.scrCur == 16) idleAt = frame
             if (idleAt >= 0) bytes[frame - idleAt + 1172] = used
+            if (idleAt >= 0 && idleHover != null) {
+                val menu = boot.engine.procs.firstOrNull { it.script?.name == "sProc_Menu" }
+                    ?.state as? Menu.MenuProc
+                val item = menu?.menuItems?.get(menu.itemCurrent)
+                if (item != null && rom.u32(item.def + 0x18) == FAKE_IDLE) {
+                    idleHover[frame - idleAt + 1172] = 1
+                }
+            }
         }
         return bytes
     }
@@ -264,6 +324,9 @@ class PlayerPhaseAllocationTest {
     }
 
     private companion object {
+        const val ROM_BASE = 0x08000000
+        const val FAKE_IDLE = 0x08FFFF01
+
         // The unit's walk (f1560..1574, the MU proc) may allocate where a sprite frame is first
         // shown (the per-boot object cache); between those frames it must not (it allocated 32 B
         // every frame, the iterator of `for (c in configs)` in `Mu.muExistsActive`).

@@ -1328,6 +1328,7 @@ public class Fe8Boot(
         }
         cp.decide.hooks.startCpPerform = perform.start
         main.hooks.cpPhase = cp.phaseScript
+        main.hooks.berserkCpPhase = cp.berserkPhaseScript
         // `gSelectTargets` of the C: the trap damage targets (bmtrick.c) and the phase lists and
         // `sub_8026414` (bmtarget.c) fill and read the one list. The player phase keeps its own.
         val phaseTargetList = SelectTargets()

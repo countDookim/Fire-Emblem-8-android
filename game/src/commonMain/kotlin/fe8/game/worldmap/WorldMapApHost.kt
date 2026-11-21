@@ -8,8 +8,8 @@ import gbafe.render.SpriteObject
 
 /**
  * The [ApHost] behind `src/ap.c` for the world map's sprite animations (node flag sprite,
- * map units, nation borders, `worldmap_sogu.c` sprites): sprite objects from the ROM, the sine
- * table, affine parameters in the OAM buffer and OBJ tile transfers.
+ * map units, nation borders, `worldmap_sogu.c` sprites, and map battle effects): sprite objects
+ * from the ROM, the sine table, affine parameters in the OAM buffer and OBJ tile transfers.
  *
  * `Register2dChrMove` (src/bmlib.c) copies tiles at once (the original queues each row for
  * VBlank), from a ROM address or from [muGfx], the decompressed map sprite sheets
@@ -31,11 +31,25 @@ public class WorldMapApHost(
      */
     public val muGfx: ByteArray = ByteArray(MU_GFX_SLOTS * MU_GFX_SIZE)
 
-    /** Parsed sprite objects by ROM address, so each is read from the ROM once. */
-    private val objects = HashMap<Int, SpriteObject>()
+    /** Parsed objects and their primitive ROM addresses, grown when a new object is seen. */
+    private var objectAddresses = IntArray(INITIAL_OBJECT_COUNT)
+    private var objects = arrayOfNulls<SpriteObject>(INITIAL_OBJECT_COUNT)
+    private var objectCount = 0
 
     /** The sprite object at ROM address [addr], parsed once and cached. */
-    override fun objectAt(addr: Int): SpriteObject = objects.getOrPut(addr) { rom.objN(addr) }
+    override fun objectAt(addr: Int): SpriteObject {
+        for (i in 0 until objectCount) {
+            if (objectAddresses[i] == addr) return objects[i]!!
+        }
+        val result = rom.objN(addr)
+        if (objectCount == objects.size) {
+            objectAddresses = objectAddresses.copyOf(objects.size * 2)
+            objects = objects.copyOf(objects.size * 2)
+        }
+        objectAddresses[objectCount] = addr
+        objects[objectCount++] = result
+        return result
+    }
 
     /** `SIN(a)` = `gSinLookup[a & 0xFF]` (hardware.h:237; signed 4.12). */
     override fun sin(a: Int): Int = rom.u16(SIN_LOOKUP + 2 * (a and 0xFF)).toShort().toInt()
@@ -80,6 +94,9 @@ public class WorldMapApHost(
     override fun obj1dMap(): Boolean = hw.lcd.dispcnt and 0x40 != 0
 
     private companion object {
+        /** Initial capacity of the sprite object cache. */
+        const val INITIAL_OBJECT_COUNT = 32
+
         /** ROM address of `gSinLookup` (data/trig_rodata.s). */
         const val SIN_LOOKUP = 0x080D751C
 

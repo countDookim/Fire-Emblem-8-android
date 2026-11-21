@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 229 across 46 Kotlin files.
+Total entries: 228 across 46 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -32,7 +32,6 @@ Total entries: 229 across 46 Kotlin files.
 | EP-32 | 2 |
 | EP-34a | 3 |
 | EP-34b | 1 |
-| EP-36 | 1 |
 | EP-7 | 2 |
 | IS-2 | 1 |
 | PP-10 | 1 |
@@ -347,12 +346,6 @@ Total entries: 229 across 46 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `tradeTargetCount` | Stand-in until EP-34b ports trade target lists. |
-
-## EP-36 (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `trapTypeAt` | Stand-in until EP-36 ports `GetTrapAt`. |
 
 ## EP-7 (2)
 

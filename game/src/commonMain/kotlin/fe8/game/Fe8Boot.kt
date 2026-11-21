@@ -1326,6 +1326,10 @@ public class Fe8Boot(
         main.hooks.gorgonEggHatchDisplay = phaseStartEnd.gorgonEggHatchDisplay
         mapTraps = trapsObj
         battleEntityMaps.traps = trapsObj
+        // `GetTrapAt(x, y)->type` for RideCommandUsability; -1 when no trap is there.
+        playerWiring?.unitMenu?.hooks?.trapTypeAt = { x, y ->
+            trapsObj.getTrapAt(x, y).let { if (it < 0) -1 else trapsObj.type(it) }
+        }
         phase.hooks.getPickTrapType = { unit -> trapsObj.getPickTrapType(unit) }
         battleGenerate.disableAllLightRunes = { trapsObj.disableAllLightRunes() }
         battleGenerate.enableAllLightRunes = { trapsObj.enableAllLightRunes() }

@@ -181,7 +181,7 @@ public class UnitActionMenu(
         /**
          * `GetTrapAt(x, y)` (src/bmtrick.c) then `trap->type`: the type of the trap at tile
          * ([x], [y]), or -1 if there is none.
-         * Stand-in until EP-36 ports `GetTrapAt`.
+         * The game wires `MapTraps.getTrapAt` (Transcribed, EP-36) in `Fe8Boot`.
          */
         public var trapTypeAt: (x: Int, y: Int) -> Int = { _, _ -> -1 }
 

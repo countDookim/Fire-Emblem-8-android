@@ -144,7 +144,7 @@ internal class PlayerPhaseWiring(
 
     private val attackRange =
         AttackRange(map, units, items, entityMaps, unitLoader)
-    private val unitMenu =
+    internal val unitMenu =
         UnitActionMenu(units, active, items, unitLoader, map, attackRange, hw, bm)
     private val itemLine = ItemMenuLine(
         talk.text, items, talk.messages, hw, rom, drawnIconLookupTable, iconGfxIdLookupTable,

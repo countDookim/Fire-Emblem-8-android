@@ -13,7 +13,6 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- `CI-text-comment`: GPT owner PC, test comment only, until ~17:15Z (2026-11-21).
 
 - `EP-11f2`: GPT owner PC Terra, until ~19:30Z (2026-11-21).
 - `PC-9i`: GPT owner PC Terra, until ~19:30Z (2026-11-21).
@@ -24,6 +23,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 - `BUG-evtmenu`: Gemini owner PC, until ~17:50Z (`wip/bug-evtmenu`).
 
 ## Current state
+
+- 2026-11-21 GPT: corrected an existing test comment rejected by the game-text guard (CI 44506430764/44926779720). No test behavior changed; local guard passes.
 
 - 2026-11-19 owner PC Claude: **EP-29b done (`572cde81`)**, **EP-30 done (`a2f7ed45`)**, both Gemini wip stopped
   on 11-16. EP-29b: bmunit.c helpers incl. `RefreshAllies` (wired). EP-30: unit menu usability A; Armory check was

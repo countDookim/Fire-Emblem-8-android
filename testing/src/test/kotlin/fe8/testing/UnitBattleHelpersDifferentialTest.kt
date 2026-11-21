@@ -218,7 +218,7 @@ class UnitBattleHelpersDifferentialTest {
         val ctx = loadContext("r04181")
         val table = ctx.table
 
-        // Seth at frame 4181 has 2 items (Silver Lance, Steel Sword), slots 2..4 empty:
+        // Captured unit 2 at frame 4181 has occupied slots 0..1; slots 2..4 are empty.
         assertEquals(-1, table.getUnitKeyItemSlotForTerrain(2, UnitTable.TERRAIN_CHEST_FULL))
         assertEquals(-1, table.getUnitKeyItemSlotForTerrain(2, UnitTable.TERRAIN_DOOR))
         // Terrain 0 -> returns first empty slot (slot 2)

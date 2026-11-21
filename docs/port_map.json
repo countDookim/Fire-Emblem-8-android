@@ -8,8 +8,8 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1382,
-    "implemented_unverified": 82
+    "verified": 1389,
+    "implemented_unverified": 88
   },
   "functions": {
     "APProc_Create": {
@@ -566,6 +566,36 @@
       "status": "verified",
       "tests": [
         "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
+      ]
+    },
+    "ArenaCommandUsability": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu build at f4181 evaluates usability A callbacks to NOTSHOWN"
+      ]
+    },
+    "ArmoryCommandUsability": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu build at f4181 evaluates usability A callbacks to NOTSHOWN"
+      ]
+    },
+    "AttackBallistaCommandUsability": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu build at f4181 evaluates usability A callbacks to NOTSHOWN"
       ]
     },
     "AttackCommandUsability": {
@@ -1861,6 +1891,16 @@
         "fe8.testing.SaveChecksumsReferenceTest#checksum32 matches the suspend block info in first phase"
       ]
     },
+    "ChestCommandUsability": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu build at f4181 evaluates usability A callbacks to NOTSHOWN"
+      ]
+    },
     "ChnVolSetAsm": {
       "decomp_file": "src/m4a_1.s",
       "system": "audio",
@@ -2465,6 +2505,16 @@
         "fe8.testing.PathArrowDifferentialTest#select_move path arrow matches the game"
       ]
     },
+    "DanceCommandUsability": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu build at f4181 evaluates usability A callbacks to NOTSHOWN"
+      ]
+    },
     "DecodeString": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -2616,6 +2666,16 @@
         "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 1 dies as the capture f2018 to f2034",
         "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 2 dies as the capture f2723 to f2739",
         "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
+      ]
+    },
+    "DoorCommandUsability": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu build at f4181 evaluates usability A callbacks to NOTSHOWN"
       ]
     },
     "DrawBattleForecastContents": {
@@ -2835,6 +2895,16 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
       "status": "implemented",
       "tests": []
+    },
+    "DropUsability": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu build at f4181 evaluates usability A callbacks to NOTSHOWN"
+      ]
     },
     "EffectWait": {
       "decomp_file": "src/bmmenu.c",
@@ -5277,7 +5347,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "implemented",
       "tests": []
     },
@@ -5414,6 +5484,14 @@
         "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
     },
+    "GetUnitCurrentHp": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GetUnitDefinitionFromEventScr": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -5444,6 +5522,14 @@
         "fe8.testing.UnitTableDifferentialTest#GetUnitFromCharId finds Eirika where the player phase puts the cursor"
       ]
     },
+    "GetUnitKeyItemSlotForTerrain": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GetUnitKillExpBonus": {
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
@@ -5453,6 +5539,14 @@
       "tests": [
         "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
+    },
+    "GetUnitLeaderCharId": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "implemented",
+      "tests": []
     },
     "GetUnitMovementCost": {
       "decomp_file": "src/bmunit.c",
@@ -5493,6 +5587,14 @@
       "tests": [
         "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
+    },
+    "GetUnitSMSId": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "implemented",
+      "tests": []
     },
     "GetUnitSpritePalette": {
       "decomp_file": "src/bmudisp.c",
@@ -9757,6 +9859,14 @@
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
+    "RefreshAllies": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "RefreshEntityBmMaps": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -10483,6 +10593,14 @@
       "tests": [
         "fe8.testing.TextSystemRomTest#initTextFont reproduces gDefaultFont and sTalkFont and activates the font"
       ]
+    },
+    "SetUnitStatus": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "implemented",
+      "tests": []
     },
     "SetWmPlaceDotFlagForIndex": {
       "decomp_file": "src/worldmap_rm.c",

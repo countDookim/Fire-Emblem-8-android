@@ -63,7 +63,8 @@ class KmpCommonTest(unittest.TestCase):
         checked = 0
         for f in ROOT.glob("**/src/commonMain/**/*.kt"):
             rel = f.relative_to(ROOT)
-            if "build" in rel.parts:
+            # Build outputs and agent worktrees (other checkouts, possibly on older code).
+            if "build" in rel.parts or ".claude" in rel.parts:
                 continue
             checked += 1
             for n, line in jvm_only_uses(f.read_text(encoding="utf-8")):

@@ -1314,3 +1314,79 @@ Recommend CAP: transition while a delayed song proc already exists, with proc fi
 
 
 `EventMusicDifferentialTest`: `GetCurrentBgmSong` returning 0 fails against the original song field; restored test passes. No credit for other helpers.
+
+## PC-9i menu inventory (2026-11-21)
+
+PC-9i inventory, 2026-11-21. Source: pinned fireemblem8u src/difficultymenu.c,
+savemenu.c, savedraw.c and include/savemenu.h. This is original-state evidence,
+not port verification. All callback statements below are inferences from proc
+script cursors and source, not per-step callback watches.
+
+ram_trace_newgame: RAM snapshots every step 955–1230 (EWRAM, IWRAM); f962,
+f1020, f1100, f1225 also have full video regions. SRAM snapshots 1128–1145,
+1212–1216 and 1230; no SRAM snapshot before 1128. inputs: A 964–965,
+Down 1030–1031, A 1060–1061, A 1130–1131, A 1200–1201, A 1230.
+No per-step proc watch: proc state is decoded from the EWRAM snapshots, not
+function-entry trace. ProcScr_SaveMenu slot 2 persists 955–1211; ProcScr_savedraw
+slot 3 and gProcScr_SaveDrawCursor slot 4 persist through 1210. Difficulty child
+slot 5 exists 982–1087, sprite child slot 1 984–1087. Difficulty cursor commands
+(index = offset/8) are 4 at 982–983, 5 at 984–985, 7 at 986–1002,
+10 at 1003–1060, 12 at 1061–1070, 14 at 1071–1087. Save-menu cursor:
+15 at 955–963, 16 at 964, 19 at 965–981, 23 at 982–1088,
+24 at 1089–1097, 26 at 1098–1115, 31 at 1116, 32 at 1117–1132,
+37 at 1133, 39 at 1134, 41 at 1135, 42 at 1136–1173,
+82 at 1174–1175, 84 at 1176–1209, 91 at 1210, 93 at 1211.
+
+PC-9a: 981–1003 entry/init/fade and 1061–1089 confirm/end. Inferred
+NewNewGameDifficultySelect, DifficultySelect_Init, InitDifficultySelectScreen,
+DifficultySelect_OnEnd. RAM has BG tilemap buffers throughout, full VRAM/pal/OAM
+only f1020 and f1100 within these subwindows. Lifecycle is observed through
+parent/child and cursor progression, not directly through a callback trace.
+PC-9b: input loop cursor 10: selection 0 through 1029, 1 at 1030 onward;
+selection 1 confirmed 1060, save menu difficulty becomes 1. Source implies
+DifficultySelect_Loop_KeyHandler, DrawDifficultyModeText, sub_80AC034 and
+sub_80AC680 on this movement. Initial DrawDifficultyModeText/sub_80AC034
+inferred at init. sub_80AC1BC/sub_80AC22C appear in source but are not present
+in this proc script; no evidence of calls here. No wrap, up, B, hard or direct
+selection 0 confirmation in dense run.
+PC-9c: DrawDifficultySprite_Init, DrawDifficultySprites_Loop,
+DrawDifficultyMenuCursorMaybe, sub_80AC4F8 and StartDrawDifficultyMenuSprites
+inferred from child script/source 984–1087; sub_80AC680 movement at 1030,
+cursor fields evolve thereafter. RAM state is dense but full OAM only f1020:
+no post-movement OAM sequence; no claim of OAM animation coverage.
+PC-9d: SaveMenu_ResetLcdFormDifficulty at entry and restore,
+SaveMenu_ReloadScreenFormDifficulty, SaveMenu_PostDifficultHandler,
+SaveMenu_SetDifficultyChoice inferred from scripts/input and difficulty 1;
+slot 0 selected by A at 1130. Source dispatch supports SaveMenuWriteNewGame,
+then SaveMenu_NewGame; SRAM changes 1130–1132; existing
+NewGameSaveReferenceTest compares this write. Record controller/tutorial choice 1,
+non-hard, slot 0 only. Other save callbacks incl. SaveMenu_SaveSlotSelectLoop,
+SaveMenuSlotSelDrawSprite and savedraw's SaveDraw_Init/SaveDraw_Loop_Main and
+SaveDrawCursor_Init/SaveDrawCursor_Loop have separate ownership; do not fold
+all save menu work into PC-9d. Screen reload 1089–1115 and slot 1116–1132
+are separate subwindows, not a complete save-menu inventory.
+
+menu_screens: only m0962, m1024, m1086, m1087 (full EWRAM/IWRAM/VRAM,
+palette/OAM/IO and RGB), independent timeline: A 963–964, A 1025–1026;
+initial difficulty 0 at m1024; slot menu m1086–1087. This is direct choice 0,
+but no intervening snapshots or SRAM, no per-step proc watch. Do not equate its
+m1086 with dense f1086. At m1024 script state is difficulty loop; m1086/1087
+save slot loop. These are useful graphics snapshots, not dense lifecycle evidence.
+
+CAP9 plan, no new capture made: starting from documented clean SRAM, capture
+full per-step proc-array watch plus inputs and RAM; full video regions/OAM each
+step from difficulty entry through return and slot screen, SRAM before/after
+write. Exercise Down and Up including both wraps, idle/confirm during cursor
+motion, confirm each of 0/1/2 in independent reset runs, B cancellation and
+re-entry, and A/Start dispatch. Capture slot movement/empty and occupied slots,
+back and overwrite-confirm/cancel with known initial saves, then confirm each
+branch and retain before/after SRAM and game-control handoff. Maintain distinct
+scenarios for occupied-slot prompts and other save-menu callers; do not infer
+coverage of branches from the source or a single clean slot. Capture replayable
+setup, input scripts, manifests, and full RAM/video/SRAM around boundaries.
+
+## EP-11f2 UI helper follow-up (2026-11-21)
+
+EP-11f2 evidence: event.c EventEngine_OnEnd -> ReadGameSaveCoreGfx (event type 5); bm.c ReadGameSaveCoreGfx -> ResetText; fontgrp.c ResetText -> InitTextFont -> InitSystemTextFont, ApplyPalette(Pal_Text, palid), color 0 zero. Capture f3720->3721 color 14 tested through production TalkScene host, full bank compared. Other event-end mid-frame VRAM timing exclusions remain as existing tests. Face fade uses default layout; other SetupFaceGfxData layouts remain unsupported. No new port tags or mutation checks.
+
+SpacialSe readability review, decomp src/bmlib.c Screen2Pan and PlaySeSpacial and include/soundwrapper.h PlaySoundEffect: class KDoc describes spatial pan and MU footsteps consistent with callers; Screen2Pan KDoc matches both clamps and integer range, capture limits correctly stated; PlaySeSpacial KDoc matches macro, player selection, immediate init and pan control, and states capture limit. Sound disabled only skips starting the effect; init and pan still run, matching decomp. No comments/names changes warranted.

@@ -18,7 +18,29 @@ public class MenuTargets(
     private val units: UnitTable,
     /** The ROM that the unit's character and class data point into. */
     private val rom: RomView,
+    /** `GetUnitSupporterCount` and `GetUnitSupporterUnit` of src/bmreliance.c. */
+    private val support: SupportReliance,
 ) {
+    /** The checks of other systems that the lists call. */
+    public class Hooks {
+        /**
+         * `CheckForCharacterEvents(pidA, pidB)` (src/eventinfo.c): whether the chapter has a
+         * character-based event (a conversation) for the pair. The game wires
+         * `EventInfos.checkForCharacterEvents`.
+         */
+        public var checkForCharacterEvents: (pidA: Int, pidB: Int) -> Boolean = { _, _ -> false }
+
+        /**
+         * `CanUnitSupportNow(unit, num)` (src/bmreliance.c): whether unit [unit] can have the
+         * support conversation with its supporter [num] now.
+         * Stand-in until EP-10c ports it with a support capture (EP10c-cap); no capture reaches it.
+         */
+        public var canUnitSupportNow: (unit: Int, num: Int) -> Boolean = { _, _ -> false }
+    }
+
+    /** The hooks of this class. */
+    public val hooks: Hooks = Hooks()
+
     /** The list `InitTargets` and `AddTarget` fill. */
     public val targets: SelectTargets get() = attack.targets
 
@@ -117,6 +139,145 @@ public class MenuTargets(
     }
 
     /**
+     * Ported from src/bmtarget.c: TryAddUnitToTradeTargetList
+     *
+     * Adds the unit [unitId] when it is on the subject unit's side (neither a phantom), is not
+     * berserk, is not `CA_SUPPLY` and either of them holds an item. Then, if it is rescuing a
+     * blue unit and either holds an item, the rescued unit is added too (at the rescuer's
+     * tile, as the rescued unit's id). Verified at f4181 only for an enemy, which the allegiance
+     * guard skips; the other branches are covered by synthetic tests.
+     */
+    public fun tryAddUnitToTradeTargetList(unitId: Int) {
+        if (!BmPhase.isSameAllegiance(units.index(subjectUnit), units.index(unitId))) return
+        if (units.classId(subjectUnit) == CLASS_PHANTOM || units.classId(unitId) == CLASS_PHANTOM) {
+            return
+        }
+
+        if (units.statusIndex(unitId) != UnitTable.STATUS_BERSERK) {
+            if (units.item(subjectUnit, 0) != 0 || units.item(unitId, 0) != 0) {
+                if (units.cAttributes(unitId) and CA_SUPPLY == 0) {
+                    attack.targets.addTarget(
+                        units.xPos(unitId), units.yPos(unitId), units.index(unitId), 0,
+                    )
+                }
+            }
+        }
+
+        if (units.state(unitId) and UnitTable.US_RESCUING != 0) {
+            val rescue = units.rescue(unitId)
+
+            if (units.index(rescue) and FACTION_MASK != FACTION_BLUE) return
+            if (units.item(subjectUnit, 0) == 0 && units.item(rescue, 0) == 0) return
+
+            attack.targets.addTarget(
+                units.xPos(unitId), units.yPos(unitId), units.index(rescue), 0,
+            )
+        }
+    }
+
+    /**
+     * Ported from src/bmtarget.c: MakeTradeTargetList
+     *
+     * Makes the list of the units next to [unit] it can trade with, from a cleared range map.
+     * When [unit] is rescuing, the unit it holds is tried too and, if added, is placed on
+     * [unit]'s own tile. Verified at f4181 only for the empty list of a unit that is not
+     * rescuing.
+     */
+    public fun makeTradeTargetList(unit: Int) {
+        val x = units.xPos(unit)
+        val y = units.yPos(unit)
+
+        subjectUnit = unit
+
+        attack.map.bmMapFill(attack.map.range, 0)
+        forEachAdjacentUnit(x, y) { tryAddUnitToTradeTargetList(it) }
+
+        if (units.state(subjectUnit) and UnitTable.US_RESCUING != 0) {
+            val count = attack.targets.getSelectTargetCount()
+            tryAddUnitToTradeTargetList(units.rescue(subjectUnit))
+
+            if (count != attack.targets.getSelectTargetCount()) {
+                attack.targets.setTargetPosition(
+                    count, units.xPos(subjectUnit), units.yPos(subjectUnit),
+                )
+            }
+        }
+    }
+
+    /**
+     * Ported from src/bmtarget.c: TryAddUnitToTalkTargetList
+     *
+     * Adds the unit [unitId], with its character id as the target's `extra`, when it is not
+     * berserk or asleep and the chapter has a conversation between the subject unit's character
+     * and its ([Hooks.checkForCharacterEvents]). Verified at f4181 only for the enemy next to
+     * the unit, which has no conversation; the status guard is covered by a synthetic test.
+     */
+    public fun tryAddUnitToTalkTargetList(unitId: Int) {
+        val status = units.statusIndex(unitId)
+        if (status == UnitTable.STATUS_BERSERK || status == UnitTable.STATUS_SLEEP) return
+
+        if (!hooks.checkForCharacterEvents(units.charId(subjectUnit), units.charId(unitId))) return
+
+        attack.targets.addTarget(
+            units.xPos(unitId), units.yPos(unitId), units.index(unitId), units.charId(unitId),
+        )
+    }
+
+    /**
+     * Ported from src/bmtarget.c: MakeTalkTargetList
+     *
+     * Makes the list of the units next to [unit] it can talk to, from a cleared range map.
+     */
+    public fun makeTalkTargetList(unit: Int) {
+        val x = units.xPos(unit)
+        val y = units.yPos(unit)
+
+        subjectUnit = unit
+
+        attack.map.bmMapFill(attack.map.range, 0)
+
+        forEachAdjacentUnit(x, y) { tryAddUnitToTalkTargetList(it) }
+    }
+
+    /**
+     * Ported from src/bmtarget.c: MakeTargetListForSupport
+     *
+     * Makes the list of [unit]'s supporters that stand next to it, can support with it now
+     * ([Hooks.canUnitSupportNow]) and are available (not dead, undeployed, rescued or
+     * `US_BIT16`, not berserk or asleep), with the supporter's slot as the target's `extra`.
+     * The range map is not touched. Verified at f4181 for the empty list: Eirika's supporters
+     * are all too far, so the distance guard ends each; the rest is covered by synthetic tests.
+     */
+    public fun makeTargetListForSupport(unit: Int) {
+        subjectUnit = unit
+
+        targets.initTargets(units.xPos(unit), units.yPos(unit))
+
+        val count = support.getUnitSupporterCount(unit)
+
+        for (i in 0 until count) {
+            val offset = support.getUnitSupporterUnit(unit, i)
+            if (offset < 0) continue
+            val other = s8(units.bytes, offset + UnitTable.OFF_INDEX) and 0xFF
+
+            val distance = Math.abs(units.xPos(unit) - units.xPos(other)) +
+                Math.abs(units.yPos(unit) - units.yPos(other))
+            if (distance != 1) continue
+
+            if (!hooks.canUnitSupportNow(unit, i)) continue
+
+            if (units.state(other) and (UnitTable.US_UNAVAILABLE or UnitTable.US_RESCUED) != 0) {
+                continue
+            }
+
+            val status = units.statusIndex(other)
+            if (status == UnitTable.STATUS_BERSERK || status == UnitTable.STATUS_SLEEP) continue
+
+            attack.targets.addTarget(units.xPos(other), units.yPos(other), units.index(other), i)
+        }
+    }
+
+    /**
      * Transcribed from src/bmunit.c: CanUnitRescue (not verified: f4181 never reaches it, every
      * adjacent unit is an enemy)
      *
@@ -146,6 +307,8 @@ public class MenuTargets(
 
     private companion object {
         const val CLASS_PHANTOM = 0x51
+        const val FACTION_MASK = 0xC0
+        const val FACTION_BLUE = 0x00
         const val CA_MOUNTEDAID = 1 shl 0
         const val CA_SUPPLY = 1 shl 9
         const val CA_FEMALE = 1 shl 14

@@ -171,7 +171,7 @@ public class UnitActionMenu(
         /**
          * `MakeTradeTargetList(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the number
          * of adjacent allies [unit] can trade with.
-         * Stand-in until EP-34b ports trade target lists.
+         * The game wires [MenuTargets.makeTradeTargetList] (EP-34b).
          */
         public var tradeTargetCount: (unit: Int) -> Int = { _ -> 0 }
 
@@ -199,14 +199,14 @@ public class UnitActionMenu(
         /**
          * `MakeTargetListForSupport(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the
          * number of adjacent allies [unit] can support with.
-         * Stand-in until EP-34b ports support target lists.
+         * The game wires [MenuTargets.makeTargetListForSupport] (EP-34b).
          */
         public var supportTargetCount: (unit: Int) -> Int = { _ -> 0 }
 
         /**
          * `MakeTalkTargetList(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the number
          * of units [unit] can talk to.
-         * Stand-in until EP-34b ports talk target lists.
+         * The game wires [MenuTargets.makeTalkTargetList] (EP-34b).
          */
         public var talkTargetCount: (unit: Int) -> Int = { _ -> 0 }
 

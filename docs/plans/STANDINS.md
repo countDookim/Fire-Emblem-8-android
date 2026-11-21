@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 232 across 46 Kotlin files.
+Total entries: 230 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -24,6 +24,7 @@ Total entries: 232 across 46 Kotlin files.
 | M6-I | 26 |
 | M6-J | 10 |
 | D09-3 | 3 |
+| EP-10c | 1 |
 | EP-12 | 27 |
 | EP-13 | 1 |
 | EP-1b | 1 |
@@ -31,7 +32,6 @@ Total entries: 232 across 46 Kotlin files.
 | EP-24b | 1 |
 | EP-33 | 3 |
 | EP-34a | 2 |
-| EP-34b | 3 |
 | EP-7 | 2 |
 | IS-2 | 1 |
 | PP-10 | 1 |
@@ -269,6 +269,12 @@ Total entries: 232 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `newPopupItemStealing` | Stand-in until the popups are ported (D09-3; no capture holds a steal): nothing happens. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | `event37GiveItem` | Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown and the gold add happens at once. |
 
+## EP-10c (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/MenuTargets.kt` | `canUnitSupportNow` | Stand-in until EP-10c ports it with a support capture (EP10c-cap); no capture reaches it. |
+
 ## EP-12 (27)
 
 | Kotlin file | Declaration | Stand-in |
@@ -342,14 +348,6 @@ Total entries: 232 across 46 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `dropTargetCount` | Stand-in until EP-34a ports drop target lists. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `giveTargetCount` | Stand-in until EP-34a ports give target lists. |
-
-## EP-34b (3)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `supportTargetCount` | Stand-in until EP-34b ports support target lists. |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `talkTargetCount` | Stand-in until EP-34b ports talk target lists. |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `tradeTargetCount` | Stand-in until EP-34b ports trade target lists. |
 
 ## EP-7 (2)
 

@@ -11,12 +11,14 @@ import fe8.game.bm.ItemInfo
 import fe8.game.bm.MenuTargets
 import fe8.game.bm.PlaySt
 import fe8.game.bm.SelectTargets
+import fe8.game.bm.SupportReliance
 import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
 import gbafe.core.rng.RngService
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import java.io.File
@@ -42,26 +44,31 @@ class MenuTargetListsDifferentialTest {
     @Test
     @VerifiesPort(
         "ForEachAdjacentUnit", "MakeRescueTargetList", "TryAddUnitToRescueTargetList",
-        "MakeTakeTargetList", "TryAddRescuedUnitToTakeTargetList",
+        "MakeTakeTargetList", "TryAddRescuedUnitToTakeTargetList", "MakeTradeTargetList",
+        "TryAddUnitToTradeTargetList", "MakeTalkTargetList", "TryAddUnitToTalkTargetList",
+        "MakeTargetListForSupport",
     )
-    fun `rescue and take lists at f4181 are empty with the ring of the four tiles marked`() {
+    fun `menu lists at f4181 are empty with the ring of the four tiles marked`() {
         assumeInputs()
         val rom = RomView.ofRom(romFile.readBytes())
-        for (take in listOf(false, true)) {
+        for (which in listOf("rescue", "take", "trade", "talk", "support")) {
             val sim = Sim(rom)
-            val which = if (take) "take" else "rescue"
             assertEquals(1, sim.unit, "acting unit")
-            assertEquals(listOf(129), sim.adjacentUnits(), "$which callback units")
-            if (take) {
-                sim.lists.makeTakeTargetList(sim.unit)
-            } else {
-                sim.lists.makeRescueTargetList(sim.unit)
+            // No conversation at f4181 (CheckForCharacterEvents finds none for the enemy), and
+            // the real CanUnitSupportNow is never entered: with `true` the distance guard alone
+            // keeps every supporter out, as in the game.
+            sim.lists.hooks.checkForCharacterEvents = { _, _ -> false }
+            sim.lists.hooks.canUnitSupportNow = { _, _ -> true }
+            if (which != "support") {
+                assertEquals(listOf(129), sim.adjacentUnits(), "$which callback units")
             }
+            sim.make(which)
             val e = sim.ewram
             assertEquals(s16(e, ROOT - EWRAM), sim.targets.rootX, "$which rootX")
             assertEquals(s16(e, ROOT - EWRAM + 2), sim.targets.rootY, "$which rootY")
             assertEquals(u32(e, COUNT - EWRAM), sim.targets.getSelectTargetCount(), "$which count")
             assertEquals(0, sim.targets.getSelectTargetCount(), "$which count is 0")
+            if (which == "support") continue
             for (y in 0 until sim.map.sizeY) {
                 for (x in 0 until sim.map.sizeX) {
                     assertEquals(sim.dumpRange[y][x], sim.map.range[y, x], "$which range ($x, $y)")
@@ -180,6 +187,132 @@ class MenuTargetListsDifferentialTest {
         )
     }
 
+    @Test
+    fun `trade list adds allies with an item and the rescued unit on the actor tile`() {
+        assumeInputs()
+        val sim = Sim(RomView.ofRom(romFile.readBytes()))
+        val ally = sim.makeAllyBesideActor()
+        val units = sim.units
+        val ao = units.unitOffset(ally)
+        fun count(): Int {
+            sim.lists.makeTradeTargetList(sim.unit)
+            return sim.targets.getSelectTargetCount()
+        }
+        assertEquals(1, count())
+        assertEquals(units.index(ally), sim.targets.targetUid(0))
+        assertEquals(0, sim.targets.targetExtra(0))
+        val data = units.bytes.copyOfRange(ao, ao + 8)
+        sim.setWithSupply(ally)
+        assertEquals(0, count(), "supply")
+        data.copyInto(units.bytes, ao)
+        units.setUnitStatus(ally, UnitTable.STATUS_BERSERK)
+        assertEquals(0, count(), "berserk")
+        units.setUnitStatus(ally, 0)
+        val allyClass = units.bytes.copyOfRange(ao + 4, ao + 8)
+        sim.setClassNumber(ally, CLASS_PHANTOM)
+        assertEquals(0, count(), "phantom")
+        allyClass.copyInto(units.bytes, ao + 4)
+        val items = units.bytes.copyOfRange(ao + 0x1E, ao + 0x20)
+        val actorItems = units.bytes.copyOfRange(
+            units.unitOffset(sim.unit) + 0x1E, units.unitOffset(sim.unit) + 0x20,
+        )
+        units.bytes[ao + 0x1E] = 0
+        units.bytes[ao + 0x1F] = 0
+        assertEquals(1, count(), "the actor holds an item")
+        units.bytes[units.unitOffset(sim.unit) + 0x1E] = 0
+        units.bytes[units.unitOffset(sim.unit) + 0x1F] = 0
+        assertEquals(0, count(), "nobody holds an item")
+        actorItems.copyInto(units.bytes, units.unitOffset(sim.unit) + 0x1E)
+        items.copyInto(units.bytes, ao + 0x1E)
+        units.bytes[ao + 0x0B] = 129.toByte()
+        assertEquals(0, count(), "enemy side")
+        units.bytes[ao + 0x0B] = ally.toByte()
+
+        // The ally rescues unit 3 (blue): added after the adjacent ones, at the ally's tile.
+        val third = 3
+        units.setState(ally, units.state(ally) or UnitTable.US_RESCUING)
+        units.setRescue(ally, third)
+        assertEquals(2, count())
+        assertEquals(units.index(ally), sim.targets.targetUid(0))
+        assertEquals(units.index(third), sim.targets.targetUid(1))
+        assertEquals(units.xPos(ally), sim.targets.targetX(1))
+        // A rescued enemy is not offered.
+        units.setRescue(ally, 129)
+        assertEquals(1, count(), "rescued enemy")
+        units.setRescue(ally, third)
+        // The actor rescuing: the held unit is tried and put on the actor's own tile.
+        units.setState(ally, units.state(ally) and UnitTable.US_RESCUING.inv())
+        units.setState(sim.unit, units.state(sim.unit) or UnitTable.US_RESCUING)
+        units.setRescue(sim.unit, third)
+        assertEquals(2, count())
+        assertEquals(units.index(third), sim.targets.targetUid(1))
+        assertEquals(units.xPos(sim.unit), sim.targets.targetX(1))
+        assertEquals(units.yPos(sim.unit), sim.targets.targetY(1))
+    }
+
+    @Test
+    fun `talk list adds a unit with a conversation and its character id`() {
+        assumeInputs()
+        val sim = Sim(RomView.ofRom(romFile.readBytes()))
+        val ally = sim.makeAllyBesideActor()
+        val units = sim.units
+        val pairs = ArrayList<Pair<Int, Int>>()
+        sim.lists.hooks.checkForCharacterEvents = { a, b -> pairs.add(a to b); true }
+        fun count(): Int {
+            sim.lists.makeTalkTargetList(sim.unit)
+            return sim.targets.getSelectTargetCount()
+        }
+        // The enemy at (9, 6) is called first (bottom-right to top-left), then the ally.
+        assertEquals(2, count())
+        assertEquals(units.index(ally), sim.targets.targetUid(1))
+        assertEquals(units.charId(ally), sim.targets.targetExtra(1))
+        assertEquals(units.charId(sim.unit) to units.charId(129), pairs[0])
+        units.setUnitStatus(ally, UnitTable.STATUS_BERSERK)
+        assertEquals(1, count(), "berserk")
+        units.setUnitStatus(ally, UnitTable.STATUS_SLEEP)
+        assertEquals(1, count(), "asleep")
+        units.setUnitStatus(ally, 0)
+        sim.lists.hooks.checkForCharacterEvents = { _, _ -> false }
+        assertEquals(0, count(), "no conversation")
+    }
+
+    @Test
+    fun `support list adds an adjacent available supporter with its slot`() {
+        assumeInputs()
+        val sim = Sim(RomView.ofRom(romFile.readBytes()))
+        val ally = sim.makeAllyBesideActor()
+        val units = sim.units
+        val support = SupportReliance(sim.rom, units, PlaySt())
+        val slot = support.getUnitSupporterNum(sim.unit, units.charId(ally))
+        assertTrue(slot >= 0, "unit 2 supports the actor")
+        sim.lists.hooks.canUnitSupportNow = { unit, num -> unit == sim.unit && num == slot }
+        fun count(): Int {
+            sim.lists.makeTargetListForSupport(sim.unit)
+            return sim.targets.getSelectTargetCount()
+        }
+        assertEquals(1, count())
+        assertEquals(units.index(ally), sim.targets.targetUid(0))
+        assertEquals(slot, sim.targets.targetExtra(0))
+        assertEquals(units.xPos(ally), sim.targets.targetX(0))
+        val state = units.state(ally)
+        for (bit in listOf(1 shl 2, 1 shl 3, UnitTable.US_RESCUED, 1 shl 16)) {
+            units.setState(ally, state or bit)
+            assertEquals(0, count(), "state bit $bit")
+        }
+        units.setState(ally, state)
+        for (status in listOf(UnitTable.STATUS_BERSERK, UnitTable.STATUS_SLEEP)) {
+            units.setUnitStatus(ally, status)
+            assertEquals(0, count(), "status $status")
+        }
+        units.setUnitStatus(ally, 0)
+        assertEquals(1, count())
+        sim.lists.hooks.canUnitSupportNow = { _, _ -> false }
+        assertEquals(0, count(), "cannot support now")
+        sim.lists.hooks.canUnitSupportNow = { _, _ -> true }
+        units.setPosition(ally, 6, 6)
+        assertEquals(0, count(), "two tiles away")
+    }
+
     private fun assumeInputs() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
@@ -218,8 +351,19 @@ class MenuTargetListsDifferentialTest {
                 map, units, items, AttackRange(map, units, items, entityMaps, loader),
                 ByteArray(0x200), SelectTargets(),
             )
-            lists = MenuTargets(attack, entityMaps, units, rom)
+            lists = MenuTargets(attack, entityMaps, units, rom, SupportReliance(rom, units, playSt))
             targets = attack.targets
+        }
+
+        /** Makes the list called [which] for the acting unit. */
+        fun make(which: String) {
+            when (which) {
+                "rescue" -> lists.makeRescueTargetList(unit)
+                "take" -> lists.makeTakeTargetList(unit)
+                "trade" -> lists.makeTradeTargetList(unit)
+                "talk" -> lists.makeTalkTargetList(unit)
+                else -> lists.makeTargetListForSupport(unit)
+            }
         }
 
         /** The ids `ForEachAdjacentUnit` passes for the acting unit's tile, in call order. */

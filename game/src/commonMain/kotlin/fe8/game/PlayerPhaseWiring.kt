@@ -35,6 +35,7 @@ import fe8.game.bm.PlaySt
 import fe8.game.bm.PlayerInterface
 import fe8.game.bm.PlayerPhase
 import fe8.game.bm.SelectTargets
+import fe8.game.bm.SupportReliance
 import fe8.game.bm.TargetSelection
 import fe8.game.bm.UnitActionMenu
 import fe8.game.bm.UnitLoader
@@ -174,7 +175,9 @@ internal class PlayerPhaseWiring(
     ) { x, y, isDown -> forecast.updateStatArrowSprites(x, y, isDown) }
     private val attackTargets =
         AttackTargets(map, units, items, attackRange, traps, SelectTargets())
-    private val menuTargets = MenuTargets(attackTargets, entityMaps, units, rom)
+    private val menuTargets = MenuTargets(
+        attackTargets, entityMaps, units, rom, SupportReliance(rom, units, playSt),
+    )
     private val targetSelection = TargetSelection(
         engine, attackTargets.targets, keys, camMove,
     ) { UiFrame.clearBg0Bg1(hw) }.also {
@@ -261,6 +264,19 @@ internal class PlayerPhaseWiring(
         }
         unitMenu.hooks.takeTargetCount = { unit ->
             menuTargets.makeTakeTargetList(unit)
+            menuTargets.targets.getSelectTargetCount()
+        }
+        menuTargets.hooks.checkForCharacterEvents = { a, b -> infos.checkForCharacterEvents(a, b) }
+        unitMenu.hooks.tradeTargetCount = { unit ->
+            menuTargets.makeTradeTargetList(unit)
+            menuTargets.targets.getSelectTargetCount()
+        }
+        unitMenu.hooks.talkTargetCount = { unit ->
+            menuTargets.makeTalkTargetList(unit)
+            menuTargets.targets.getSelectTargetCount()
+        }
+        unitMenu.hooks.supportTargetCount = { unit ->
+            menuTargets.makeTargetListForSupport(unit)
             menuTargets.targets.getSelectTargetCount()
         }
         unitMenu.hooks.makeTargetListForWeapon = { unit, item ->

@@ -58,6 +58,15 @@ public class SelectTargets {
         count++
     }
 
+    /**
+     * Sets the tile of the target at [index] (a write through `GetTarget(index)->x` and `->y`,
+     * each stored as the signed byte it is in C).
+     */
+    public fun setTargetPosition(index: Int, x: Int, y: Int) {
+        xs[index] = x.toByte().toInt()
+        ys[index] = y.toByte().toInt()
+    }
+
     /** Ported from src/uiselecttarget.c: GetSelectTargetCount (inline): the number of targets. */
     public fun getSelectTargetCount(): Int = count
 

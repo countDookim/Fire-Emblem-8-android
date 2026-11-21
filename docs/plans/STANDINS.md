@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 230 across 47 Kotlin files.
+Total entries: 229 across 48 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -30,7 +30,6 @@ Total entries: 230 across 47 Kotlin files.
 | EP-1b | 1 |
 | EP-23b | 4 |
 | EP-24b | 1 |
-| EP-33 | 3 |
 | EP-34a | 2 |
 | EP-7 | 2 |
 | IS-2 | 1 |
@@ -38,7 +37,7 @@ Total entries: 230 across 47 Kotlin files.
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 4 |
+| unassigned | 6 |
 
 ## M6-B (13)
 
@@ -334,14 +333,6 @@ Total entries: 230 across 47 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `beginNoDamageAnim` | Stand-in until EP-24b (needs a 0-damage hit capture): nothing happens. |
 
-## EP-33 (3)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold, together with a stand-in for the availability callback of every other command (EP-33 ports the real one... |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `hasConvoyAccess` | Stand-in until EP-33 ports `HasConvoyAccess`. |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `unportedUsability` | The game's stand-in answers `MENU_NOTSHOWN` for all of them, so only the ported commands appear; EP-33 ports the remaining callbacks. |
-
 ## EP-34a (2)
 
 | Kotlin file | Declaration | Stand-in |
@@ -386,11 +377,13 @@ Total entries: 230 across 47 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (4)
+## unassigned (6)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/BmContainer.kt` | `getNextUnclearedChapter` | Stand-in until the game wires `WorldMapPath.getNextUnclearedNode`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `afterCleanup` | Stand-in until those are ported: [MapAnimApi] sets it to end all MOVEUNITs and show the target's sprite. |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `mapAnimShowPoisonEffectIfAny` | Transcribed from src/mapanim.c: MapAnim_ShowPoisonEffectIfAny (not verified: no hit of the capture poisons, so the taken branch is a no-op the capture cannot tell from a stand-in) Starts the poison... |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `mapAnimStoleItemPopup` | Transcribed from src/mapanim.c: MapAnim_StoleItemPopup (not verified: no steal in the capture; the branch is the stolen item popup, a stand-in hook) Shows the stolen item's popup for a steal animat... |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `newMapPoisonEffect` | Stand-in until the poison effect is ported (no capture holds a poisoned hit): nothing happens. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold, together with a stand-in for the availability callback of any other command (none is left; see [Hooks.u... |

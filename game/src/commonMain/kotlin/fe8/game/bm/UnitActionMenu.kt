@@ -20,10 +20,12 @@ import gbafe.text.Text
  * `PickCommandUsability`, `PlayCommandUsability`, `RescueUsability`, `RideCommandUsability`),
  * usability C commands (`SecretShopCommandUsability`, `StaffCommandUsability`,
  * `StealCommandUsability`, `SummonCommandUsability`, `SupplyUsability`,
- * `SupportCommandUsability`, `TakeUsability`), and the effect of Wait (`EffectWait`).
+ * `SupportCommandUsability`, `TakeUsability`), usability D commands (`TalkCommandUsability`,
+ * `UnitActionMenu_CanSeize`, `VendorCommandUsability`, `VisitCommandUsability`,
+ * `YobimaCommandUsability`), and the effect of Wait (`EffectWait`).
  * [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s
- * hold, together with a stand-in for the availability callback of every other command (EP-33
- * ports the real ones; see [Hooks.unportedUsability]).
+ * hold, together with a stand-in for the availability callback of any other command (none is left;
+ * see [Hooks.unportedUsability]).
  *
  * It also holds the weapon select menu the Attack command opens (`gWeaponSelectMenuDef`): its
  * start, its availability, draw and switch-in callbacks, and its choice and cancel
@@ -48,6 +50,8 @@ public class UnitActionMenu(
     private val bmSt: BmSt = BmSt(),
     /** The play state (`gPlaySt`). */
     private val playSt: PlaySt = PlaySt(),
+    /** The convoy (`gConvoyItemArray`), whose `HasConvoyAccess` the Supply command asks. */
+    public val convoy: BmContainer = BmContainer(playSt = playSt),
 ) {
     /** `StartFace(slot, fid, x, y, disp)`. */
     public fun interface FaceStarter {
@@ -92,8 +96,8 @@ public class UnitActionMenu(
          * The availability (`MENU_ENABLED`, `MENU_DISABLED` or `MENU_NOTSHOWN`) of the unit menu
          * items whose `isAvailable` callbacks are not ported (every item but the ported ones and
          * Wait, whose callback is `MenuAlwaysEnabled`), given the `MenuItemDef` address and the
-         * item number. The game's stand-in answers `MENU_NOTSHOWN` for all of them, so only the
-         * ported commands appear; EP-33 ports the remaining callbacks.
+         * item number. With EP-33 every callback of `gUnitActionMenuItems` is ported, so
+         * [install] never routes an item here; it stays for a menu def with other callbacks.
          */
         public var unportedUsability: (itemDef: Int, number: Int) -> Int = { _, _ ->
             error("unit menu item availability is not ported")
@@ -223,12 +227,6 @@ public class UnitActionMenu(
          * Stand-in until M6-H ports summon target lists.
          */
         public var summonTargetCount: (unit: Int) -> Int = { _ -> 0 }
-
-        /**
-         * `HasConvoyAccess()` (src/bmcontainer.c): whether the convoy can be opened.
-         * Stand-in until EP-33 ports `HasConvoyAccess`.
-         */
-        public var hasConvoyAccess: () -> Boolean = { false }
 
         /**
          * `IsAdjacentForSupply(pid)` (src/bmmenu.c): whether the character [pid] stands on a
@@ -419,6 +417,16 @@ public class UnitActionMenu(
             Menu.MenuFunc { _, _, itemDef, number -> supportCommandUsability(itemDef, number) }
         menu.callbacks[TAKE_USABILITY] =
             Menu.MenuFunc { _, _, itemDef, number -> takeUsability(itemDef, number) }
+        menu.callbacks[UNIT_ACTION_MENU_CAN_SEIZE] =
+            Menu.MenuFunc { _, _, itemDef, number -> unitActionMenuCanSeize(itemDef, number) }
+        menu.callbacks[VENDOR_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> vendorCommandUsability(itemDef, number) }
+        menu.callbacks[TALK_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> talkCommandUsability(itemDef, number) }
+        menu.callbacks[VISIT_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> visitCommandUsability(itemDef, number) }
+        menu.callbacks[YOBIMA_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> yobimaCommandUsability(itemDef, number) }
         menu.callbacks[EFFECT_WAIT] = Menu.MenuFunc { m, item, _, _ -> effectWait(m!!, item!!) }
         menu.callbacks[UNIT_ACTION_MENU_ATTACK] =
             Menu.MenuFunc { m, item, _, _ -> unitActionMenuAttack(m!!, item!!) }
@@ -888,15 +896,15 @@ public class UnitActionMenu(
     /**
      * Ported from src/bmmenu.c: SupplyUsability
      *
-     * The Supply command is `MENU_NOTSHOWN` without convoy access ([Hooks.hasConvoyAccess]) and
-     * for a `CLASS_PHANTOM`. Otherwise it is `MENU_ENABLED` if the unit is the lord of the
+     * The Supply command is `MENU_NOTSHOWN` without convoy access ([BmContainer.hasConvoyAccess])
+     * and for a `CLASS_PHANTOM`. Otherwise it is `MENU_ENABLED` if the unit is the lord of the
      * route (`CHARACTER_EIRIKA`, or `CHARACTER_EPHRAIM` for `CHAPTER_MODE_EPHRAIM`) or that lord
      * stands adjacent ([Hooks.isAdjacentForSupply]), else `MENU_NOTSHOWN`.
      * At f4181 the convoy cannot be accessed, so the answer is `MENU_NOTSHOWN`. Every later
      * branch is unexercised at f4181.
      */
     public fun supplyUsability(def: Int, number: Int): Int {
-        if (!hooks.hasConvoyAccess()) return Menu.MENU_NOTSHOWN
+        if (!convoy.hasConvoyAccess()) return Menu.MENU_NOTSHOWN
 
         if (units.classId(active.unit) == CLASS_PHANTOM) return Menu.MENU_NOTSHOWN
 
@@ -1029,6 +1037,132 @@ public class UnitActionMenu(
             units.yPos(active.unit),
         )
         return if (command == TILE_COMMAND_SECRET) Menu.MENU_ENABLED else Menu.MENU_NOTSHOWN
+    }
+
+    /**
+     * Ported from src/bmmenu.c: VendorCommandUsability
+     *
+     * The Vendor command is `MENU_NOTSHOWN` for a `CLASS_PHANTOM`, when the unit has moved
+     * (`US_HAS_MOVED`), or when the tile lacks a vendor event command (`TILE_COMMAND_VENDOR`,
+     * [Hooks.getAvailableTileEventCommand]). Otherwise `MENU_ENABLED`.
+     * At f4181 the active unit has not moved, is not a phantom, and its tile has no tile event,
+     * so the answer is `MENU_NOTSHOWN`. The moved, phantom and vendor branches are unexercised
+     * at f4181.
+     */
+    public fun vendorCommandUsability(def: Int, number: Int): Int {
+        if (units.classId(active.unit) == CLASS_PHANTOM) return Menu.MENU_NOTSHOWN
+
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        val command = hooks.getAvailableTileEventCommand(
+            units.xPos(active.unit),
+            units.yPos(active.unit),
+        )
+        return if (command == TILE_COMMAND_VENDOR) Menu.MENU_ENABLED else Menu.MENU_NOTSHOWN
+    }
+
+    /**
+     * Ported from src/bmmenu.c: TalkCommandUsability
+     *
+     * The Talk command is `MENU_NOTSHOWN` if the unit has moved (`US_HAS_MOVED`) or has no talk
+     * target ([Hooks.talkTargetCount]). Otherwise `MENU_DISABLED` while silenced
+     * (`UNIT_STATUS_SILENCED`) and `MENU_ENABLED` if not.
+     * At f4181 the unit has not moved and has no talk target, so the answer is `MENU_NOTSHOWN`.
+     * The moved and status branches are unexercised at f4181.
+     */
+    public fun talkCommandUsability(def: Int, number: Int): Int {
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (hooks.talkTargetCount(active.unit) == 0) return Menu.MENU_NOTSHOWN
+
+        return if (units.statusIndex(active.unit) == UnitLoader.UNIT_STATUS_SILENCED) {
+            Menu.MENU_DISABLED
+        } else {
+            Menu.MENU_ENABLED
+        }
+    }
+
+    /**
+     * Ported from src/bmmenu.c: UnitActionMenu_CanSeize
+     *
+     * The Seize command is `MENU_NOTSHOWN` if the unit has moved (`US_HAS_MOVED`), cannot seize
+     * ([PlaySt.canUnitSeize]) or its tile lacks a seize event command (`TILE_COMMAND_SEIZE`,
+     * [Hooks.getAvailableTileEventCommand]). Otherwise `MENU_ENABLED`.
+     * At f4181 the active unit has not moved and its tile has no tile event, so the answer is
+     * `MENU_NOTSHOWN`. The moved, non-lord and seize branches are unexercised at f4181.
+     */
+    public fun unitActionMenuCanSeize(def: Int, number: Int): Int {
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (!playSt.canUnitSeize(units.charId(active.unit))) return Menu.MENU_NOTSHOWN
+
+        val command = hooks.getAvailableTileEventCommand(
+            units.xPos(active.unit),
+            units.yPos(active.unit),
+        )
+        return if (command == TILE_COMMAND_SEIZE) Menu.MENU_ENABLED else Menu.MENU_NOTSHOWN
+    }
+
+    /**
+     * Ported from src/bmmenu.c: VisitCommandUsability
+     *
+     * The Visit command is `MENU_NOTSHOWN` for a `CLASS_PHANTOM`, when the unit has moved
+     * (`US_HAS_MOVED`), when the tile terrain is not a house, inn, ruined village or village
+     * (`TERRAIN_HOUSE`, `TERRAIN_INN`, `TERRAIN_RUINS_VILLAGE`, `TERRAIN_VILLAGE_REGULAR`), or
+     * when the tile lacks a visit event command (`TILE_COMMAND_VISIT`,
+     * [Hooks.getAvailableTileEventCommand]). Otherwise `MENU_DISABLED` while magic sealed
+     * (`IsUnitMagicSealed`) and `MENU_ENABLED` if not.
+     * At f4181 the active unit has not moved, is not a phantom, and its tile is plains, so the
+     * answer is `MENU_NOTSHOWN` from the terrain check. The moved, phantom, village terrain and
+     * visit branches are unexercised at f4181.
+     */
+    public fun visitCommandUsability(def: Int, number: Int): Int {
+        if (units.classId(active.unit) == CLASS_PHANTOM) return Menu.MENU_NOTSHOWN
+
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        val x = units.xPos(active.unit)
+        val y = units.yPos(active.unit)
+        when (map.terrain[y, x]) {
+            TERRAIN_HOUSE, TERRAIN_INN, TERRAIN_RUINS_VILLAGE, TERRAIN_VILLAGE_REGULAR -> Unit
+            else -> return Menu.MENU_NOTSHOWN
+        }
+
+        if (hooks.getAvailableTileEventCommand(x, y) != TILE_COMMAND_VISIT) {
+            return Menu.MENU_NOTSHOWN
+        }
+
+        return if (isUnitMagicSealed(units.unitOffset(active.unit))) {
+            Menu.MENU_DISABLED
+        } else {
+            Menu.MENU_ENABLED
+        }
+    }
+
+    /**
+     * Ported from src/bmmenu.c: YobimaCommandUsability
+     *
+     * The Yobima command is `MENU_NOTSHOWN` if the unit is not a `CLASS_DEMON_KING`, has moved
+     * (`US_HAS_MOVED`), or more than `YOBIMA_UNIT_LIMIT` valid units exist among the ids after
+     * `FACTION_RED` up to `FACTION_PURPLE`. Otherwise `MENU_ENABLED`.
+     * At f4181 the active unit is not a `CLASS_DEMON_KING`, so the answer is `MENU_NOTSHOWN`.
+     * Every later branch is unexercised at f4181.
+     */
+    public fun yobimaCommandUsability(def: Int, number: Int): Int {
+        if (units.classId(active.unit) != CLASS_DEMON_KING) return Menu.MENU_NOTSHOWN
+
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        var count = 0
+        for (i in FACTION_RED + 1 until FACTION_PURPLE) {
+            if (!units.isValid(i)) continue
+
+            if (count > YOBIMA_UNIT_LIMIT) return Menu.MENU_NOTSHOWN
+
+            count++
+        }
+
+        return Menu.MENU_ENABLED
     }
 
     /**
@@ -1401,6 +1535,21 @@ public class UnitActionMenu(
         /** ROM address of `TakeUsability` (thumb). */
         public const val TAKE_USABILITY: Int = 0x0802298D
 
+        /** ROM address of `VendorCommandUsability` (thumb). */
+        public const val VENDOR_COMMAND_USABILITY: Int = 0x08024035
+
+        /** ROM address of `TalkCommandUsability` (thumb). */
+        public const val TALK_COMMAND_USABILITY: Int = 0x08023C81
+
+        /** ROM address of `UnitActionMenu_CanSeize` (thumb). */
+        public const val UNIT_ACTION_MENU_CAN_SEIZE: Int = 0x08022FDD
+
+        /** ROM address of `VisitCommandUsability` (thumb). */
+        public const val VISIT_COMMAND_USABILITY: Int = 0x08023041
+
+        /** ROM address of `YobimaCommandUsability` (thumb). */
+        public const val YOBIMA_COMMAND_USABILITY: Int = 0x080244FD
+
         /** ROM address of `UnitActionMenu_Attack` (thumb). */
         public const val UNIT_ACTION_MENU_ATTACK: Int = 0x08022B31
 
@@ -1524,6 +1673,31 @@ public class UnitActionMenu(
         /** `FACTION_BLUE` and `FACTION_GREEN`, the unit id ranges of the factions. */
         private const val FACTION_BLUE = 0x00
         private const val FACTION_GREEN = 0x40
+
+        /** `TILE_COMMAND_VISIT`. */
+        public const val TILE_COMMAND_VISIT: Int = 0x10
+
+        /** `TILE_COMMAND_SEIZE`. */
+        public const val TILE_COMMAND_SEIZE: Int = 0x11
+
+        /** `TILE_COMMAND_VENDOR`. */
+        public const val TILE_COMMAND_VENDOR: Int = 0x17
+
+        /** `TERRAIN_VILLAGE_REGULAR`, `TERRAIN_HOUSE`, `TERRAIN_RUINS_VILLAGE`, `TERRAIN_INN`. */
+        private const val TERRAIN_VILLAGE_REGULAR = 0x03
+        private const val TERRAIN_HOUSE = 0x05
+        private const val TERRAIN_RUINS_VILLAGE = 0x37
+        private const val TERRAIN_INN = 0x38
+
+        /** `CLASS_DEMON_KING`. */
+        private const val CLASS_DEMON_KING = 0x66
+
+        /** `FACTION_RED` and `FACTION_PURPLE`, the unit id ranges of the factions. */
+        private const val FACTION_RED = 0x80
+        private const val FACTION_PURPLE = 0xC0
+
+        /** The unit count above which `YobimaCommandUsability` fails (the decomp's 0x27). */
+        private const val YOBIMA_UNIT_LIMIT = 0x27
 
         /** `TERRAIN_ARENA_REGULAR`. */
         public const val TERRAIN_ARENA_REGULAR: Int = 0x08

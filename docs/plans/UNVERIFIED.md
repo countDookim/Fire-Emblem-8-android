@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 698 across 99 decomp files (missing reason: 0).
+Total entries: 700 across 100 decomp files (missing reason: 0).
 
 ## src/bmunit.c (36)
 
@@ -878,6 +878,14 @@ Total entries: 698 across 99 decomp files (missing reason: 0).
 | `FilterBattleAnimCharacterPalette` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | the captures show only the null default; the ballista animations are not in a capture |
 | `CheckBattleScripted` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | the result only feeds the branch of `PrepareBattleGraphicsMaybe` (EP-15) that is not taken either way |
 
+## src/bmdifficulty.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SaveDungeonState` | `game/src/commonMain/kotlin/fe8/game/bm/BmDifficulty.kt` | `gDungeonState` is all zeros in every reference capture, which proves the 12-byte target write into SRAM / `gGenericBuffer`, not non-zero dungeon state or the post-copy `unk_0B_4 = type` update |
+| `SaveDungeonRecords` | `game/src/commonMain/kotlin/fe8/game/bm/BmDifficulty.kt` | `gDungeonState.dungeon` is all zeros in every reference capture, which proves the 24-byte target write into SRAM / `gGenericBuffer`, not non-zero dungeon records |
+| `CanUnitSeize` | `game/src/commonMain/kotlin/fe8/game/bm/PlaySt.kt` | at f4181 the Seize item is hidden whatever this returns, so the capture does not show its value |
+
 ## src/bmmenu.c (3)
 
 | Function | Kotlin file | Reason |
@@ -964,13 +972,6 @@ Total entries: 698 across 99 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `DecodeString` | `engine/text/src/commonMain/kotlin/gbafe/text/MsgHuffman.kt` | shares its loop with [decode], which carries the verified port tag |
 | `DrawGlyph` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | exercised only through the Text_DrawCharacter test |
-
-## src/bmdifficulty.c (2)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SaveDungeonState` | `game/src/commonMain/kotlin/fe8/game/bm/BmDifficulty.kt` | `gDungeonState` is all zeros in every reference capture, which proves the 12-byte target write into SRAM / `gGenericBuffer`, not non-zero dungeon state or the post-copy `unk_0B_4 = type` update |
-| `SaveDungeonRecords` | `game/src/commonMain/kotlin/fe8/game/bm/BmDifficulty.kt` | `gDungeonState.dungeon` is all zeros in every reference capture, which proves the 24-byte target write into SRAM / `gGenericBuffer`, not non-zero dungeon records |
 
 ## src/cgtext.c (2)
 
@@ -1087,6 +1088,12 @@ Total entries: 698 across 99 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetEnemyStartCursorPosition` | `game/src/commonMain/kotlin/fe8/game/bm/ResetCursorPosition.kt` | the reference runs only reset the cursor in the player phase |
+
+## src/bmcontainer.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `HasConvoyAccess` | `game/src/commonMain/kotlin/fe8/game/bm/BmContainer.kt` | at f4181 the Supply item is hidden whatever this returns, so the capture does not show its value |
 
 ## src/bmmind.c (1)
 

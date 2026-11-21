@@ -1332,6 +1332,22 @@ public class Fe8Boot(
         playerWiring?.unitMenu?.hooks?.trapTypeAt = { x, y ->
             trapsObj.getTrapAt(x, y).let { if (it < 0) -1 else trapsObj.type(it) }
         }
+        // `gGMData.state.bits.state_0` and `GetNextUnclearedChapter` for HasConvoyAccess.
+        playerWiring?.unitMenu?.convoy?.hooks?.let { convoyHooks ->
+            convoyHooks.isGmState0 = { gmData.stateRaw and 1 != 0 }
+            convoyHooks.getNextUnclearedChapter = {
+                if (!rom.isWholeRom) {
+                    -1
+                } else {
+                    val node = WorldMapPath(gmData, WmPathData(rom)).getNextUnclearedNode()
+                    if (node < 0) {
+                        -1
+                    } else {
+                        WorldMapNodes(WmNodeData(rom), gmData, control.playSt).chapterId(node)
+                    }
+                }
+            }
+        }
         phase.hooks.getPickTrapType = { unit -> trapsObj.getPickTrapType(unit) }
         battleGenerate.disableAllLightRunes = { trapsObj.disableAllLightRunes() }
         battleGenerate.enableAllLightRunes = { trapsObj.enableAllLightRunes() }

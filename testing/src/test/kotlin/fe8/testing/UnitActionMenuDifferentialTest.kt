@@ -390,6 +390,7 @@ class UnitActionMenuDifferentialTest {
             units.setState(unit, savedState)
             sim.bmSt.takenAction = 0
             sim.playSt.chapterModeIndex = 2
+            sim.playSt.chapterIndex = 0
         }
         fun charPtr(id: Int) = CHARACTER_DATA + 0x34 * (id - 1)
         fun use(attribute: Int) {
@@ -511,7 +512,7 @@ class UnitActionMenuDifferentialTest {
         reset()
 
         // SupplyUsability
-        hooks.hasConvoyAccess = { true }
+        sim.playSt.chapterIndex = CHAPTER_L_2
         hooks.isAdjacentForSupply = { false }
         assertEquals(Menu.MENU_NOTSHOWN, menu.supplyUsability(0, 27))
         put32(units.bytes, o, charPtr(CHARACTER_EIRIKA))
@@ -526,9 +527,196 @@ class UnitActionMenuDifferentialTest {
         put32(units.bytes, o + 4, CLASS_DATA + CLASS_SIZE * (CLASS_PHANTOM - 1))
         assertEquals(Menu.MENU_NOTSHOWN, menu.supplyUsability(0, 27))
         reset()
-        hooks.hasConvoyAccess = { false }
+        sim.playSt.chapterIndex = 0
         put32(units.bytes, o, charPtr(CHARACTER_EIRIKA))
         assertEquals(Menu.MENU_NOTSHOWN, menu.supplyUsability(0, 27))
+        reset()
+    }
+
+    @Test
+    @VerifiesPort(
+        "VendorCommandUsability",
+        "TalkCommandUsability",
+        "UnitActionMenu_CanSeize",
+        "VisitCommandUsability",
+        "YobimaCommandUsability",
+    )
+    fun `unit menu build at f4181 evaluates usability D callbacks to NOTSHOWN`() {
+        assumeInputs()
+        val sim = Sim("ram_trace_prologue_clear", 4181)
+        sim.start()
+        // The GBA's menu holds only Attack, Item and Wait, so every other callback answered
+        // MENU_NOTSHOWN (a menu item is created only for a shown or disabled answer).
+        assertEquals(listOf(1 to 1, 25 to 1, 28 to 1), sim.items, "items (number to availability)")
+        val menu = sim.unitMenu
+        val results = listOf(
+            "UnitActionMenu_CanSeize" to menu.unitActionMenuCanSeize(itemDef(0), 0),
+            "YobimaCommandUsability" to menu.yobimaCommandUsability(itemDef(10), 10),
+            "TalkCommandUsability" to menu.talkCommandUsability(itemDef(12), 12),
+            "VisitCommandUsability" to menu.visitCommandUsability(itemDef(14), 14),
+            "VendorCommandUsability" to menu.vendorCommandUsability(itemDef(18), 18),
+        )
+        for ((name, result) in results) {
+            assertEquals(Menu.MENU_NOTSHOWN, result, name)
+        }
+        for (number in listOf(0, 10, 12, 14, 18)) {
+            assertEquals(null, sim.items.find { it.first == number }, "item $number not built")
+        }
+
+        // HasConvoyAccess: SupplyUsability asks it first and the GBA built no Supply item. In
+        // the capture GM_STATE_0 is clear and the chapter is the prologue, so the decomp's
+        // answer is false.
+        assertEquals(0, sim.iwram(4181)[GM_DATA - IWRAM].toInt() and 1, "GM_STATE_0")
+        assertEquals(0, sim.playSt.chapterIndex, "chapterIndex")
+        assertEquals(false, menu.convoy.hasConvoyAccess(), "HasConvoyAccess")
+        assertEquals(Menu.MENU_NOTSHOWN, menu.supplyUsability(itemDef(27), 27))
+
+        // CanUnitSeize: mode 1 and chapter 0 make the lord of the route the seizer; the unit
+        // is only asked for it once it has not moved, and no Seize item was built.
+        assertEquals(1, sim.playSt.chapterModeIndex, "chapterModeIndex")
+        val character = sim.units.charId(sim.active.unit)
+        assertEquals(character == CHARACTER_EIRIKA, sim.playSt.canUnitSeize(character))
+        assertEquals(true, sim.playSt.canUnitSeize(CHARACTER_EIRIKA))
+        assertEquals(false, sim.playSt.canUnitSeize(CHARACTER_EPHRAIM))
+    }
+
+    @Test
+    fun `usability D callbacks branch coverage`() {
+        assumeInputs()
+        val sim = Sim("ram_trace_prologue_clear", 4181)
+        sim.start()
+        val menu = sim.unitMenu
+        val units = sim.units
+        val unit = sim.active.unit
+        val o = units.unitOffset(unit)
+        val x = units.xPos(unit)
+        val y = units.yPos(unit)
+        val saved = units.bytes.copyOfRange(o, o + 0x40)
+        val savedState = units.state(unit)
+        val savedTerrain = sim.map.terrain[y, x]
+        val hooks = menu.hooks
+        fun reset() {
+            saved.copyInto(units.bytes, o)
+            units.setState(unit, savedState)
+            sim.map.terrain[y, x] = savedTerrain
+            sim.playSt.chapterModeIndex = 1
+            sim.playSt.chapterIndex = 0
+        }
+        fun charPtr(id: Int) = CHARACTER_DATA + 0x34 * (id - 1)
+        fun classPtr(id: Int) = CLASS_DATA + CLASS_SIZE * (id - 1)
+        fun tileCommand(command: Int) {
+            hooks.getAvailableTileEventCommand = { _, _ -> command }
+        }
+
+        // VendorCommandUsability
+        tileCommand(0x17)
+        assertEquals(Menu.MENU_ENABLED, menu.vendorCommandUsability(0, 18))
+        tileCommand(0)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.vendorCommandUsability(0, 18))
+        tileCommand(0x17)
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.vendorCommandUsability(0, 18))
+        reset()
+        put32(units.bytes, o + 4, classPtr(CLASS_PHANTOM))
+        assertEquals(Menu.MENU_NOTSHOWN, menu.vendorCommandUsability(0, 18))
+        reset()
+
+        // TalkCommandUsability
+        hooks.talkTargetCount = { 1 }
+        assertEquals(Menu.MENU_ENABLED, menu.talkCommandUsability(0, 12))
+        units.bytes[o + 0x30] = UNIT_STATUS_SILENCED.toByte()
+        assertEquals(Menu.MENU_DISABLED, menu.talkCommandUsability(0, 12))
+        reset()
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.talkCommandUsability(0, 12))
+        reset()
+        hooks.talkTargetCount = { 0 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.talkCommandUsability(0, 12))
+
+        // UnitActionMenu_CanSeize and CanUnitSeize
+        put32(units.bytes, o, charPtr(CHARACTER_EIRIKA))
+        tileCommand(0x11)
+        assertEquals(Menu.MENU_ENABLED, menu.unitActionMenuCanSeize(0, 0))
+        tileCommand(0)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.unitActionMenuCanSeize(0, 0))
+        tileCommand(0x11)
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.unitActionMenuCanSeize(0, 0))
+        units.setState(unit, savedState)
+        put32(units.bytes, o, charPtr(CHARACTER_EPHRAIM))
+        assertEquals(Menu.MENU_NOTSHOWN, menu.unitActionMenuCanSeize(0, 0))
+        sim.playSt.chapterModeIndex = 3
+        assertEquals(Menu.MENU_ENABLED, menu.unitActionMenuCanSeize(0, 0))
+        put32(units.bytes, o, charPtr(CHARACTER_EIRIKA))
+        assertEquals(Menu.MENU_NOTSHOWN, menu.unitActionMenuCanSeize(0, 0))
+        sim.playSt.chapterModeIndex = 2
+        assertEquals(Menu.MENU_ENABLED, menu.unitActionMenuCanSeize(0, 0))
+        sim.playSt.chapterIndex = 5
+        assertEquals(Menu.MENU_NOTSHOWN, menu.unitActionMenuCanSeize(0, 0))
+        put32(units.bytes, o, charPtr(CHARACTER_EPHRAIM))
+        assertEquals(Menu.MENU_ENABLED, menu.unitActionMenuCanSeize(0, 0))
+        reset()
+
+        // VisitCommandUsability
+        hooks.isPositionMagicSealed = { _, _ -> false }
+        tileCommand(0x10)
+        for (terrain in listOf(0x03, 0x05, 0x37, 0x38)) {
+            sim.map.terrain[y, x] = terrain
+            assertEquals(Menu.MENU_ENABLED, menu.visitCommandUsability(0, 14), "terrain $terrain")
+        }
+        sim.map.terrain[y, x] = 0x03
+        hooks.isPositionMagicSealed = { _, _ -> true }
+        assertEquals(Menu.MENU_DISABLED, menu.visitCommandUsability(0, 14))
+        hooks.isPositionMagicSealed = { _, _ -> false }
+        tileCommand(0)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.visitCommandUsability(0, 14))
+        tileCommand(0x10)
+        sim.map.terrain[y, x] = 0x01
+        assertEquals(Menu.MENU_NOTSHOWN, menu.visitCommandUsability(0, 14))
+        sim.map.terrain[y, x] = 0x03
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.visitCommandUsability(0, 14))
+        reset()
+        sim.map.terrain[y, x] = 0x03
+        put32(units.bytes, o + 4, classPtr(CLASS_PHANTOM))
+        assertEquals(Menu.MENU_NOTSHOWN, menu.visitCommandUsability(0, 14))
+        reset()
+
+        // YobimaCommandUsability
+        put32(units.bytes, o + 4, classPtr(CLASS_DEMON_KING))
+        assertEquals(Menu.MENU_ENABLED, menu.yobimaCommandUsability(0, 10))
+        units.setState(unit, savedState or US_HAS_MOVED)
+        assertEquals(Menu.MENU_NOTSHOWN, menu.yobimaCommandUsability(0, 10))
+        units.setState(unit, savedState)
+        // 0x28 valid units among ids 0x81..0xBF still pass, the 0x29th fails.
+        val slots = (0x81..0xB2).map { units.unitOffset(it) }
+        val savedSlots = slots.map { units.bytes.copyOfRange(it, it + 0x40) }
+        for (n in 1..0x29) {
+            for ((k, slot) in slots.withIndex()) {
+                put32(units.bytes, slot, if (k < n) charPtr(CHARACTER_EIRIKA) else 0)
+            }
+            val expected = if (n <= 0x28) Menu.MENU_ENABLED else Menu.MENU_NOTSHOWN
+            assertEquals(expected, menu.yobimaCommandUsability(0, 10), "$n red units")
+        }
+        slots.forEachIndexed { k, slot -> savedSlots[k].copyInto(units.bytes, slot) }
+        reset()
+        assertEquals(Menu.MENU_NOTSHOWN, menu.yobimaCommandUsability(0, 10))
+
+        // HasConvoyAccess
+        val hooksConvoy = menu.convoy.hooks
+        val convoy = menu.convoy
+        for ((chapter, expected) in listOf(0 to false, 1 to false, 2 to true, 5 to false,
+            0x38 to false, 0x39 to true)) {
+            sim.playSt.chapterIndex = chapter
+            assertEquals(expected, convoy.hasConvoyAccess(), "chapterIndex $chapter")
+        }
+        hooksConvoy.isGmState0 = { true }
+        sim.playSt.chapterIndex = 2
+        for ((chapter, expected) in listOf(0 to false, 1 to false, 0x38 to false, 2 to true,
+            5 to true, -1 to true)) {
+            hooksConvoy.getNextUnclearedChapter = { chapter }
+            assertEquals(expected, convoy.hasConvoyAccess(), "next chapter $chapter")
+        }
         reset()
     }
 
@@ -560,6 +748,7 @@ class UnitActionMenuDifferentialTest {
         val itemInfo = ItemInfo(rom)
         val unitMenu: UnitActionMenu
         val bmSt = BmSt()
+        val map: BmMap
         val playSt = PlaySt()
         val targetCountCalls = ArrayList<Pair<Int, Int>>()
         val selectCallbacks = ArrayList<Int>()
@@ -578,7 +767,7 @@ class UnitActionMenuDifferentialTest {
                 engine, rom, hw, text, messages, keys, hand, greenText,
                 CamMove(engine, BmSt()).script,
             )
-            val map = BmMap(rom, ChapterData(rom), BmSt())
+            map = BmMap(rom, ChapterData(rom), BmSt())
             val loader = UnitLoader(units, rom, { 0 }, RngService(), { false })
             unitMenu = UnitActionMenu(
                 units, active, itemInfo, loader, map,
@@ -733,6 +922,9 @@ class UnitActionMenuDifferentialTest {
         const val CLASS_PHANTOM = 0x51
         const val UNIT_STATUS_SILENCED = 3
         const val CHARACTER_EIRIKA = 0x01
+        const val CHAPTER_L_2 = 2
+        const val CLASS_DEMON_KING = 0x66
+        const val GM_DATA = 0x03005280
         const val CHARACTER_EPHRAIM = 0x0F
         const val CHAPTER_MODE_EPHRAIM = 3
         const val ITYPE_STAFF = 4

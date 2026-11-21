@@ -546,8 +546,38 @@ public class PlaySt {
         put8(bytes, offset + 0x4B, tutorialCounter)
     }
 
+    /**
+     * Transcribed from src/bmdifficulty.c: CanUnitSeize (not verified: at f4181 the Seize item is
+     *   hidden whatever this returns, so the capture does not show its value)
+     *
+     * Whether a unit whose character is [characterNumber] can seize: the lord of the route
+     * (`CHARACTER_EIRIKA` for `chapterModeIndex` 1 and 2, `CHARACTER_EPHRAIM` for 3), or
+     * `CHARACTER_EPHRAIM` in chapter 5 whatever the route. For any other mode the decomp leaves
+     * its leader id unset; no character matches then.
+     * At f4181 the mode is 1 and the chapter 0, so the leader is `CHARACTER_EIRIKA`. The
+     * Ephraim mode and chapter 5 are unexercised at f4181.
+     */
+    public fun canUnitSeize(characterNumber: Int): Boolean {
+        var leaderId = 0
+        when (chapterModeIndex) {
+            2 -> leaderId = CHARACTER_EIRIKA
+            1 -> leaderId = CHARACTER_EIRIKA
+            3 -> leaderId = CHARACTER_EPHRAIM
+        }
+
+        if (chapterIndex == 5) leaderId = CHARACTER_EPHRAIM
+
+        return characterNumber == leaderId
+    }
+
     /** Struct size and layout constants. */
     public companion object {
+        /** `CHARACTER_EIRIKA`. */
+        private const val CHARACTER_EIRIKA = 0x01
+
+        /** `CHARACTER_EPHRAIM`. */
+        private const val CHARACTER_EPHRAIM = 0x0F
+
         /** `sizeof(struct PlaySt)` in bytes. */
         public const val SIZE: Int = 0x4C
 

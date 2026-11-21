@@ -17,19 +17,29 @@ import gbafe.proc.ProcScripts.whileExists
 import gbafe.proc.ProcScripts.whileTrue
 import gbafe.proc.ProcScripts.yield
 
-/** `struct CpPerformProc` past `PROC_HEADER` (src/cp_perform.c): what the steps keep. */
+/**
+ * `struct CpPerformProc` past `PROC_HEADER` (src/cp_perform.c): what the steps of one enemy-phase
+ * unit action keep between frames.
+ */
 public class CpPerformState {
     /** `isUnitVisible` (0x31): false when fog hides the walk, so no MU is started. */
     public var isUnitVisible: Boolean = false
 
-    /** `unk_30` (0x30): frames [CpPerform.cpPerformWaitAction] has run. */
-    public var unk30: Int = 0
+    /**
+     * `unk_30` in the decomp (u8, 0x30): frames [CpPerform.cpPerformWaitAction] has run since
+     * [CpPerform.cpPerformPerformAction] reset it. Only the unported wait-and-clear-screen action
+     * (`AiWaitAndClearScreenAction`, ends when it is above 4) reads it.
+     */
+    public var waitFrames: Int = 0
 
     /** `func` (0x2C): the action step; only `AiDummyAction` is written (always done). */
     public var funcIsDummy: Boolean = false
 }
 
-/** `struct UnkProcA` past `PROC_HEADER` (src/cp_perform.c): the AI target cursor. */
+/**
+ * `struct UnkProcA` past `PROC_HEADER` (src/cp_perform.c): the blinking map cursor shown on the
+ * target of an AI action (`gProcScr_AiTargetCursor`).
+ */
 public class AiTargetCursorState {
     /** `unk_2C`: map pixel x of the cursor. */
     public var x: Int = 0
@@ -37,19 +47,21 @@ public class AiTargetCursorState {
     /** `unk_30`: map pixel y of the cursor. */
     public var y: Int = 0
 
-    /** `unk_58`: the `PutMapCursor` kind. */
+    /** `unk_58`: the `kind` argument of `PutMapCursor`; the camera step passes 2. */
     public var kind: Int = 0
 
-    /** `unk_64` (s16): frames the cursor has been shown. */
+    /** `unk_64` (s16): frames the cursor has been shown; the proc ends once it is above 45. */
     public var timer: Int = 0
 }
 
 /**
- * The AI perform proc of src/cp_perform.c, movement half: `gProcScr_CpPerform` (ROM 0x085A8024)
- * with the camera onto the unit, the unit's walk (an MU along the best path to the decided tile),
- * the camera onto the target and the target cursor `gProcScr_AiTargetCursor` (0x085A8004). The
- * action half (EP-9: a combat or no action) and `CpPerform_EquipBest` (EP-9b, [CpEquip]) are
- * ported too. [start] is the value of [CpDecide.Hooks.startCpPerform].
+ * What an enemy-phase AI unit does once [CpDecide] has chosen its move and action
+ * (`gProcScr_CpPerform`, ROM 0x085A8024, src/cp_perform.c): the camera goes onto the unit, the
+ * unit walks (an MU along the best path to the decided tile), the camera goes onto the action's
+ * target with the target cursor `gProcScr_AiTargetCursor` (0x085A8004), the action runs, and the
+ * unit's map state is refreshed. Only the "move only" and combat actions are ported (EP-9), plus
+ * `CpPerform_EquipBest` (EP-9b, [CpEquip]). [start] is the value of
+ * [CpDecide.Hooks.startCpPerform].
  *
  * The unit walk reuses the player phase's ported code ([PlayerPhase.unitBeginAction],
  * [PlayerPhase.unitApplyWorkingMovementScript], [PlayerPhase.handlePostActionTraps],
@@ -146,7 +158,10 @@ public class CpPerform(
     private val postActionTrapsFn = ProcBoolFunc { phase.handlePostActionTraps(it) }
     private val waitEventsFn = ProcBoolFunc { phase.runPotentialWaitEvents() }
 
-    /** `gProcScr_AiTargetCursor`. */
+    /**
+     * `gProcScr_AiTargetCursor`: waits a frame and until the camera move ends, then shows the
+     * cursor every frame ([aiTargetCursorMain]).
+     */
     public val targetCursorScript: ProcScript = ProcScript(
         "gProcScr_AiTargetCursor",
         listOf(
@@ -158,7 +173,11 @@ public class CpPerform(
         ::AiTargetCursorState,
     )
 
-    /** `gProcScr_CpPerform`. */
+    /**
+     * `gProcScr_CpPerform`: music, camera onto the unit, walk (waits for the MU), camera onto the
+     * target, action, post-action traps and wait events, then cleanup and best-weapon equip.
+     * Label 1 skips the equip for a unit that is gone.
+     */
     public val script: ProcScript = ProcScript(
         "gProcScr_CpPerform",
         listOf(
@@ -264,9 +283,12 @@ public class CpPerform(
     /**
      * Ported from src/cp_perform.c: CpPerform_MoveCameraOntoTarget
      *
-     * Finds the tile of the action's target (none for a move only, an escape, pillage, item use,
-     * ballista, Dread Fighter or pick action, and none for a trapped unit), moves the camera onto
-     * it and starts the target cursor there. Verified: an attack on a unit (cursor at the
+     * Finds the tile of the action's target, moves the camera onto it and starts the target cursor
+     * there (kind 2, at pixel position tile * 16). There is no target for a trapped unit
+     * (`UNIT_ACTION_TRAPPED`) or for `AI_ACTION_NONE`, `_ESCAPE`, `_PILLAGE`, `_USEITEM`,
+     * `_RIDEBALLISTA`, `_EXITBALLISTA`, `_DKNIGHTMARE`, `_DKSUMMON` and `_PICK`, nor for a staff
+     * action without a target unit. A talk action reads the unit id from `yTarget` and uses that
+     * unit's tile (the decomp does this as written). Verified: an attack on a unit (cursor at the
      * target's tile, kind 2) and a move without action (no cursor). Not seen: the camera call
      * (see [cpPerformMoveCameraOntoUnit]), the trapped return, the other actions, and the
      * ballista start of an attack with item slot -1 (stand-in [Hooks.rideBallista], EP-12).
@@ -300,6 +322,7 @@ public class CpPerform(
                 y = units.yPos(decision.targetId)
             }
             AI_ACTION_TALK -> {
+                // The decomp indexes with yTarget here (not targetId); kept as is.
                 x = units.xPos(decision.yTarget)
                 y = units.yPos(decision.yTarget)
             }
@@ -317,13 +340,14 @@ public class CpPerform(
     /**
      * Ported from src/cp_perform.c: CpPerform_PerformAction
      *
-     * Chooses the action step by `gAiDecision.actionId`: a trapped unit and no action are
-     * [aiDummyAction]; a combat action also starts the attack ([aiStartCombatAction]). Verified:
-     * both. The other 14 actions are not written and fail loudly (EP-12 and later).
+     * Resets the wait counter and picks the action step by `gAiDecision.actionId`: a trapped unit
+     * and `AI_ACTION_NONE` use `AiDummyAction`; `AI_ACTION_COMBAT` also starts the attack
+     * ([aiStartCombatAction]). Verified: both. The other 12 actions are not written and fail
+     * loudly (EP-12 and later).
      */
     public fun cpPerformPerformAction(proc: Proc) {
         val state = proc.state as CpPerformState
-        state.unk30 = 0
+        state.waitFrames = 0
         if (active.action.unitActionType == UNIT_ACTION_TRAPPED) {
             state.funcIsDummy = true
             return
@@ -342,9 +366,11 @@ public class CpPerform(
      * Ported from src/cp_perform.c: AiStartCombatAction
      *
      * Records the attack of the active unit on the decided target in `gActionData`, puts the
-     * unit on its move tile, equips the decided weapon (or marks a ballista attack) and applies
-     * the action ([PlayerPhase.applyUnitAction], which starts the combat proc blocking [proc]).
-     * A target without a unit (a wall or trap, `GetTrapAt`) is not written and fails loudly.
+     * unit on its move tile, equips the decided weapon (or marks a ballista attack when the item
+     * slot is `BU_ISLOT_AUTO`) and applies the action ([PlayerPhase.applyUnitAction], which
+     * starts the combat proc blocking [proc]). When the decision has no target unit (the target
+     * is a trap; `GetTrapAt`, which also stores the trap tile and its `extra` in `gActionData`)
+     * this is not written and fails loudly.
      */
     public fun aiStartCombatAction(proc: Proc) {
         val a = active.action
@@ -367,13 +393,15 @@ public class CpPerform(
      * Ported from src/cp_perform.c: CpPerform_WaitAction
      *
      * The repeat step after the action starts: counts the frame, ends the wait when the action
-     * step is done ([aiDummyAction]: at once) and puts the active unit on the decided tile.
+     * step (`proc->func` in the decomp) reports done and puts the active unit on the decided
+     * tile every frame, since an action step may move it. Only [aiDummyAction] is written, which
+     * is done at once.
      * Verified: the end of the wait. Not seen: the counter and the position write (the unit
      * already stands there and [aiRefreshMap] moves it again).
      */
     public fun cpPerformWaitAction(proc: Proc) {
         val state = proc.state as CpPerformState
-        state.unk30++
+        state.waitFrames++
         if (state.funcIsDummy && aiDummyAction()) engine.breakProc(proc)
         units.setPosition(active.unit, decision.xMove, decision.yMove)
     }
@@ -381,16 +409,18 @@ public class CpPerform(
     /**
      * Ported from src/cp_perform.c: AiDummyAction
      *
-     * The action step that has nothing to wait for: done (true).
+     * The action step that has nothing to wait for: always done (true; 1 in the decomp). Used
+     * for a move only, a trapped unit and combat.
      */
     public fun aiDummyAction(): Boolean = true
 
     /**
      * Ported from src/cp_perform.c: CpPerform_Cleanup
      *
-     * Updates the healing flags, refreshes the map ([aiRefreshMap]) and, for a unit that has no
-     * character any more (killed in the action), is hidden, dead or `US_BIT16`, skips
-     * `CpPerform_EquipBest` (label 1). Verified: the map refresh and both sides of the skip (the
+     * Updates the healing flags (`UpdateAllPhaseHealingAIStatus`), refreshes the map
+     * ([aiRefreshMap]) and, for a unit that has no character any more (an escaped unit loses it),
+     * is hidden, dead or has `US_BIT16`, skips `CpPerform_EquipBest` (label 1): there is nothing
+     * left to equip. Verified: the map refresh and both sides of the skip (the
      * live boss runs the equip, whose danger query rewrites `gBmMapOther`; the Soldiers killed
      * in their attack skip it). Not seen: the healing update (no healer in the Prologue's enemy
      * phases).
@@ -407,12 +437,14 @@ public class CpPerform(
     /**
      * Ported from src/cp_perform.c: AiRefreshMap
      *
-     * Makes the action's subject the active unit, puts the cursor on its move tile, moves the unit
-     * there ([PlayerPhase.moveActiveUnit]), rebuilds the entity maps and the map, ends the walk's
-     * MUs and shows the unit sprite. The fade (`NewBMXFADE(1)`, [BmxFade]) and the display calls
-     * are hooks. Verified: the cursor and the unit's move (position, `US_UNSELECTABLE`, hidden bit),
-     * for a surviving unit and for one killed in its attack. Not seen: the entity-map refreshes,
-     * `EndAllMus`, `ShowUnitSprite` and the display calls (they show in no value this test reads).
+     * Brings the map back in line after the action: makes the action's subject the active unit,
+     * puts the cursor on its move tile, moves the unit there ([PlayerPhase.moveActiveUnit]),
+     * rebuilds the entity maps and the map, ends the walk's MUs and shows the unit sprite
+     * (hidden when the walk began). The fade (`NewBMXFADE(1)`, [BmxFade]) and the display calls
+     * are hooks. Verified: the cursor and the unit's move (position, `US_UNSELECTABLE`, hidden
+     * bit), for a surviving unit and for one killed in its attack. Not seen: the entity-map
+     * refreshes, `EndAllMus`, `ShowUnitSprite` and the display calls (they show in no value this
+     * test reads).
      */
     public fun aiRefreshMap() {
         active.unit = active.action.subjectIndex
@@ -446,8 +478,9 @@ public class CpPerform(
     /**
      * Ported from src/cp_perform.c: AiTargetCursor_Main
      *
-     * Puts the map cursor; ends the proc when A or START is held or the timer passed 45, then
-     * counts the frame. Verified: the cursor's position and kind, the timer, the end after 47
+     * Puts the map cursor on its position; ends the proc (so the blocked parent goes on) when
+     * A_BUTTON or START_BUTTON is held or the timer is above 45, then counts the frame.
+     * Verified: the cursor's position and kind, the timer, the end after 47
      * frames. Not seen: A or START held (no key is pressed in the captures).
      */
     public fun aiTargetCursorMain(proc: Proc) {
@@ -459,21 +492,51 @@ public class CpPerform(
         state.timer++
     }
 
+    /** Decomp constants (include/bmunit.h, cp_common.h, types.h, gba/io_reg.h) used above. */
     private companion object {
+        /** `FACTION_RED` (bmunit.h): the enemy phase's faction. */
         const val FACTION_RED = 0x80
+
+        /** `AI_ACTION_NONE` (cp_common.h): move only. */
         const val AI_ACTION_NONE = 0
+
+        /** `AI_ACTION_COMBAT`. */
         const val AI_ACTION_COMBAT = 1
-        const val UNIT_ACTION_COMBAT = 2
+
+        /** `UNIT_ACTION_COMBAT` (types.h). */
+        const val UNIT_ACTION_COMBAT = 0x02
+
+        /** `US_HIDDEN` (bmunit.h). */
         const val US_HIDDEN = 1
+
+        /** `US_DEAD`. */
         const val US_DEAD = 1 shl 2
+
+        /** `US_BIT16`: unnamed in the decomp; it is part of `US_UNAVAILABLE`. */
         const val US_BIT16 = 1 shl 16
+
+        /** `AI_ACTION_STEAL`. */
         const val AI_ACTION_STEAL = 3
+
+        /** `AI_ACTION_PILLAGE`. */
         const val AI_ACTION_PILLAGE = 4
+
+        /** `AI_ACTION_STAFF`. */
         const val AI_ACTION_STAFF = 5
+
+        /** `AI_ACTION_REFRESH`. */
         const val AI_ACTION_REFRESH = 7
+
+        /** `AI_ACTION_TALK`. */
         const val AI_ACTION_TALK = 8
+
+        /** `UNIT_ACTION_TRAPPED` (types.h). */
         const val UNIT_ACTION_TRAPPED = 0x1E
+
+        /** `US_IN_BALLISTA` (bmunit.h). */
         const val US_IN_BALLISTA = 1 shl 11
+
+        /** `A_BUTTON` (gba/io_reg.h). */
         const val A_BUTTON = 0x1
     }
 }

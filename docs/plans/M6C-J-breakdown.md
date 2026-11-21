@@ -1587,3 +1587,64 @@ Corrected `PC-4a..4g` breakdown (splitting rows that exceed `<= 8` unported/tran
 
 PC-4f result (2026-11-22): `PostChapterSaveMenuDifferentialTest` (`fe8.game.savemenu.SaveSlotData`, `BmSaveLib`, `ChapterTitle.getChapterTitleExtra`). Slot data runs `f9450..9458` and, after the slot 0 write, `f9814..9815` (the option-bit copy and the suspend slot 4 call land in `f9815`; `unk_44 = 0xF0` is already stepped to `0xE0` by `sub_80AACBC` in that frame). Capture shows `IsGameNotFirstChapter((PlaySt *)slot)` (decomp `BUG?`) reads BIOS bytes and answers true for slots 0..2, so it is Transcribed with a stand-in `PlaySt`. Not run: empty-slot branch, `LoadSavedWMStuff`/`GetChapterIndexOnWmNode`, `SaveDrawSetDifficultSlotPalette` (no `PLAY_FLAG_HARD` slot). Slot palette color 1 of bank `0x1A` is rewritten by the palette cycle (`PC-4c2`) and skipped at `f9815`.
 
+
+## PC-6i-event inventory (2026-11-22)
+
+Test: `Chapter1OpeningEventInventoryTest` (4 tests, `testing/src/test/kotlin/fe8/testing/`) over
+`ram_trace_prologue_end` (`PC-cap1`), `f10298..f25580`. Dialogue/event branches only; map changes, unit
+loads and movement (`Event2C_LoadUnits`, `Event30_ENUN`, `Event2F_MoveUnit`) are owned by `PC-6i-load`.
+No function-entry trace exists, so entered handlers are inferred from `pEventCurrent` (`proc+0x38`; note
+`+0x30` = `pEventStart`, `+0x34` = `pEventIdk`, the current CALL target) sampled once per frame, with the
+opcode ids decoded from the runtime ROM (`opcode = hword >> 8`, `length = (hword >> 4) & 0xF` halfwords).
+Handlers that run and return inside one frame (e.g. the `CALL` targets `EventScr_CallOnTutorialMode`,
+`EventScr_MoveUnitS2ToLeader`) leave no cursor sample.
+
+Windows (`ProcScr_StdEventEngine`, `execType` cutscene, `evStateBits` `0x0002` throughout unless noted):
+- `f10298..25418`: `EventScr_Ch1_BeginningScene` (`0x089EF848`, `0x1E0` bytes) started by `gProc_BMapMain@12`
+  (`CallBeginningEvents`, PROC_CALL_2); `evStateBits` `0x0002`. Engine absent `f10297`.
+- Shared sub-scripts via `CALL` (`pEventIdk`): `EventScr_SetBackground` `f10497..10533` (fade out/in,
+  `GFXLOCKED` `0x1000` set `f10514`), `Event_TextWithBG` `f10534..13006` (`gProcScr_Talk`, text 0x929-0x92A
+  block) and `EventScr_TextShowWithFadeIn` `f13007..13048`; repeated at `f13164..13200`, `f16272..16309`
+  (text/dialog `..20205`), `f20206..20247`. Each `EventScr_SetBackground`/`TextShowWithFadeIn` pair holds
+  the engine lock count 1 during `ProcScr_FadeToBlack`/`FadeFromBlack` (`f10497`, `f13007`, `f13032`) and
+  returns to the main script cursor (`f13049`: `+0x38`).
+- Script battle `f15085..15525` (`FIGHT`: `Event3F_ScriptBattle`, lock 1, `ProcScr_ScriptBattleDeamon`);
+  `gProcScr_FaceEndIn8Frames` (`REMA`) `f16006..16018` and `f25406..25418` (lock 1).
+- End: `ENDA` at `f25419` with `execType` cutscene switches to `EventScr_08592114` (`pEventIdk`;
+  `evStateBits 0x0092` = `NOSKIP|NOFADE|0002`); its `CHECK_EVBIT(10)`/`CALL(EventScr_08592140)` path takes
+  the `NOFADE` branch (no fade); `ENDA` -> `EVC_END` -> `EventEngine_OnEnd` (`EV_EXEC_UNK5`, no
+  `CHANGEGM`) at `f25422`: engine gone, `gBmSt.lock` `1 -> 0`.
+- `f25423..25426`: `CallNextQueuedEvent` starts the second engine for `EventScr_Ch1_Turn1Player` (start =
+  `0x089EFA28`, right after the script); `gBmSt.lock` `1`, gone `f25426` (lock `0`).
+- `BMapMain` `12 -> 17` at `f25423` (`CallBeginningEvents` done, `UndeployEveryone`,
+  `UnsetEventId_0x84`, `BmMain_ChangePhase`: `faction 0x40 -> 0x00`, `turn 0 -> 1`); `ProcScr_PhaseIntro`
+  `f25429..25500` (outside this INV's scope); `gProcScr_PlayerPhase@5` `f25507`, `@16` (idle) from `f25510`
+  with `BMapMain@31` and no event engine through `f25580`.
+
+Flags (only changes in the window, `flags` watch): `gChapterFlagBits[0]` bit 0 (`EVFLAG_BATTLE_QUOTES`)
+set `f15085` / cleared `f15526` (`ENUT`/`ENUF` around the `FIGHT`); `gChapterFlagBits[1]` bit 2
+(`EVFLAG_TMP(11)`) set `f25419` (`ENUT` near the end); `gPermanentFlagBits[3]` bit 7
+(`EVFLAG_HIDE_BLINKING_ICON`) cleared `f25423` (`UndeployEveryone`/`UnsetEventId_0x84`).
+
+Entered handlers (status by `Ported from`/`Transcribed from` in `game/`; main script linear decode up to the
+last sampled cursor `+0x1B4`):
+- `Ported`: `Event02_EvBitAndIdMod`, `Event05_SetSlot`, `Event07_SlotQueueOperations`, `Event0A_Call`,
+  `Event0C_Branch`, `Event0E_STAL`, `Event12_StartBGM`, `Event1A_TEXTSTART`, `Event1B_TEXTSHOW`,
+  `Event1D_WaitForLockTalk`, `Event21_TextBg`, `Event22_ClearScreen`, `Event3B_DisplayCursor`,
+  `Event3F_ScriptBattle`, `Event01_End`, `Event08_Label`, `Event09_Goto`, `EventEngine_OnUpdate`,
+  `sub_800E640`, `UnlockGame`, `ClearCutsceneUnits`, `ReadGameSaveCoreGfx`, `UnpackChapterMapPalette`,
+  `BmMain_ChangePhase`.
+- `Transcribed`: `Event03_CheckEvBitOrId`, `Event06_SlotOperation`, `Event17_Fade`, `Event19_Checks`,
+  `Event34_MessWithUnitState` (`DISA`/`KILL`/`DISA_IF` subcodes), `EventEngine_OnEnd`, `CallNextQueuedEvent`,
+  `CallBeginningEvents`, `SetEventId_0x84`, `UndeployEveryone`, `UnsetEventId_0x84`, `EndTalk`, `EndCgText`,
+  `sub_808BB74`, `ResetBkselPalette`, `ResumeMenu`, `ChangeUnitSpritePalette`.
+- No `Ported from` tag (host-interface only / stand-in): `UpdatePrevDeployStates` (stand-in in `BMapMain`),
+  `gProcScr_TalkSkipListener` proc body, `ProcScr_EventDisplayCursor` proc body.
+- No Unported opcode handler: every opcode id of the main script has a ported or transcribed handler.
+
+PORT rows: `PC-6e-a` (verify Transcribed script-core opcodes: `Event03`, `Event06`, `Event17`, `Event19`,
+`Event34`), `PC-6e-b` (beginning-event tail in `BMapMain`/`EventEngine`: `CallBeginningEvents`,
+`SetEventId_0x84`, `UpdatePrevDeployStates`, `UndeployEveryone`, `UnsetEventId_0x84`,
+`EventEngine_OnEnd` `EV_EXEC_UNK5` path, `CallNextQueuedEvent`), `PC-6e-c` (event teardown helpers `EndTalk`,
+`EndCgText`, `sub_808BB74`, `ResetBkselPalette`, `ResumeMenu`, `ChangeUnitSpritePalette` and the skip-listener
+/ `EventDisplayCursor` proc bodies).

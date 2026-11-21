@@ -13,8 +13,6 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- `PC-4f`: scheduled, until ~23:35Z.
-- `PC-6i-event`: scheduled, until ~23:35Z.
 - `PC-2`: owner PC Claude (finishing Gemini's `wip/pc2`), until ~01:37Z.
 - `PC-4a1`: owner PC Claude (finishing Gemini's `wip/pc4a1`), until ~01:37Z.
 - `BUG-m4apitch`: owner PC Claude (M4aPitchTest red on `ram_trace_prologue_end` since `49074486`), until ~01:37Z.
@@ -22,6 +20,11 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 - `PC-6i-load`: Gemini owner PC, until ~00:00Z (`wip/pc6i-load`, 2026-11-22).
 
 ## Current state
+
+- 2026-11-22 scheduled (Sonnet agents): **PC-4f done** (`PostChapterSaveMenuDifferentialTest` 2 ok; 6 Ported,
+  `IsGameNotFirstChapter`/`SaveDrawSetDifficultSlotPalette` Transcribed). **PC-6i-event done**
+  (`Chapter1OpeningEventInventoryTest` 4 ok; added `PC-6e-a..c`). Note: setup's decomp is sparse; scheduled ports
+  need `git -C .assets/decomp sparse-checkout add /src /include`..
 
 - 2026-11-22 ~00:45Z owner PC Claude (wrap-up after the sessions stopped at ~21:10Z): **BUG-evtmenu merged** (`930ad54d`): Gemini had parked it on a ROM re-extraction; ROM repo `d978739` re-extracts `ch1.fe8s` (one line) and release `assets-d978739` (latest) carries the new `extracted.tar.xz` (run `tools/setup.sh` or refresh `.assets/extracted` from it). TEST-6 pushed by the older Claude session (`4b0ea806`). In progress at wrap-up: PC-2 and PC-4a1 (finishing Gemini's wip in worktrees `pc2`/`pc4a1`), BUG-m4apitch (M4aPitchTest, red since `49074486`). EP-w not started: GPT's `wip/gpt-nov21-enemy` (`75c68c4a`, berserk-phase hook + `WorldMapApHost.objectAt` cache) no longer applies cleanly and needs a rebase. Open rows mostly need captures: IS-cap1 (stat-screen lane), a trap capture (EP-36), crit/no-damage (EP-23b/24b), AI scenarios (EP12-*-inv).
 

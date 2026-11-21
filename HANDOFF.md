@@ -16,6 +16,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 - `EP-w`: GPT owner PC Terra, enemy-phase boot replay, until ~19:30Z (2026-11-21).
 - `EP-32`: owner PC Claude, until ~19:58Z.
+- `EP-34a`: owner PC Claude, until ~20:19Z.
 
 
 

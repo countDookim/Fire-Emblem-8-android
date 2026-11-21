@@ -472,6 +472,15 @@ public class Fe8Boot(
                 { battleMap.restartBattleMap() },
                 { battleEntityMaps.refreshEntityBmMaps() },
                 { bmapRender.renderBmMap() },
+                resumeMapDisplay = {
+                    if (rom.isWholeRom) {
+                        battleMap.bMapDispResume()
+                        engine.unblockEachMarked(Mu.PROC_MARK_MU)
+                    }
+                },
+                refreshUnitSprites = { refreshSprites() },
+                refreshBMapGraphics = { if (rom.isWholeRom) refreshMapGraphics() },
+                changeUnitSpritePalette = { unitSprites?.changeUnitSpritePalette(it) },
             ).registerOn(it)
             val unitState = EventUnitState(
                 state, memory, units, loader,

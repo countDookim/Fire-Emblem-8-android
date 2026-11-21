@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 228 across 47 Kotlin files.
+Total entries: 227 across 46 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |

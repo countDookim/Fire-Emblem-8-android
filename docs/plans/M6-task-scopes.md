@@ -100,40 +100,55 @@ Window: MC-18i confirmed this display path; use its exact subwindow below and ev
 
 Confirmed inventory window: f6413..6746 blocking parent; later resume timing still needs checking. Per-frame EWRAM; full display snapshots every ten frames.
 
-### PC-4a: Post-chapter save entry
+### PC-4a1: Post-chapter save entry and LCD setup
 
-Candidate source: `src/savemenu.c`: `Make6C_SaveMenuPostChapter`, `SaveMenuInit`, `SaveMenu_SetLcdChapterIdx`, `SaveMenu_InitScreen`, `SaveMenuDirectlySelectSlotOnPrepScreen`.
-Window: PC-cap1 save menu; PC-4i supplies exact frames and identifies writer coverage. Compare: Save proc state, BG setup and initial slot. Proposed test: `PostChapterSaveMenuDifferentialTest`.
+Source: `src/savemenu.c` / `src/bmsave-lib.c`: `Make6C_SaveMenuPostChapter`, `SaveMenuInit`, `SaveMenu_SetLcdChapterIdx`, `SaveMenuDirectlySelectSlotOnPrepScreen`, `InitSaveMenuHelpTextSt`, `ReadLastGameSaveId` (already ported: `NewFadeIn`, `FadeInExists` in `ArchivedPaletteFade`).
+Window: `ram_trace_prologue_end` (`PC-cap1`) `f9444`, `f9461..9493` (world-map / Frelia / prep-screen false branches unexercised). Compare: Save proc state, `main_sel_bitfile`, LCD/blend registers, `NewFadeIn(4)`. Proposed test: `PostChapterSaveMenuDifferentialTest`.
 
-### PC-4b: Save background lifecycle
+### PC-4a2: Save menu screen and title-BG setup
 
-Candidate source: `src/savedraw.c`: `StartSaveDraw`, `SaveDraw_Init`, `SaveDraw_ScrollFogBG`, `SaveDraw_OnEnd`.
-Window: PC-cap1 save menu; PC-4i supplies exact frames and identifies writer coverage. Compare: BG offsets, palette, tilemaps and child lifecycle. Proposed test: `PostChapterSaveMenuDifferentialTest`.
+Source: `src/savemenu.c` / `src/chaptertitle.c`: `SaveMenu_InitScreen`, `SaveMenuPutChapterTitle`, `SaveMenuCopyPalette`, `SaveMenuInitSubBoxText`, `PutChapterTitleBG` (already ported: `PutChapterTitleGfx`, `SetObjAffine`).
+Window: `ram_trace_prologue_end` (`PC-cap1`) `f9445..9459`. Compare: BG0..3 tilemaps/LCD, palettes, slot metadata setup. Proposed test: `PostChapterSaveMenuDifferentialTest`.
 
-### PC-4c: Save slot drawing
+### PC-4b: Save background and HBlank lifecycle
 
-Candidate source: `src/savedraw.c`: `SaveDraw_Loop_Main`, `sub_80AACBC`, `sub_80AADE0`, `sub_80AAE90`, `sub_80AAF6C`, `sub_80AB05C`.
-Window: PC-cap1 save menu; PC-4i supplies exact frames and identifies writer coverage. Compare: Slot labels/icons, OAM and tilemaps. Proposed test: `PostChapterSaveMenuDifferentialTest`.
+Source: `src/savedraw.c` / `src/bg_vertical_scroll.c`: `StartSaveDraw`, `SaveDraw_Init`, `SaveDraw_OnEnd`, `sub_80AB548`, `StartBgVerticalScroll`, `SetBgVerticalScrollPosition`, `sub_8014EF4`, `EndBgVerticalScroll` (already ported: `SaveDraw_ScrollFogBG`, `HBlank_BgVerticalScroll`, `GetBgVerticalScrollBuffer`, `FlipBgVerticalScroll`, `BG_SetPosition`).
+Window: `ram_trace_prologue_end` (`PC-cap1`) `f9459..9862`. Compare: child procs (`ProcScr_savedraw`, `ProcScr_ApProc`), `sHBlankHandler1`, BG scroll/offsets, cleanup on exit. Proposed test: `PostChapterSaveMenuDifferentialTest`.
 
-### PC-4d: Save cursor and slot navigation
+### PC-4c1: Save slot boxes, banner and play time draw
 
-Candidate source: `src/savedraw.c`: `StartSaveDrawCursor`, `SaveDrawCursor_Init`, `SaveDrawCursor_Loop`, `SaveMenuModifySaveSlot`, `SaveMenuTryMoveSaveSlotCursor`, `InitSaveMenuChoice`.
-Window: PC-cap1 save menu; PC-4i supplies exact frames and identifies writer coverage. Compare: Selected slot, cursor OAM and rejected movement. Proposed test: `PostChapterSaveMenuDifferentialTest`.
+Source: `src/savedraw.c`: `SaveDraw_Loop_Main`, `sub_80AB05C`, `sub_80AADE0`, `sub_80AA7EC`, `sub_80AAE90` (early exit), `sub_80AAF6C` (early exit), `BitfileToIndex` (main/extra/help-box branches uncaptured in `PC-cap1`).
+Window: `ram_trace_prologue_end` (`PC-cap1`) `f9459..9862`. Compare: OAM slot/banner/play-time sprites and slot tilemaps. Proposed test: `PostChapterSaveMenuDifferentialTest`.
 
-### PC-4e: Save selection and confirmation
+### PC-4c2: Save palette cycle, icon spin and particles
 
-Candidate source: `src/savemenu.c`: `SaveMenu_SaveSlotSelectLoop`, `SaveMenuRegisterSlotSelected`, `SaveMenuWaitSlotBoxScrolling`.
-Window: PC-cap1 save menu; PC-4i supplies exact frames and identifies writer coverage. Compare: Input decisions, proc labels and save dispatch. Proposed test: `PostChapterSaveMenuDifferentialTest`.
+Source: `src/savedraw.c`: `sub_80AACBC`, `sub_80AA7AC`, `sub_80AB56C`.
+Window: `ram_trace_prologue_end` (`PC-cap1`) `f9459..9862`. Compare: palette animation, suspend bookmark spin/scale (`gOam` affine 3, `unk_44`), fog particles. Proposed test: `PostChapterSaveMenuDifferentialTest`.
+
+### PC-4d: Save cursor drawing
+
+Source: `src/savedraw.c`: `StartSaveDrawCursor`, `SaveDrawCursor_Init`, `SaveDrawCursor_Loop`, `sub_80AB4F4` (`SaveMenuTryMoveSaveSlotCursor`, `SaveMenuModifySaveSlot`, `sub_80AB514` never run in `PC-cap1` and require a slot-nav CAP; `InitSaveMenuChoice` moved to `PC-4e2`).
+Window: `ram_trace_prologue_end` (`PC-cap1`) `f9459..9862`. Compare: `gProcScr_SaveDrawCursor`, selected slot 0, cursor OAM. Proposed test: `PostChapterSaveMenuDifferentialTest`.
+
+### PC-4e1: Save select and confirm loop
+
+Source: `src/savemenu.c`: `SaveMenu_SaveSlotSelectLoop`, `SaveMenuWaitHelpBoxAnim`, `ExecSaveMenuMiscOption`, `SaveMenuHandleHelpBox`, `SaveMenuDrawSubSelBox`, `SaveMenuDrawSubSelBoxExt` (reuses already-ported `BmGameSave.writeGameSave` for the slot-0 write at `f9800..9802`).
+Window: `ram_trace_prologue_end` (`PC-cap1`) `f9494..9802`. Compare: `A` confirm subbox (`f9600`, BG1 row 17, `cursor_config = 1`), slot-0 `WriteGameSave` dispatch (`s09799..s09802`) and clear (`f9802`). Proposed test: `PostChapterSaveMenuDifferentialTest`.
+
+### PC-4e2: Post-write slot flip, option scan and fade-out
+
+Source: `src/savemenu.c`: `SaveMenuRegisterSlotSelected`, `SaveMenuWaitSlotBoxScrolling`, `InitSaveMenuChoice`, `AddMainMenuOption`, `AddExtraMenuOption`, `NewFadeOut`, `FadeOutExists` (+ `bmsave-lib` `IsExtra*` availability checks).
+Window: `ram_trace_prologue_end` (`PC-cap1`) `f9803..9861`. Compare: `gOam` affine 0 flip, slot-0 metadata refresh (`f9814`), `InitSaveMenuChoice`, `NewFadeOut(8)` (`f9845..9860`). Proposed test: `PostChapterSaveMenuDifferentialTest`.
 
 ### PC-4f: Save slot metadata and palettes
 
-Candidate source: `src/difficultymenu.c`: `SaveMenuInitSaveSlotData`, `SaveMenuInitSlotPalette`, `SaveDrawSetDifficultSlotPalette`.
-Window: PC-cap1 save menu; PC-4i supplies exact frames and identifies writer coverage. Compare: Occupied/empty metadata and slot palettes. Proposed test: `PostChapterSaveMenuDifferentialTest`.
+Source: `src/difficultymenu.c` / `src/savemenu.c`: `SaveMenuInitSaveSlotData`, `SaveMenuInitSlotPalette`, `SaveDrawSetDifficultSlotPalette`, `GetChapterTitleExtra`, `IsGameNotFirstChapter`, `LoadSavedEid8A`, `ReadGameSavePlaySt`, `ReadSuspendSavePlaySt` (already ported: `IsSaveValid`, `IsValidSuspendSave`, `sub_80895B4`).
+Window: `ram_trace_prologue_end` (`PC-cap1`) `f9450..9458`, `f9812..9814`. Compare: occupied/empty metadata, chapter titles, slot palettes. Proposed test: `PostChapterSaveMenuDifferentialTest`.
 
 ### PC-4g: Save menu exit
 
-Candidate source: `src/savemenu.c`: `PostSaveMenuHandler`.
-Window: PC-cap1 save menu; PC-4i supplies exact frames and identifies writer coverage. Compare: Child cleanup, HBlank release and next game action. Proposed test: `PostChapterSaveMenuDifferentialTest`.
+Source: `src/savemenu.c`: `PostSaveMenuHandler` (already ported in `fe8.game.savemenu.PostSaveMenu`; verify `MAIN_MENU_OPTION_INVALID` branch on `f9862 -> f9863` and `Fe8Boot` wiring).
+Window: `ram_trace_prologue_end` (`PC-cap1`) `f9862 -> f9863`. Compare: `ProcScr_savedraw`/`gProcScr_SaveDrawCursor` cleanup, `sHBlankHandler1 == 0`, unlocked `GameControl` with `nextAction = 2`. Proposed test: `PostChapterSaveMenuDifferentialTest`.
 
 ### PC-8a: Game-over background and scroll
 

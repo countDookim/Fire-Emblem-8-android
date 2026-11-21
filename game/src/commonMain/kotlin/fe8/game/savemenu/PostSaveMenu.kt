@@ -125,49 +125,50 @@ public class PostSaveMenu(
         return Selection(mainSelBitfile = MAIN_MENU_OPTION_NEW_GAME)
     }
 
-    private companion object {
+    /** Main and extra menu option bitmasks (`include/savemenu.h`) and exit action constants. */
+    public companion object {
         /** `MAIN_MENU_OPTION_RESUME` (1 << 0): continue the suspend save. */
-        const val MAIN_MENU_OPTION_RESUME = 1 shl 0
+        public const val MAIN_MENU_OPTION_RESUME: Int = 1 shl 0
 
         /** `MAIN_MENU_OPTION_RESTART` (1 << 1): loads the selected chapter save slot. */
-        const val MAIN_MENU_OPTION_RESTART = 1 shl 1
+        public const val MAIN_MENU_OPTION_RESTART: Int = 1 shl 1
 
         /** `MAIN_MENU_OPTION_NEW_GAME` (1 << 4): starts a new game. */
-        const val MAIN_MENU_OPTION_NEW_GAME = 1 shl 4
+        public const val MAIN_MENU_OPTION_NEW_GAME: Int = 1 shl 4
 
         /** `MAIN_MENU_OPTION_EXTRAS` (1 << 5): opens the Extras submenu. */
-        const val MAIN_MENU_OPTION_EXTRAS = 1 shl 5
+        public const val MAIN_MENU_OPTION_EXTRAS: Int = 1 shl 5
 
         /**
          * `MAIN_MENU_OPTION_INVALID` (1 << 6): the menu's initial `main_sel_bitfile` value
          * (src/savemenu.c: SaveMenuInit); while it is set, no choice has been made.
          */
-        const val MAIN_MENU_OPTION_INVALID = 1 shl 6
+        public const val MAIN_MENU_OPTION_INVALID: Int = 1 shl 6
 
         /**
          * `MAIN_MENU_OPTION_7` (1 << 7): meaning unknown. Only the unused `SaveMenuInitUnused`
          * starts with it; the exit path ORs `MAIN_MENU_OPTION_EXIT` onto it, which makes this
          * handler choose `GAME_ACTION_A` instead of `GAME_ACTION_5`.
          */
-        const val MAIN_MENU_OPTION_7 = 1 shl 7
+        public const val MAIN_MENU_OPTION_7: Int = 1 shl 7
 
         /** `MAIN_MENU_OPTION_EXIT` (1 << 8): returns to the title screen. */
-        const val MAIN_MENU_OPTION_EXIT = 1 shl 8
+        public const val MAIN_MENU_OPTION_EXIT: Int = 1 shl 8
 
         /** `EXTRA_MENU_OPTION_LINK_ARENA` (1 << 0): Link Arena multiplayer battle. */
-        const val EXTRA_MENU_OPTION_LINK_ARENA = 1
+        public const val EXTRA_MENU_OPTION_LINK_ARENA: Int = 1
 
         /**
          * `EXTRA_MENU_OPTION_MAP` (1 << 4): the Extras Map entry; the menu requires a save slot
          * with bit 4 of `unk_3a` set (cleared-save check, not checked further here).
          */
-        const val EXTRA_MENU_OPTION_MAP = 0x10
+        public const val EXTRA_MENU_OPTION_MAP: Int = 0x10
 
         /**
          * `GAME_ACTION_A`: set on exit when `MAIN_MENU_OPTION_7` is set. The decomp's
          * `GameControl_SwitchPostSaveMenu` has no case for it (it does nothing), so what it is
          * for is unknown.
          */
-        const val GAME_ACTION_A = 0xA
+        public const val GAME_ACTION_A: Int = 0xA
     }
 }

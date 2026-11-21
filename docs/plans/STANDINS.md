@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 229 across 47 Kotlin files.
+Total entries: 236 across 48 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -32,11 +32,12 @@ Total entries: 229 across 47 Kotlin files.
 | EP-34a | 2 |
 | EP-7 | 2 |
 | IS-2 | 1 |
+| PC-4f | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 8 |
+| unassigned | 14 |
 
 ## M6-B (13)
 
@@ -345,6 +346,12 @@ Total entries: 229 across 47 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until IS-2 (help boxes): nothing happens (the selection's `onHelp`). |
 
+## PC-4f (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `getChapterIndexOnWmNode` | Stand-in (PC-4f) until ported. |
+
 ## PP-10 (1)
 
 | Kotlin file | Declaration | Stand-in |
@@ -369,7 +376,7 @@ Total entries: 229 across 47 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (8)
+## unassigned (14)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -379,5 +386,11 @@ Total entries: 229 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `mapAnimStoleItemPopup` | Transcribed from src/mapanim.c: MapAnim_StoleItemPopup (not verified: no steal in the capture; the branch is the stolen item popup, a stand-in hook) Shows the stolen item's popup for a steal animat... |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `newMapPoisonEffect` | Stand-in until the poison effect is ported (no capture holds a poisoned hit): nothing happens. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold, together with a stand-in for the availability callback of any other command (none is left; see [Hooks.u... |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `fadeOutExists` | Stand-in (PC-4e2) until archived fade-out is ported. |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `initScreen` | Stand-in (PC-4a2) until screen setup is ported. |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `newFadeOut` | Stand-in (PC-4e2) until archived fade-out is ported. |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `registerSlotSelected` | Stand-in (PC-4e2) until slot confirm is ported. |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `saveSlotSelectLoop` | Stand-in (PC-4e1) until slot selection loop is ported. |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `waitSlotBoxScrolling` | Stand-in (PC-4e2) until slot box scroll is ported. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `biosPlaySt` | Stand-in for the BIOS bytes `IsGameNotFirstChapter` reads: a non-zero `chapterIndex`. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `saveMenuInitSaveSlotData` | The port passes [biosPlaySt], a stand-in `PlaySt` that gives that answer, so bit 0 of `unk_3a` is always set for a valid game slot. |

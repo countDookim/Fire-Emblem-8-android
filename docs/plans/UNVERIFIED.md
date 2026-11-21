@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 703 across 101 decomp files (missing reason: 0).
+Total entries: 704 across 102 decomp files (missing reason: 0).
 
 ## src/bmunit.c (36)
 
@@ -463,7 +463,7 @@ Total entries: 703 across 101 decomp files (missing reason: 0).
 | `LoadSavedWMStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | see [readWorldMapStuff] |
 | `WriteGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | the world map's RN state is a stand-in and the two trailing stack bytes are not derivable |
 | `WriteLastGameSaveId` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | the reference image already holds the written id, so a no-op survives |
-| `ReadLastGameSaveId` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no trace reads it |
+| `ReadLastGameSaveId` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | valid slot 0 is checked on ram_trace_prologue_end s09350 via SaveMenuInit, while invalid-header and out-of-range fallback branches are unexercised |
 | `IsGameNotFirstChapter` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | the capture calls it on BIOS bytes, see [fe8.game.savemenu.SaveSlotData.saveMenuInitSaveSlotData] |
 | `SetBonusContentClaimFlags` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no trace sets a non-zero value |
 | `LoadSavedBonusClaimFlags` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | the claim flags are zero in every reference save |
@@ -1168,6 +1168,12 @@ Total entries: 703 across 101 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetPlayerLeaderPid` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no test checks it against a trace yet |
+
+## src/savemenu.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SaveMenu_SetLcdChapterIdx` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | world-map, EVFLAG_136, and non-save_menu_type-2 chapter-override branches are not exercised in ram_trace_prologue_end; LCD, blend, and help-text setup for chapter 1 / save_menu_type 2 are verified at f09444 |
 
 ## src/sysutil.c (1)
 

@@ -659,7 +659,9 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave.c: ReadLastGameSaveId (not verified: no trace reads it).
+     * Transcribed from src/bmsave.c: ReadLastGameSaveId (not verified: valid slot 0 is checked on
+     * ram_trace_prologue_end s09350 via SaveMenuInit, while invalid-header and out-of-range
+     * fallback branches are unexercised).
      *
      * The chapter save slot (0..2) used last, 0 when the global save info is invalid or the
      * stored value is outside 0..2. The C compares an unsigned byte, so its `ret < 0` test never

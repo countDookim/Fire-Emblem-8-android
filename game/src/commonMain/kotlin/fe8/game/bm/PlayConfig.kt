@@ -8,6 +8,11 @@ package fe8.game.bm
 public const val PLAY_FLAG_HARD: Int = 1 shl 6
 
 /**
+ * `PLAY_FLAG_COMPLETE` (include/types.h) in `PlaySt.chapterStateBits`: the playthrough was cleared.
+ */
+public const val PLAY_FLAG_COMPLETE: Int = 1 shl 5
+
+/**
  * Ported from src/bmio.c: InitPlayConfig
  *
  * Resets [playSt] for a new game: zeroes the whole struct, so every chapter, gold and ranking

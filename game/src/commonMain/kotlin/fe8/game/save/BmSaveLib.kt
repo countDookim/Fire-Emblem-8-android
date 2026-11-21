@@ -8,6 +8,7 @@
 package fe8.game.save
 
 import fe8.game.RomView
+import fe8.game.bm.PLAY_FLAG_COMPLETE
 import fe8.game.bm.PlaySt
 import fe8.game.bm.initPlayConfig
 import fe8.game.flags.Fe8EventFlags
@@ -671,8 +672,7 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave.c: ReadGameSavePlaySt (not verified: no test checks it against a
-     *   trace yet)
+     * Ported from src/bmsave.c: ReadGameSavePlaySt
      *
      * Decodes the `PlaySt` at the start of the block [slot] reads from into [buf].
      */
@@ -680,6 +680,37 @@ public class BmSaveLib(public val sram: CartSram) {
         readSramFast(sram, getSaveReadAddr(slot), playStFull, 0, PlaySt.SIZE)
         buf.decode(playStFull, 0)
     }
+
+    /**
+     * Ported from src/bmsave.c: ReadSuspendSavePlaySt
+     *
+     * Decodes the `PlaySt` of suspend slot [slot] (3 or 4) into [buf], from the suspend block
+     * that [suspendSaveIdOffset] (set by [isValidSuspendSave]) selects.
+     */
+    public fun readSuspendSavePlaySt(slot: Int, buf: PlaySt) {
+        readGameSavePlaySt(slot + suspendSaveIdOffset, buf)
+    }
+
+    /**
+     * Ported from src/bmsave.c: LoadSavedEid8A
+     *
+     * Whether permanent flag 0x8A (`CheckPermanentFlagFrom` on the block's saved permanent flags)
+     * is set in the game save [slot]. Flags up to 100 are not permanent flags and read as 0.
+     */
+    public fun loadSavedEid8A(slot: Int): Boolean {
+        readPermanentFlags(getSaveReadAddr(slot) + GAME_PERMANENT_FLAGS, genericBuffer)
+        val flag = PERMANENT_FLAG_8A - 100 - 1
+        return genericBuffer[flag / 8].toInt() and (1 shl (flag % 8)) != 0
+    }
+
+    /**
+     * Transcribed from src/bmsave.c: IsGameNotFirstChapter (not verified: the capture calls it
+     * on BIOS bytes, see [fe8.game.savemenu.SaveSlotData.saveMenuInitSaveSlotData])
+     *
+     * True when the chapter in [playSt] is complete or is not chapter index 0.
+     */
+    public fun isGameNotFirstChapter(playSt: PlaySt): Boolean =
+        playSt.chapterStateBits and PLAY_FLAG_COMPLETE != 0 || playSt.chapterIndex != 0
 
     /**
      * Transcribed from src/bmsave-bwl.c: IsPlaythroughIdUnique (not verified: no @VerifiesPort
@@ -1183,6 +1214,9 @@ public class BmSaveLib(public val sram: CartSram) {
         const val GAME_PID_STATS = GAME_SUPPLY + SUPPLY_SIZE
         const val GAME_CHAPTER_STATS = GAME_PID_STATS + PID_STATS_SIZE
         const val GAME_PERMANENT_FLAGS = GAME_CHAPTER_STATS + CHAPTER_STATS_SIZE
+
+        /** Permanent flag 0x8A, which `LoadSavedEid8A` tests (name not known). */
+        const val PERMANENT_FLAG_8A = 0x8A
         // 0x19 flag bytes padded to 0x1C so the u32 `bonusClaimFlags` is word-aligned.
         const val GAME_BONUS_CLAIM = GAME_PERMANENT_FLAGS + 0x1C
         const val GAME_WM_STUFF = GAME_BONUS_CLAIM + 4

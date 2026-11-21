@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 700 across 100 decomp files (missing reason: 0).
+Total entries: 701 across 101 decomp files (missing reason: 0).
 
 ## src/bmunit.c (36)
 
@@ -463,7 +463,7 @@ Total entries: 700 across 100 decomp files (missing reason: 0).
 | `WriteGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | the world map's RN state is a stand-in and the two trailing stack bytes are not derivable |
 | `WriteLastGameSaveId` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | the reference image already holds the written id, so a no-op survives |
 | `ReadLastGameSaveId` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no trace reads it |
-| `ReadGameSavePlaySt` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no test checks it against a trace yet |
+| `IsGameNotFirstChapter` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | the capture calls it on BIOS bytes, see [fe8.game.savemenu.SaveSlotData.saveMenuInitSaveSlotData] |
 | `SetBonusContentClaimFlags` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no trace sets a non-zero value |
 | `LoadSavedBonusClaimFlags` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | the claim flags are zero in every reference save |
 | `WriteBonusContentClaimFlags` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | the New Game trace copies only zeros |
@@ -1118,6 +1118,12 @@ Total entries: 700 across 100 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `PutSprite` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteLayers.kt` | no test checks it against a trace yet |
+
+## src/difficultymenu.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SaveDrawSetDifficultSlotPalette` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | the capture has no `PLAY_FLAG_HARD` slot |
 
 ## src/eventscr2.c (1)
 

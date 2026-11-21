@@ -7,8 +7,8 @@ import gbafe.render.BgHardware
  * The chapter title card graphics of `src/chapter_title.c`, as far as the chapter intro uses them
  * (`ChapterIntro_DrawChapterTitle`): the title palette, the title image (a 4bpp graphic per
  * `chap_title_data` entry, decompressed into BG VRAM) and the tilemap row of its tiles. Only the
- * functions the `ram_trace_newgame_intro` window runs are here (not `GetChapterTitleExtra`,
- * `PutChapterTitleBG` or the other tilemap helpers).
+ * functions the `ram_trace_newgame_intro` window runs are here, plus `GetChapterTitleExtra` for
+ * the save menu (not `PutChapterTitleBG` or the other tilemap helpers).
  *
  * @param getPlayChapterId `GetPlayChapterId(chapterIndex)` (worldmap_path.c): the world map node of
  *   a chapter, or -1. Stand-in supplied by the caller until M6-I (the rest of the world map).
@@ -89,6 +89,20 @@ public class ChapterTitle(
     public fun sub80896FC(tm: ShortArray, offset: Int, pal: Int) {
         var tile = chrStr + (pal shl 12)
         for (i in 0 until 0x40) tm[offset + i] = tile++.toShort()
+    }
+
+    /**
+     * Ported from src/chapter_title.c: GetChapterTitleExtra
+     *
+     * The title image id for [playSt] in the save menu: 0x57 (creature campaign) when
+     * `PLAY_FLAG_POSTGAME` is set, else 0x55 (epilogue) when `PLAY_FLAG_COMPLETE` is set, else the
+     * chapter's `chapTitleId`. The C also returns 0x54 for a null `PlaySt`; the port takes a
+     * non-null one.
+     */
+    public fun getChapterTitleExtra(playSt: PlaySt): Int {
+        if (playSt.chapterStateBits and PLAY_FLAG_POSTGAME != 0) return 0x57
+        if (playSt.chapterStateBits and PLAY_FLAG_COMPLETE != 0) return 0x55
+        return chapterData.chapTitleId(playSt.chapterIndex)
     }
 
     /**

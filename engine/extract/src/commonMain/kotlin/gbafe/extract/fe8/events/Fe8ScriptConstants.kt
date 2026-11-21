@@ -55,10 +55,15 @@ public object Fe8ScriptConstants : ScriptConstants {
 
     /**
      * Unit-menu override bits for `override_unit_menu` (`EVENT_MENUOVERRIDE_*` of
-     * `event3D_menu1override_bitfiles`); the weapon-menu enum `event3D_menu2override_bitfiles` is
-     * not included.
+     * `event3D_menu1override_bitfiles`).
      */
     public const val KIND_MENU_OVERRIDE: String = "menu_override"
+
+    /**
+     * Weapon-menu override bits for `override_weapon_menu` (`EVENT_MENUOVERRIDE_WEAPON*` of
+     * `event3D_menu2override_bitfiles`).
+     */
+    public const val KIND_WEAPON_MENU_OVERRIDE: String = "weapon_menu_override"
 
     private val set = TableScriptConstants(
         mapOf(
@@ -75,6 +80,7 @@ public object Fe8ScriptConstants : ScriptConstants {
             KIND_WM_MU to tableWmMu(),
             KIND_SLOT to tableSlot(),
             KIND_MENU_OVERRIDE to tableMenuOverride(),
+            KIND_WEAPON_MENU_OVERRIDE to tableWeaponMenuOverride(),
         ),
     )
 
@@ -1653,6 +1659,19 @@ public object Fe8ScriptConstants : ScriptConstants {
         intArrayOf(
             1, 2, 4, 8, 16, 32, 64, 128,
             256, 512, 1024, 2048, 4096, 8192, 16384,
+        ),
+    )
+
+    private fun tableWeaponMenuOverride(): ConstantTable = ConstantTable(
+        arrayOf(
+            "EVENT_MENUOVERRIDE_WEAPON1",
+            "EVENT_MENUOVERRIDE_WEAPON2",
+            "EVENT_MENUOVERRIDE_WEAPON3",
+            "EVENT_MENUOVERRIDE_WEAPON4",
+            "EVENT_MENUOVERRIDE_WEAPON5",
+        ),
+        intArrayOf(
+            1, 2, 4, 8, 16,
         ),
     )
 }

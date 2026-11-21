@@ -22,6 +22,26 @@ class Fe8ScriptConstantsTest {
             1 shl 14,
             c.valueOf(Fe8ScriptConstants.KIND_MENU_OVERRIDE, "EVENT_MENUOVERRIDE_END"),
         )
+        assertEquals(
+            1 shl 1,
+            c.valueOf(Fe8ScriptConstants.KIND_WEAPON_MENU_OVERRIDE, "EVENT_MENUOVERRIDE_WEAPON2"),
+        )
+        assertEquals(
+            1 shl 4,
+            c.valueOf(Fe8ScriptConstants.KIND_WEAPON_MENU_OVERRIDE, "EVENT_MENUOVERRIDE_WEAPON5"),
+        )
+        assertEquals(
+            ScriptConstants.NONE,
+            c.valueOf(Fe8ScriptConstants.KIND_WEAPON_MENU_OVERRIDE, "EVENT_MENUOVERRIDE_STAFF"),
+        )
+        assertEquals(
+            ScriptConstants.NONE,
+            c.valueOf(Fe8ScriptConstants.KIND_MENU_OVERRIDE, "EVENT_MENUOVERRIDE_WEAPON2"),
+        )
+        assertEquals(
+            "EVENT_MENUOVERRIDE_WEAPON2",
+            c.nameOf(Fe8ScriptConstants.KIND_WEAPON_MENU_OVERRIDE, 2),
+        )
         assertEquals("CHARACTER_SETH", c.nameOf(Fe8ScriptConstants.KIND_CHARACTER, 2))
         assertEquals("SONG_RAID", c.nameOf(Fe8ScriptConstants.KIND_SONG, 38))
         assertEquals("EVT_SLOT_C", c.nameOf(Fe8ScriptConstants.KIND_SLOT, 12))

@@ -103,6 +103,7 @@ public object Fe8EventCommands {
     private const val K_EVENT_FLAG = Fe8ScriptConstants.KIND_EVENT_FLAG
     private const val K_SLOT = Fe8ScriptConstants.KIND_SLOT
     private const val K_MENU_OVERRIDE = Fe8ScriptConstants.KIND_MENU_OVERRIDE
+    private const val K_WEAPON_MENU_OVERRIDE = Fe8ScriptConstants.KIND_WEAPON_MENU_OVERRIDE
     private const val K_WM_NODE = Fe8ScriptConstants.KIND_WM_NODE
     private const val K_WM_PATH = Fe8ScriptConstants.KIND_WM_PATH
     private const val K_WM_NATION = Fe8ScriptConstants.KIND_WM_NATION
@@ -296,7 +297,7 @@ public object Fe8EventCommands {
         m[0x3C20] = Command("get_cursor_position", "EvtGetCursorPosition", listOf(), listOf(), listOf(u16(null, 1)))
         m[0x3C21] = Command("set_cursor_position", "EvtSetCursorPosition", listOf("x", "y"), listOf(), listOf(u8("x", 1), u8("y", 1, 8)))
         m[0x3D20] = Command("override_unit_menu", "EvtOverrideUnitMenu", listOf("bitfile"), listOf(), listOf(u16("bitfile", 1, valueKind = K_MENU_OVERRIDE)))
-        m[0x3D21] = Command("override_weapon_menu", "EvtOverrideWeaponMenu", listOf("bitfile"), listOf(), listOf(u16("bitfile", 1, valueKind = K_MENU_OVERRIDE)))
+        m[0x3D21] = Command("override_weapon_menu", "EvtOverrideWeaponMenu", listOf("bitfile"), listOf(), listOf(u16("bitfile", 1, valueKind = K_WEAPON_MENU_OVERRIDE)))
         m[0x3E20] = Command("call_prep_screen", "EvtCallPrepScreen", listOf(), listOf(), listOf(u16(null, 1)))
         m[0x3F40] = Command("start_event_battle", "EvtStartEventBattle", listOf("actor", "target", "weapon", "ballista"), listOf(), listOf(u16("actor", 1), u16("target", 2), u8("weapon", 3), u8("ballista", 3, 8)))
         m[0x3F41] = Command("start_event_map_battle", "EvtStartEventMapBattle", listOf("actor", "target", "weapon", "ballista"), listOf(), listOf(u16("actor", 1), u16("target", 2), u8("weapon", 3), u8("ballista", 3, 8)))

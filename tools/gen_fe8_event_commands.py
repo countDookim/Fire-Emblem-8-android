@@ -53,11 +53,13 @@ PARAM_KINDS = {
     "path": "wm_path", "nation": "wm_nation", "wm_uid": "wm_mu",
 }
 # Per-macro exceptions to PARAM_KINDS: (macro, parameter) -> kind or None. Slot operations name their slots
-# `to`/`a`/`b`; the "flag" of the ev-bit commands is an event-state bit index, not an event flag; EvtSwapClass
-# passes a character in its `jid` (src/eventscr.c Event35_UnitClassChanging subcommand 1).
+# `to`/`a`/`b`; the "flag" of the ev-bit commands is an event-state bit index, not an event flag;
+# EvtOverrideWeaponMenu takes weapon-menu bits (`event3D_menu2override_bitfiles`), not unit-menu bits;
+# EvtSwapClass passes a character in its `jid` (src/eventscr.c Event35_UnitClassChanging subcommand 1).
 OVERRIDES = {
     ("EvtClearEvBits", "flag"): None,
     ("EvtSetEvBits", "flag"): None,
+    ("EvtOverrideWeaponMenu", "bitfile"): "weapon_menu_override",
     ("EvtSwapClass", "jid"): "character",
 }
 for _op in ("ADD", "SUB", "MUL", "DIV", "MOD", "AND", "ORR", "XOR", "LSL", "LSR"):
@@ -68,7 +70,8 @@ for _op in ("ADD", "SUB", "MUL", "DIV", "MOD", "AND", "ORR", "XOR", "LSL", "LSR"
 KIND_CONSTS = {
     "character": "CHARACTER", "class": "CLASS", "item": "ITEM", "song": "SONG", "chapter": "CHAPTER",
     "background": "BACKGROUND", "event_flag": "EVENT_FLAG", "slot": "SLOT",
-    "menu_override": "MENU_OVERRIDE", "wm_node": "WM_NODE", "wm_path": "WM_PATH",
+    "menu_override": "MENU_OVERRIDE", "weapon_menu_override": "WEAPON_MENU_OVERRIDE",
+    "wm_node": "WM_NODE", "wm_path": "WM_PATH",
     "wm_nation": "WM_NATION", "wm_mu": "WM_MU",
 }
 

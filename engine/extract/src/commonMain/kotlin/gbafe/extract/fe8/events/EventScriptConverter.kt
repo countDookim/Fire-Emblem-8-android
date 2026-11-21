@@ -170,7 +170,11 @@ public object EventScriptConverter {
         private fun field(field: Fe8EventCommands.Field, value: Int): String {
             if (field.kind == Fe8EventCommands.FieldKind.POINTER) return pointer(value)
             val kind = field.valueKind
-            if (kind == Fe8ScriptConstants.KIND_MENU_OVERRIDE) return menuBits(value)
+            if (kind == Fe8ScriptConstants.KIND_MENU_OVERRIDE ||
+                kind == Fe8ScriptConstants.KIND_WEAPON_MENU_OVERRIDE
+            ) {
+                return menuBits(kind, value)
+            }
             if (kind != null) {
                 val signExtend = field.kind == Fe8EventCommands.FieldKind.U16 && value >= 0x8000
                 val named = constants.nameOf(kind, value)
@@ -184,16 +188,18 @@ public object EventScriptConverter {
             }
         }
 
-        /** The names of the set bits of a unit-menu override mask joined by `|`, or the number. */
-        private fun menuBits(v: Int): String {
+        /**
+         * The names of the set bits of a menu-override mask of [kind] joined by `|`, or the
+         * number.
+         */
+        private fun menuBits(kind: String, v: Int): String {
             if (v == 0) return "0"
             val parts = ArrayList<String>()
             var rest = v
             var bit = 1
             while (rest != 0 && bit <= 0x8000) {
                 if (rest and bit != 0) {
-                    val n = constants.nameOf(Fe8ScriptConstants.KIND_MENU_OVERRIDE, bit)
-                        ?: return number(v)
+                    val n = constants.nameOf(kind, bit) ?: return number(v)
                     parts += n
                     rest = rest and bit.inv()
                 }

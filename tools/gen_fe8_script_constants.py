@@ -4,7 +4,7 @@
 usage: tools/gen_fe8_script_constants.py <fireemblem8u checkout> > engine/extract/src/commonMain/kotlin/gbafe/extract/fe8/events/Fe8ScriptConstants.kt
 
 Reads the enums of include/constants/{characters,classes,items,songs,chapters,backgrounds,event-flags,worldmap}.h,
-`EventSlotIdx` (include/event.h) and `event3D_menu1override_bitfiles` (include/eventscript.h). One kind per
+`EventSlotIdx` (include/event.h) and `event3D_menu{1,2}override_bitfiles` (include/eventscript.h). One kind per
 group; names keep the decomp spelling. Event flags additionally get
   - EVFLAG_EXTRA_UNIT_0..9, expanded from the `EVFLAG_EXTRA_UNIT(i)` macro (origin DERIVED), and
   - EVFLAG_<n> for every id from 0 to the highest named flag that the headers leave unnamed (origin FILLER).
@@ -29,6 +29,7 @@ SOURCES = [
     ("wm_mu", "include/constants/worldmap.h", None, ("WM_MU_",)),
     ("slot", "include/event.h", "EventSlotIdx", ("EVT_SLOT_",)),
     ("menu_override", "include/eventscript.h", "event3D_menu1override_bitfiles", ("EVENT_MENUOVERRIDE_",)),
+    ("weapon_menu_override", "include/eventscript.h", "event3D_menu2override_bitfiles", ("EVENT_MENUOVERRIDE_",)),
 ]
 
 DOC = {
@@ -44,7 +45,8 @@ DOC = {
     "wm_nation": "World map highlighted-nation ids (`WM_NATION_*`).",
     "wm_mu": "World map sprite slots (`WM_MU_*`).",
     "slot": "Event slot indices (`EVT_SLOT_*`).",
-    "menu_override": "Unit-menu override bits for `override_unit_menu` (`EVENT_MENUOVERRIDE_*` of `event3D_menu1override_bitfiles`); the weapon-menu enum `event3D_menu2override_bitfiles` is not included.",
+    "menu_override": "Unit-menu override bits for `override_unit_menu` (`EVENT_MENUOVERRIDE_*` of `event3D_menu1override_bitfiles`).",
+    "weapon_menu_override": "Weapon-menu override bits for `override_weapon_menu` (`EVENT_MENUOVERRIDE_WEAPON*` of `event3D_menu2override_bitfiles`).",
 }
 
 

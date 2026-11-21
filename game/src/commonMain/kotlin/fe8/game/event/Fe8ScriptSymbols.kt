@@ -103,7 +103,7 @@ public class Fe8ConstantSymbols(
             Fe8ScriptConstants.KIND_EVENT_FLAG, Fe8ScriptConstants.KIND_WM_NODE,
             Fe8ScriptConstants.KIND_WM_PATH, Fe8ScriptConstants.KIND_WM_NATION,
             Fe8ScriptConstants.KIND_WM_MU, Fe8ScriptConstants.KIND_SLOT,
-            Fe8ScriptConstants.KIND_MENU_OVERRIDE,
+            Fe8ScriptConstants.KIND_MENU_OVERRIDE, Fe8ScriptConstants.KIND_WEAPON_MENU_OVERRIDE,
         )
     }
 

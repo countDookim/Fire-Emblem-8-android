@@ -18,10 +18,15 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- `PC-3c`: scheduled, until ~11:30Z (2026-11-22).
-- `PC-4c1`: scheduled, until ~11:30Z (2026-11-22).
 
 ## Current state
+
+- 2026-11-22 ~11:20Z scheduled (Sonnet agents): **PC-3c partial** (`a67c660`): `ChapterRankings.kt`, 9 gamerankings.c
+  fns (incl. PC-3d's Funds/Combat) Transcribed + wired in `Fe8Boot` (`ChapterRankingsDifferentialTest` 2 ok); PC-cap1
+  f9444 has every rank 4, 13/24 mutations survive, needs a non-4-rank capture; funds sees gold 0 until PC-3d.
+  **PC-4c1 partial** (`1a14b28`): `SaveDrawSlots.kt`, `BitfileToIndex` Ported (`SaveDrawSlotsDifferentialTest`, sprite
+  pool f9459..9862); Loop_Main/sub_80AB05C/80AADE0/80AA7EC/80AAE90/80AAF6C Transcribed; not wired: implement
+  `SaveDrawSlotsParent` on `SaveMenuState`, set `lifecycle.hooks.loopMain`.
 
 - 2026-11-22 05:25Z scheduled (Sonnet agents): **PC-4d done** (`SaveDrawCursorDifferentialTest`; `StartSaveDrawCursor`,
   `sub_80AB4F4` Ported; Init/Loop Transcribed). **PC-6i-load done** (`Chapter1LoadInventoryTest` 4 ok; no map changes;

@@ -100,6 +100,30 @@ public class ApProcs(
     }
 
     /**
+     * Moves [proc]'s animation to ([x], [y]) and, unless [tileBase] is `-1`, sets its tile base.
+     *
+     * Transcribed from src/ap.c: APProc_SetParameters (not verified: PC-cap1 only calls it with
+     * `tileBase != -1`; exercised through SaveDrawSlotsDifferentialTest, which compares sprites
+     * but not the handle's tile base)
+     */
+    public fun setParameters(proc: Proc, x: Int, y: Int, tileBase: Int) {
+        val state = proc.state as State
+        state.x = x
+        state.y = y
+        if (tileBase != -1) state.handle!!.tileBase = tileBase
+    }
+
+    /**
+     * Ends [proc].
+     *
+     * Transcribed from src/ap.c: APProc_Delete (not verified: not run in PC-cap1 before the
+     * suspend bookmark is deleted)
+     */
+    public fun delete(proc: Proc) {
+        engine.end(proc)
+    }
+
+    /**
      * Ends every animation proc.
      *
      * Ported from src/ap.c: APProc_DeleteAll

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 726 across 105 decomp files (missing reason: 0).
+Total entries: 734 across 105 decomp files (missing reason: 0).
 
 ## src/bmunit.c (36)
 
@@ -418,6 +418,27 @@ Total entries: 726 across 105 decomp files (missing reason: 0).
 | `GmapUnitContainer_Init` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt` | a fresh proc already has empty slots, so no trace can tell it from a no-op |
 | `EndGmapUnitFade` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt` | runs only on a skipped event in the prologue |
 
+## src/ap.c (16)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `AP_ClearAll` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `AP_Create` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `AP_Delete` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `AP_Update` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `AP_Display` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `AP_ExecFrame` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `AP_QueueObjRotScale` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | Div of 0 gives 0 here; the BIOS call is not modelled |
+| `AP_SwitchAnimation` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `AP_SetDefinition` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `AP_QueueObjGraphics` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `AP_LoadDefinition` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `AP_ExecDummyFrame` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `AP_Init` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `AP_Find` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+| `APProc_SetParameters` | `game/src/commonMain/kotlin/fe8/game/mapanim/ApProcs.kt` | PC-cap1 only calls it with `tileBase != -1`; exercised through SaveDrawSlotsDifferentialTest, which compares sprites but not the handle's tile base |
+| `APProc_Delete` | `game/src/commonMain/kotlin/fe8/game/mapanim/ApProcs.kt` | not run in PC-cap1 before the suspend bookmark is deleted |
+
 ## src/worldmap_scrollmanage.c (15)
 
 | Function | Kotlin file | Reason |
@@ -437,25 +458,6 @@ Total entries: 726 across 105 decomp files (missing reason: 0).
 | `StartGmScroll` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | see [scrollManageScript] |
 | `CheckGmScrolling` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | see [scrollManageScript] |
 | `EndGmScroll` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | see [scrollManageScript] |
-
-## src/ap.c (14)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `AP_ClearAll` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
-| `AP_Create` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
-| `AP_Delete` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
-| `AP_Update` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
-| `AP_Display` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
-| `AP_ExecFrame` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
-| `AP_QueueObjRotScale` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | Div of 0 gives 0 here; the BIOS call is not modelled |
-| `AP_SwitchAnimation` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
-| `AP_SetDefinition` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
-| `AP_QueueObjGraphics` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
-| `AP_LoadDefinition` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
-| `AP_ExecDummyFrame` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
-| `AP_Init` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
-| `AP_Find` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
 
 ## src/bmsave.c (14)
 
@@ -595,6 +597,22 @@ Total entries: 726 across 105 decomp files (missing reason: 0).
 | `AiGetInRangeCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | target weapon range 1 covers candidate distance 1 so the component returns 0, and only one candidate tile (5, 5) reaches the target |
 | `AiGetTerrainCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | only one candidate tile (5, 5) reaches the target, so terrain score differences between tiles are never tested against captured output |
 | `AiGetFriendZoneCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | only one candidate tile (5, 5) reaches the target, so friend zone position score differences between tiles are never tested against captured output |
+
+## src/savedraw.c (11)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ProcScr_savedraw` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | script order and mark are checked against the procs watch in SaveDrawLifecycleDifferentialTest, which cannot tag a data array |
+| `SaveDraw_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | the `susSlotCur == 0xFF` branch is unexercised in PC-cap1 where `susSlotCur == 0`, `SetObjAffine(0..3)` writes identity over an already-identity OAM matrix buffer from `SaveMenu_InitScreen`, and `sub_8014EF4(0)` masks already-zeroed `mode[0]`; `SaveDrawProc` fields, child cursor and AP proc creation, `StartBgVerticalScroll`/`SetBgVerticalScrollPosition`, `SaveDraw_ScrollFogBG`, `scrollEnabled = true`, and `sub_80AB548` match `r09459` |
+| `gProcScr_SaveDrawCursor` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | script order checked against the procs watch in SaveDrawCursorDifferentialTest, which cannot tag a script |
+| `SaveDrawCursor_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | PC-cap1 observes only the clearing of unk2a, susSlot, mainOptions, unk34 and unk38; cursorEn, unk2e, unk32 and unk3a are overwritten by sub_80AB4F4 before the first dump, and unk37 is already zero |
+| `SaveDrawCursor_Loop` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | PC-cap1 exercises only parent cursorDrawActive != 0, susSlot < 4, cursorEn != 0, unk3a == 1, and unk38 == 0; unexercised branches are parent cursorDrawActive == 0 early return, susSlot >= 4 settled motion, cursorEn == 0 idle branch, unk3a == 0 dual horizontal bracket cursors, and unk38 != 0 static copy cursor |
+| `sub_80AA7EC` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | PC-cap1 shows only a play time under 10 hours with `main_sel_bitfile != 1`; the hours > 9 / > 99 digits and the `total_time` branch are unexercised; `FormatTime` is inlined, also unverified |
+| `sub_80AADE0` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | PC-cap1 runs only the `unk_46 == 0` main option label; the extras label branch is unexercised |
+| `sub_80AAE90` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | early exit only, `unk_2f + unk_46 >= 220` is the only case PC-cap1 runs; the rest runs [Hooks.mainOptions] |
+| `sub_80AAF6C` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | early exit only, `unk_46 == 0` is the only case PC-cap1 runs; the rest runs [Hooks.extraOptions] |
+| `sub_80AB05C` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | PC-cap1 never has the extras offset, `total_time`, `cursor_slot` or a spare cursor, and `APProc_SetParameters` / Delete are Transcribed |
+| `SaveDraw_Loop_Main` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | it runs the `PC-4c2` steps through parameters, and PC-cap1 never has `unk_29 == 0` |
 
 ## src/worldmap_main.c (11)
 
@@ -761,16 +779,6 @@ Total entries: 726 across 105 decomp files (missing reason: 0).
 | `NextRN_N` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
 | `Roll1RN` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
 | `Roll2RN` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
-
-## src/savedraw.c (5)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `ProcScr_savedraw` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | script order and mark are checked against the procs watch in SaveDrawLifecycleDifferentialTest, which cannot tag a data array |
-| `SaveDraw_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | the `susSlotCur == 0xFF` branch is unexercised in PC-cap1 where `susSlotCur == 0`, `SetObjAffine(0..3)` writes identity over an already-identity OAM matrix buffer from `SaveMenu_InitScreen`, and `sub_8014EF4(0)` masks already-zeroed `mode[0]`; `SaveDrawProc` fields, child cursor and AP proc creation, `StartBgVerticalScroll`/`SetBgVerticalScrollPosition`, `SaveDraw_ScrollFogBG`, `scrollEnabled = true`, and `sub_80AB548` match `r09459` |
-| `gProcScr_SaveDrawCursor` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | script order checked against the procs watch in SaveDrawCursorDifferentialTest, which cannot tag a script |
-| `SaveDrawCursor_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | PC-cap1 observes only the clearing of unk2a, susSlot, mainOptions, unk34 and unk38; cursorEn, unk2e, unk32 and unk3a are overwritten by sub_80AB4F4 before the first dump, and unk37 is already zero |
-| `SaveDrawCursor_Loop` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | PC-cap1 exercises only parent cursorDrawActive != 0, susSlot < 4, cursorEn != 0, unk3a == 1, and unk38 == 0; unexercised branches are parent cursorDrawActive == 0 early return, susSlot >= 4 settled motion, cursorEn == 0 idle branch, unk3a == 0 dual horizontal bracket cursors, and unk38 != 0 static copy cursor |
 
 ## src/worldmap_automu.c (5)
 

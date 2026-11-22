@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 236 across 49 Kotlin files.
+Total entries: 237 across 50 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -37,7 +37,7 @@ Total entries: 236 across 49 Kotlin files.
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 14 |
+| unassigned | 15 |
 
 ## M6-B (13)
 
@@ -376,7 +376,7 @@ Total entries: 236 across 49 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (14)
+## unassigned (15)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -387,6 +387,7 @@ Total entries: 236 across 49 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `newMapPoisonEffect` | Stand-in until the poison effect is ported (no capture holds a poisoned hit): nothing happens. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold, together with a stand-in for the availability callback of any other command (none is left; see [Hooks.u... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | `loopMain` | Stand-in (PC-4c1): when null, [SaveDrawLifecycle] runs [SaveDraw.scrollFogBg] each frame so BG2 fog ripples and scrolls via HBlank. |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | `Hooks` | Stand-ins for the parts of `sub_80AAE90` / `sub_80AAF6C` that no capture runs (the option lists, which need `sub_80AABC4` / `sub_80AAC40`) and for `sub_80AB514`; each fails loudly until ported. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `fadeOutExists` | Stand-in (PC-4e2) until archived fade-out is ported. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `newFadeOut` | Stand-in (PC-4e2) until archived fade-out is ported. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `registerSlotSelected` | Stand-in (PC-4e2) until slot confirm is ported. |

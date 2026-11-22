@@ -6,7 +6,6 @@
 package fe8.app
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.os.Bundle
 import android.util.Log
 import android.widget.FrameLayout
@@ -250,13 +249,10 @@ private fun Launcher(onPlay: (RomView?) -> Unit) {
             current = ok
         }
     }
-    // Eirika's portrait from the kept ROM (memory only); set as recents icon, offered as shortcut.
-    var icon by remember { mutableStateOf<Bitmap?>(null) }
-    var offerPin by remember { mutableStateOf(false) }
+    // Eirika's portrait from the kept ROM (memory only); set as the recents icon.
     LaunchedEffect(current, importing) {
         if (current == true && !importing) {
             val bmp = withContext(Dispatchers.IO) { portraitBitmap(context) }
-            icon = bmp
             if (bmp != null) context.findActivity()?.let { setRecentsIcon(it, bmp) }
         }
     }
@@ -280,7 +276,6 @@ private fun Launcher(onPlay: (RomView?) -> Unit) {
                 is ImportResult.Done -> {
                     fileCount = r.count
                     current = true
-                    offerPin = canPinShortcut(context)
                 }
                 is ImportResult.WrongRom -> message = "This is not Fire Emblem: The Sacred Stones " +
                     "(U). SHA-1 must be ${Fe8Import.ROM_SHA1.take(8)}\u2026; got ${r.sha1}."
@@ -309,13 +304,6 @@ private fun Launcher(onPlay: (RomView?) -> Unit) {
         if (current == true && !importing) {
             OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }) { Text("Re-import ROM") }
         }
-        icon?.let { bmp ->
-            if (canPinShortcut(context) && !importing) {
-                OutlinedButton(onClick = { requestPinShortcut(context, bmp) }) {
-                    Text("Add to home screen")
-                }
-            }
-        }
         OutlinedButton(onClick = { confirmDelete = true }, enabled = hasSave && !importing) {
             Text("Delete save")
         }
@@ -339,23 +327,6 @@ private fun Launcher(onPlay: (RomView?) -> Unit) {
             },
             enabled = canPlay && !importing,
         ) { Text("Play") }
-    }
-    val pinIcon = icon
-    if (offerPin && pinIcon != null) {
-        AlertDialog(
-            onDismissRequest = { offerPin = false },
-            title = { Text("Add to home screen?") },
-            text = { Text("Put a shortcut with a portrait from your ROM on the home screen.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        offerPin = false
-                        requestPinShortcut(context, pinIcon)
-                    },
-                ) { Text("Add") }
-            },
-            dismissButton = { TextButton(onClick = { offerPin = false }) { Text("Not now") } },
-        )
     }
     if (confirmDelete) {
         AlertDialog(

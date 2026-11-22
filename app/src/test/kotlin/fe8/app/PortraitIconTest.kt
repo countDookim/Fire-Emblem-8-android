@@ -28,9 +28,10 @@ class PortraitIconTest {
     }
 
     @Test
-    fun `icon has launcher size, an opaque centre and transparent palette-0 corners`() {
+    fun `icon has recents size, an opaque centre and transparent palette-0 corners`() {
         val px = icon()
         val n = PortraitIcon.SIZE
+        assertEquals(192, n)
         assertEquals(n * n, px.size)
         assertEquals(0xFF, px[(n / 2) * n + n / 2] ushr 24, "centre must be opaque")
         val transparentCorners = listOf(0, n - 1, (n - 1) * n, n * n - 1).count { px[it] == 0 }

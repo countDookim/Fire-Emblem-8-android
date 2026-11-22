@@ -1,8 +1,7 @@
 /**
- * The runtime app icon built from the player's own ROM (decision 0011, CLAUDE.md rule 3): the
+ * The runtime recents icon built from the player's own ROM (decision 0011, CLAUDE.md rule 3): the
  * portrait of `CHARACTER_EIRIKA` cropped to a square and scaled up. The pixels exist only in
- * memory (and in the system's recents and pinned shortcut once the player asks); nothing of them
- * is in the APK or the repo.
+ * memory (and in the system's recents task switcher); nothing of them is in the APK or the repo.
  */
 
 package fe8.app

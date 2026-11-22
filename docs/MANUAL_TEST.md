@@ -12,6 +12,12 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
 Map battles, MISS effects, EXP and level-up portraits are included in published run 793
 (`702e364`, 2026-11-21). The enemy-phase replay fix described in later commits requires a newer APK.
 
+- **APP-icon2 (requires newer APK than 793):** Open the launcher after importing (or re-importing)
+  the ROM and open Android's recents (overview) screen. Expected: (1) no "Add to home screen?"
+  dialog appears after ROM import and no "Add to home screen" button is on the launcher screen;
+  (2) the app drawer launcher icon stays the gold shield and sword on dark blue (standard Android
+  cannot change the launcher icon to a runtime ROM bitmap without bundling game art in the APK);
+  (3) recents still shows Eirika's portrait as the app icon once a ROM is imported.
 - **D-14 world-map Start skip:** New Game, wait for the world-map narration, press Start once
   while a portrait or text is shown (try a few times, also while a portrait is up). Expected: the
   screen cuts to black at once (no slow fade), the whole chapter title card plays, black, then the

@@ -1,10 +1,13 @@
 package fe8.testing
 
+import gba.audio.M4aBus
+import gba.audio.M4aDriver
 import gba.audio.M4aPitch
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -56,49 +59,56 @@ class M4aPitchTest {
         val rom = romFile.readBytes()
         val keys = HashSet<Int>()
         var checked = 0
-        // midiKeyToFreq is a pure function of (wave freq, key, fine adjust); a case whose three
-        // inputs and wanted freq were all seen before cannot differ, so it is counted but not
-        // recomputed (keys and checked still see every case).
+        var staleChecked = 0
+        // midiKeyToFreq is pure in (wave freq, key, fine adjust); once a (inputs, want) tuple has
+        // matched midiKeyToFreq exactly, any later occurrence with the same tuple also matches and
+        // need not be recomputed. Mismatches are NEVER added to `seen` so every stale channel and
+        // every potential non-stale mismatch is checked against its own directory history.
         val seen = HashSet<Pair<Long, Long>>()
-        for (f in iwramDumps()) {
-            val iw = f.readBytes()
-            val ew = File(f.path.replace(".iwram.bin", ".ewram.bin")).readBytes()
-            fun mem(a: Int): Pair<ByteArray, Int> = when (a ushr 24) {
-                3 -> iw to a - IWRAM
-                2 -> ew to a - EWRAM
-                else -> rom to a - ROM
-            }
-            for (c in 0 until 12) {
-                val o = SOUND_INFO + 0x50 + c * 0x40
-                // Off, or a CGB channel.
-                if (iw[o].toInt() == 0 || iw[o + 1].toInt() and 7 != 0) continue
-                val track = u32(iw, o + 0x2C)
-                if (track == 0) continue
-                val (tb, to) = mem(track)
-                val (wb, wo) = mem(u32(iw, o + 0x24))
-                val key = maxOf(0, (iw[o + 8].toInt() and 0xFF) + tb[to + 8])
-                val waveFreq = u32(wb, wo + 4)
-                val fine = tb[to + 9].toInt() and 0xFF
-                val want = u32(iw, o + 0x20)
-                val inputs = (waveFreq.toLong() and 0xFFFFFFFFL) or (key.toLong() shl 32)
-                val outputs = (want.toLong() and 0xFFFFFFFFL) or (fine.toLong() shl 32)
-                if (seen.add(inputs to outputs)) {
-                    val got = M4aPitch.midiKeyToFreq(waveFreq, key, fine)
-                    // A channel with a newer note on its track (`pp` != 0) may keep an older pitch:
-                    // `ply_note` ends with `track->flags &= 0xF0`, dropping a pitch change pending
-                    // for the older channels (see M4aNoteFlagsTest; ram_trace_prologue_end
-                    // f6620). Then it only has to be the frequency of some fine pitch of a key
-                    // within an octave.
-                    val newer = u32(iw, o + 0x30) != 0
-                    if (!(newer && want != got && staleFreq(waveFreq, key, want))) {
-                        assertEquals(want, got, "${f.path} channel $c")
+        for (dirDumps in iwramDumpsByDir()) {
+            var prevStepDump: DumpEntry? = null
+            for (entry in dirDumps) {
+                val f = entry.file
+                val iw = f.readBytes()
+                val ew = File(f.path.replace(".iwram.bin", ".ewram.bin")).readBytes()
+                for (c in 0 until 12) {
+                    val o = SOUND_INFO + 0x50 + c * 0x40
+                    // Off, or a CGB channel.
+                    if (iw[o].toInt() == 0 || iw[o + 1].toInt() and 7 != 0) continue
+                    val track = u32(iw, o + 0x2C)
+                    if (track == 0) continue
+                    val (tb, to) = mem(iw, ew, rom, track)
+                    val (wb, wo) = mem(iw, ew, rom, u32(iw, o + 0x24))
+                    val key = maxOf(0, (iw[o + 8].toInt() and 0xFF) + tb[to + 8])
+                    val waveFreq = u32(wb, wo + 4)
+                    val fine = tb[to + 9].toInt() and 0xFF
+                    val want = u32(iw, o + 0x20)
+                    val inputs = (waveFreq.toLong() and 0xFFFFFFFFL) or (key.toLong() shl 32)
+                    val outputs = (want.toLong() and 0xFFFFFFFFL) or (fine.toLong() shl 32)
+                    if (inputs to outputs !in seen) {
+                        val got = M4aPitch.midiKeyToFreq(waveFreq, key, fine)
+                        if (want == got) {
+                            seen.add(inputs to outputs)
+                        } else {
+                            // A channel with a newer note on its track (`pp` != 0) may keep an
+                            // older pitch: `ply_note` ends with `track->flags &= 0xF0`, dropping
+                            // a pitch change pending for older channels (see M4aNoteFlagsTest;
+                            // ram_trace_prologue_end r06620, r06870). Verify the exact stale
+                            // frequency by replaying from the previous dump in the same capture.
+                            val newer = u32(iw, o + 0x30) != 0
+                            assertTrue(newer, "${f.path} channel $c: want=$want got=$got (pp=0)")
+                            verifyStaleChannel(rom, prevStepDump, entry, c, want, got)
+                            staleChecked++
+                        }
                     }
+                    keys += key
+                    checked++
                 }
-                keys += key
-                checked++
+                if (entry.step != null) prevStepDump = entry
             }
         }
         assertTrue(checked > 1000 && keys.size > 20, "checked $checked channels, ${keys.size} keys")
+        assertTrue(staleChecked >= 2, "expected >= 2 stale channel checks, got $staleChecked")
     }
 
     @Test
@@ -108,7 +118,8 @@ class M4aPitchTest {
         var checked = 0
         // midiKeyToCgbFreq is pure in (channel number, key, fine adjust): see the DirectSound test.
         val seen = HashSet<Long>()
-        for (f in iwramDumps()) {
+        for (entry in iwramDumpsByDir().flatten()) {
+            val f = entry.file
             val iw = f.readBytes()
             val ew = File(f.path.replace(".iwram.bin", ".ewram.bin")).readBytes()
             for (c in 0 until 4) {
@@ -143,14 +154,98 @@ class M4aPitchTest {
         }
     }
 
-    /** [want] is `midiKeyToFreq(waveFreq, k, fine)` for some key k within an octave of [key]. */
-    private fun staleFreq(waveFreq: Int, key: Int, want: Int): Boolean =
-        (maxOf(0, key - 12)..key + 12).any { k ->
-            (0..255).any { M4aPitch.midiKeyToFreq(waveFreq, k, it) == want }
+    private fun verifyStaleChannel(
+        rom: ByteArray,
+        prevDump: DumpEntry?,
+        curDump: DumpEntry,
+        channel: Int,
+        want: Int,
+        got: Int,
+    ) {
+        val prev = prevDump
+        assertNotNull(prev, "${curDump.file.path} channel $channel: no previous dump (want=$want)")
+        val prevStep = prev!!.step
+        val curStep = curDump.step
+        assertNotNull(prevStep, "${prev.file.path}: missing manifest step")
+        assertNotNull(curStep, "${curDump.file.path}: missing manifest step")
+        val delta = curStep!! - prevStep!!
+        assertTrue(delta >= 0, "${curDump.file.path}: step $curStep < previous $prevStep")
+        val prevIw = prev.file.readBytes()
+        val prevFreq = u32(prevIw, SOUND_INFO + 0x50 + channel * 0x40 + 0x20)
+        if (delta <= 1) {
+            assertEquals(
+                prevFreq,
+                want,
+                "${curDump.file.path} channel $channel: stale freq $want != prev $prevFreq " +
+                    "(got=$got)",
+            )
+            return
+        }
+        val prevEw = File(prev.file.path.replace(".iwram.bin", ".ewram.bin")).readBytes()
+        val (_, info) = M4aRam.sound(prevIw)
+        val bus = M4aBus { a ->
+            val (buf, off) = mem(prevIw, prevEw, rom, a)
+            buf[off].toInt() and 0xFF
+        }
+        val driver = M4aDriver(bus, info, info.chain())
+        repeat(delta) {
+            driver.frame()
+            assertEquals(
+                0,
+                driver.sequencer.unsupported,
+                "${curDump.file.path} channel $channel: unmodelled sequencer cmd during replay",
+            )
+        }
+        val simChan = info.chans[channel]
+        assertNotNull(
+            simChan.prev,
+            "${curDump.file.path} channel $channel: replayed channel lacks newer note",
+        )
+        assertEquals(
+            want,
+            simChan.frequency,
+            "${curDump.file.path} channel $channel: stale freq $want != replayed " +
+                "${simChan.frequency} from ${prev.file.name} (+$delta frames, " +
+                "prevFreq=$prevFreq, got=$got)",
+        )
+    }
+
+    private fun mem(iw: ByteArray, ew: ByteArray, rom: ByteArray, a: Int): Pair<ByteArray, Int> =
+        when (a ushr 24) {
+            3 -> iw to a - IWRAM
+            2 -> ew to a - EWRAM
+            else -> rom to a - ROM
         }
 
-    private fun iwramDumps(): List<File> = ref.root.listFiles().orEmpty().filter { it.isDirectory }
-        .flatMap { d -> d.listFiles().orEmpty().filter { it.name.endsWith(".iwram.bin") } }
+    private data class DumpEntry(val file: File, val step: Int?)
+
+    private fun iwramDumpsByDir(): List<List<DumpEntry>> =
+        ref.root.listFiles().orEmpty()
+            .filter { it.isDirectory }
+            .sortedBy { it.name }
+            .map { d ->
+                val manifestFile = File(d, "manifest.txt")
+                val entries = ArrayList<DumpEntry>()
+                val seenNames = HashSet<String>()
+                if (manifestFile.isFile) {
+                    manifestFile.forEachLine { raw ->
+                        val line = raw.trim()
+                        if (line.isNotEmpty()) {
+                            val parts = line.split(' ')
+                            val name = parts[0]
+                            val iw = File(d, "$name.iwram.bin")
+                            if (iw.isFile && seenNames.add(iw.name)) {
+                                entries.add(DumpEntry(iw, parts[1].toInt()))
+                            }
+                        }
+                    }
+                }
+                d.listFiles().orEmpty()
+                    .filter { it.name.endsWith(".iwram.bin") && seenNames.add(it.name) }
+                    .sortedBy { it.name }
+                    .forEach { entries.add(DumpEntry(it, null)) }
+                entries
+            }
 
     @Test
     fun `keys above 178 clamp with full fine adjust`() {

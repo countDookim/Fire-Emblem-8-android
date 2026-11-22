@@ -1648,3 +1648,71 @@ PORT rows: `PC-6e-a` (verify Transcribed script-core opcodes: `Event03`, `Event0
 `EventEngine_OnEnd` `EV_EXEC_UNK5` path, `CallNextQueuedEvent`), `PC-6e-c` (event teardown helpers `EndTalk`,
 `EndCgText`, `sub_808BB74`, `ResetBkselPalette`, `ResumeMenu`, `ChangeUnitSpritePalette` and the skip-listener
 / `EventDisplayCursor` proc bodies).
+
+
+## PC-6i-load inventory (2026-11-22)
+
+Test: `Chapter1LoadInventoryTest` (4 tests, `testing/src/test/kotlin/fe8/testing/`, 0 skipped) over
+`ram_trace_prologue_end` (`PC-cap1`), `f10298..f25580`. Method as `PC-6i-event`: no function-entry trace, so
+windows come from `EnemyPhaseInventoryTest.rows` (proc lifetimes), the event engine cursor (`proc+0x38`) and
+the `blue`/`red`/`rng` watches plus `ewram` regions (`gUnitArrayGreen`, `gBmMapUnit`/`Other`/`Terrain`/
+`Hidden`, trap pool). Unit checks are structural (`pChar`/`pClass` pointers, `xPos`/`yPos`, `state`,
+slot occupancy, RNG draw frames); stats are not embedded (rule 3).
+
+Map changes: none. `gBmMapTerrain`, `gBmMapHidden` and the trap pool equal their `f10297` values at every
+checked frame; the map is 15x10 throughout. The only map writes are `gBmMapUnit` (unit ids) and `gBmMapOther`
+(MU reservations, cleared by `Event2C`/`Event2F`/`Event30` via `BmMapFill(gBmMapOther, 0)`).
+
+Windows (cursor offsets are from `EventScr_Ch1_BeginningScene`):
+- `f10297 -> f10298`: pre-event `UpdatePrevDeployStates`/player unit hide: blue slots 0/1 (Seth/Eirika) `xPos`
+  to -1.
+- W1 `f10298..10378` enemy `Event2C_LoadUnits` (+0x04) then `Event30_ENUN` (+0x0C): 7 red units (slot 0
+  Breguet, slots 1-6 generic) load throttled by `CanStartMu` (`pCallback` = `EventLoadUnitWithMovement`):
+  2 at `f10299`, 4 `f10300`, 5 `f10347`, 6 `f10352`, 7 `f10358`; `UnitAutolevel` draws RNG only on
+  `f10299/10300/10347/10352/10358`. `ProcScr_MuCtrl`/`ProcScr_Mu` per unit (`f10299..10376`),
+  `ProcScr_MuStepSe` bursts; `ENUN` leaves `+0x0C` at `f10378`. `gBmMapUnit` fills at `f10346..10360`.
+- W2 `f13049..13103` NPC load (+0x38, green slots 0/1: cavalier and the Frelian unit), ENUN (+0x40), `DISA`
+  (+0x4C -> +0x54) of green slot 0; green slot 1 waits on slot 0 (`MuCtr` dependency) until `f13059`.
+- W3a `f15049..15084` Breguet `Event2F_MoveUnit` (+0x7C -> +0x80), tile (2,5) -> (2,3), speed 0 (16 Q4/f).
+- W3b `f15526..15558` `KILL`/`DISA_IF` (+0xC8 -> +0xD0) after `FIGHT`: `MU_StartDeathFade`,
+  `ProcScr_MuHitFlash`, `ProcScr_PalFade`; green slot 1 `curHp` 0, `state` bit set `f15530`, slot cleared
+  by `f15560`.
+- W4 `f16019..16153` seven `Event2F_MoveUnit` (+0xF4..+0x154) with `Event30_ENUN` (+0x15C -> +0x160); MU speed
+  24 Q4/f; 2-leg REDAs; BestMove tie-break draws on `f16022`/`f16040`; red end tiles equal at `f16155`
+  and `f25580`.
+- W5 `f20249..20268` ally `Event2C_LoadUnits` (+0x18C), blue slots 0/1 at (14,9) then settle (13,8)/(12,9);
+  draw at `f20250`, `ProcScr_MuCtrl`/`Mu` gone `f20267`.
+- W6 `f25421..25580`: engine end, `CallNextQueuedEvent`, `UndeployEveryone` (see `PC-6i-event`); no unit or
+  map changes after `f20270` (`gBmMapUnit` identical `f20270..25580`).
+
+Functions entered (decomp chains; `Ported` / `Transcribed` per `Ported from`/`Transcribed from`):
+- `Event2C_LoadUnits` -> `GetLoadUnitsAmount`, `GetUnitDefinitionFromEventScr` (both `Ported`),
+  `BmMapFill` (`Ported`), `EventLoadUnitWithMovement` (`Transcribed`) -> `ModifyMoveUnitFlag`,
+  `TryPrepareEventUnitMovement` (`CanStartMu`), `ShouldUNITBeLoaded`, `IsUnitSlotAvailable` (all
+  `Transcribed`) -> `LoadUnit_800F704` (`Transcribed`) -> `LoadUnit`, `UnitLoadStatsFromChracter`,
+  `UnitLoadSupports`, `UnitAutolevel`, `UnitAutolevelCore`, `GetAutoleveledStatIncrease` (`Ported`),
+  `GenUnitDefinitionFinalPosition`, `MoveUnit_`/`MoveUnitExt` (`Transcribed`).
+  `Event2C` itself is `Ported` (subcode 3 `GetChapterEnemyUnitDefinitions` throws, not in this window).
+- `MuCtr_StartDefinedMove`, `MuCtr_InitDefinedMove`, `sub_807A0E4`, `sub_807A194`, `sub_807A294`,
+  `MuCtr_ExecREDA_807A358`, `AdjustNewUnitPosition`, `sub_807A644`, `MuCtr_OnEnd`, `MuCtrExists`,
+  `SetMuMaxWalkSpeed_`: all `Transcribed` (`MuCtrl.kt`, not verified); `sub_807A300`/`sub_807A324`,
+  `CopyEventMoveREDAs`/`ClearEventMoveBuffer`: no `Ported from` tag (Kotlin counterparts only).
+- `StartMu`/`StartMuInternal`, `RunMuMoveScript`, `Mu_OnStateMovement`, `GetMuQ4MovementSpeed`, `Mu_OnLoop`,
+  `MU_OnEnd`/`EndMu`, `PlayMuStepSe`, `StartPlayMuStepSe`, `MuStepSe_PlaySeA/B`, `MU_StartDeathFade`,
+  `MuDeathFade_OnLoop`, `StartMuHitFlash`: `Ported` (`Mu.kt`); `MuStepSe_Init`, `UpdateMuStepSounds`,
+  `StartMuExt`/`MuExists`: `Transcribed`.
+- `Event2F_MoveUnit`, `Event30_ENUN`: `Ported` but verified for end tiles only; `Event30` also runs
+  `RefreshEntityBmMaps`, `RefreshUnitSprites`, `RenderBmMap` (`Ported`). `Event34` (`DISA`/`KILL`/`DISA_IF`) is
+  owned by `PC-6e-a`; `ClearUnit` `Transcribed`; `UnitKill` `Ported`.
+
+PORT rows (each one window, <= 8 functions; verify-or-port against the `f`-windows above):
+`PC-6l-a` W1 load path (`EventLoadUnitWithMovement`, `ModifyMoveUnitFlag`, `TryPrepareEventUnitMovement`,
+`ShouldUNITBeLoaded`, `IsUnitSlotAvailable`, `LoadUnit_800F704`, `GenUnitDefinitionFinalPosition`,
+`ClearUnit`), `PC-6l-b` W1/W2/W4 `MuCtrl` start and leg runner (`MuCtr_StartDefinedMove`,
+`MuCtr_InitDefinedMove`, `sub_807A0E4`, `sub_807A194`, `sub_807A294`, `MuCtr_ExecREDA_807A358`,
+`MuCtr_OnEnd`, `sub_807A300`/`sub_807A324`), `PC-6l-c` W1/W4/W5 position and path helpers
+(`AdjustNewUnitPosition`, `sub_807A644`, `MoveUnit_`, `MoveUnitExt`, `SetMuMaxWalkSpeed_`, `MuCtrExists`,
+`CopyEventMoveREDAs`, `ClearEventMoveBuffer`), `PC-6l-d` W1/W4 MU step sound and start (`StartMuExt`,
+`MuExists`, `MuStepSe_Init`, `UpdateMuStepSounds`, `PlayMuStepSe` start/foot-class), `PC-6l-e` W3a/W4
+`Event2F_MoveUnit`/`Event30_ENUN` full state (`gBmMapUnit`/`Other` per frame, not just end tiles) and W2/W3b `KILL`
+fade (`UnitKill`, `MU_StartDeathFade`, `MuDeathFade_OnLoop`, `StartMuHitFlash`).

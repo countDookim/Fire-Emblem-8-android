@@ -128,7 +128,7 @@ public interface SaveMenuParent {
     public val susSlot: Int
 
     /** `sus_slot_cur` (+0x3F, `u8`): game slot of the active suspend save, or `0xFF` if none. */
-    public val susSlotCur: Int
+    public var susSlotCur: Int
 
     /** `main_sel_bitfile` (+0x42, `u16`): chosen main menu option bitmask. */
     public val mainSelBitfile: Int
@@ -271,12 +271,13 @@ public class SaveDrawLifecycle(
     )
 
     /**
-     * Callbacks for `PC-4c1` / `PC-4c2` per-frame drawing not yet ported here.
+     * Callbacks for `SaveDraw_Loop_Main` (`PC-4c1` / `PC-4c2`), wired via [wireLoopMain].
      */
     public class Hooks(
         /**
-         * `SaveDraw_Loop_Main` (`PC-4c1`). Stand-in (PC-4c1): when null, [SaveDrawLifecycle]
-         * runs [SaveDraw.scrollFogBg] each frame so BG2 fog ripples and scrolls via HBlank.
+         * `SaveDraw_Loop_Main` (`PC-4c1` / `PC-4c2`): callers can wire [SaveDrawSlots.loopMain]
+         * and [SaveDrawEffects] via [wireLoopMain]. When null, [SaveDrawLifecycle] runs
+         * [scrollFogBg] each frame so BG2 fog ripples and scrolls via HBlank.
          */
         public var loopMain: ProcFunc? = null,
     )
@@ -402,12 +403,32 @@ public class SaveDrawLifecycle(
         }
     }
 
+    /**
+     * Advances the BG2 fog background one frame for `proc` (`SaveDraw_ScrollFogBG`).
+     */
+    public fun scrollFogBg(proc: Proc) {
+        SaveDraw.scrollFogBg((proc.state as SaveDrawProc).fog, scroll, hardware.lcd, sin)
+    }
+
+    /**
+     * Wires [slots] (`PC-4c1`) and [effects] (`PC-4c2`) together with [scrollFogBg] into
+     * [Hooks.loopMain] without per-frame allocations.
+     */
+    public fun wireLoopMain(slots: SaveDrawSlots, effects: SaveDrawEffects) {
+        val paletteCycle: (Proc) -> Unit = effects::sub80AACBC
+        val scrollFog: (Proc) -> Unit = ::scrollFogBg
+        val particles: (Int) -> Unit = effects::sub80AB56C
+        hooks.loopMain = ProcFunc { proc ->
+            slots.loopMain(proc, paletteCycle, scrollFog, particles)
+        }
+    }
+
     private fun saveDrawLoopMain(proc: Proc) {
         val custom = hooks.loopMain
         if (custom != null) {
             custom.invoke(proc)
         } else {
-            SaveDraw.scrollFogBg((proc.state as SaveDrawProc).fog, scroll, hardware.lcd, sin)
+            scrollFogBg(proc)
         }
     }
 

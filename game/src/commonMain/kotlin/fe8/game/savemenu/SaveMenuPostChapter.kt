@@ -43,7 +43,7 @@ public class SaveMenuRTextData(
  * [selection] stores `susSlot`, `extraSelBitfile`, and `mainSelBitfile` so
  * [PostSaveMenu.postSaveMenuHandler] can read them without extra allocations.
  */
-public class SaveMenuState : SaveMenuParent {
+public class SaveMenuState : SaveDrawSlotsParent {
     /** Selection fields shared with [PostSaveMenu.postSaveMenuHandler]. */
     public val selection: PostSaveMenu.Selection = PostSaveMenu.Selection()
 
@@ -61,13 +61,13 @@ public class SaveMenuState : SaveMenuParent {
         }
 
     /** `cursor_slot` (u8, 0x2D): static cursor slot index, or `0xFF` when hidden. */
-    public var cursorSlot: Int = 0
+    public override var cursorSlot: Int = 0
 
     /** `jump_label` (u8, 0x2E): target proc label (`PL_SAVEMENU_*`). */
-    public var jumpLabel: Int = 0
+    public override var jumpLabel: Int = 0
 
     /** `unk_2f` (u8, 0x2F): horizontal menu offset (`0xDC` for post-chapter slot select). */
-    public var unk2f: Int = 0
+    public override var unk2f: Int = 0
 
     /** `main_options` (u8, 0x30): bitfield of active main menu options (`MAIN_MENU_OPTION_*`). */
     public var mainOptions: Int = 0
@@ -89,7 +89,7 @@ public class SaveMenuState : SaveMenuParent {
      * `cursor_config` (u8, 0x36): confirm sub-box selection state, cleared in
      * `SaveMenu_InitScreen`.
      */
-    public var cursorConfig: Int = 0
+    public override var cursorConfig: Int = 0
 
     /** `unk_3d` (u8, 0x3D): unknown byte cleared in `SaveMenu_InitScreen`. */
     public var unk3d: Int = 0
@@ -108,10 +108,17 @@ public class SaveMenuState : SaveMenuParent {
         }
 
     /** `unk_46` (u16, 0x46): unknown halfword cleared in `SaveMenuInit`. */
-    public var unk46: Int = 0
+    public override var unk46: Int = 0
 
     /** Per-slot metadata (`chapter_idx`, `unk_3a`, `sus_slot_cur`, `unk_44`, `played_time`). */
     public val slots: SaveSlotData.Slots = SaveSlotData.Slots()
+
+    /** `unk_44` (+0x44, `u16`): suspend bookmark spin angle (`0x100` when at rest). */
+    public override var unk44: Int
+        get() = slots.unk44
+        set(value) {
+            slots.unk44 = value
+        }
 
     /** `sus_slot_cur` (u8, 0x3F): game slot of the active suspend save, or `0xFF` if none. */
     public override var susSlotCur: Int
@@ -119,6 +126,13 @@ public class SaveMenuState : SaveMenuParent {
         set(value) {
             slots.susSlotCur = value
         }
+
+    /** `played_time[slot]` (+0x48, `int`): play time in frames of save slot [slot]. */
+    public override fun playedTime(slot: Int): Int = slots.playedTime[slot]
+
+    /** `total_time` (+0x54, `int`): total play time in frames. */
+    public override val totalTime: Int
+        get() = slots.totalTime
 
     /** `savedraw` (0x58): child `ProcScr_savedraw` proc started by `SaveMenu_InitScreen`. */
     public var savedraw: Proc? = null
@@ -387,14 +401,23 @@ public class SaveMenuPostChapter(
     }
 
     /**
-     * Wires [lifecycle]'s `StartSaveDraw` into [Hooks.startSaveDraw] and, when [postSaveMenu] is
-     * provided, wires [endMenuProcs], [clearHBlankHandler], and [PostSaveMenu.postSaveMenuHandler]
-     * into [Hooks.postSaveMenuHandler].
+     * Wires [lifecycle]'s `StartSaveDraw` into [Hooks.startSaveDraw], optionally wires [slots]
+     * (`PC-4c1`) and [effects] (`PC-4c2`) into [SaveDrawLifecycle.wireLoopMain], and, when
+     * [postSaveMenu] is provided, wires [endMenuProcs], [clearHBlankHandler], and
+     * [PostSaveMenu.postSaveMenuHandler] into [Hooks.postSaveMenuHandler].
      */
     public fun wireSaveDraw(
         lifecycle: SaveDrawLifecycle,
         postSaveMenu: PostSaveMenu? = null,
+        slots: SaveDrawSlots? = null,
+        effects: SaveDrawEffects? = null,
     ) {
+        require((slots == null) == (effects == null)) {
+            "slots and effects must both be provided or both be null"
+        }
+        if (slots != null && effects != null) {
+            lifecycle.wireLoopMain(slots, effects)
+        }
         hooks.startSaveDraw = { parent -> lifecycle.startSaveDraw(parent) }
         if (postSaveMenu != null) {
             postSaveMenu.effects.clearHBlankHandler = ::clearHBlankHandler
@@ -408,14 +431,17 @@ public class SaveMenuPostChapter(
 
     /**
      * Wires [screen] (`SaveMenu_InitScreen`), [lifecycle] (`StartSaveDraw` / `SaveDraw_OnEnd`),
-     * and optionally [postSaveMenu] (`PostSaveMenuHandler`) into [hooks].
+     * optionally [postSaveMenu] (`PostSaveMenuHandler`), and optionally [slots] + [effects]
+     * (`SaveDraw_Loop_Main`) into [hooks].
      */
     public fun wireScreen(
         screen: SaveMenuScreen,
         lifecycle: SaveDrawLifecycle,
         postSaveMenu: PostSaveMenu? = null,
+        slots: SaveDrawSlots? = null,
+        effects: SaveDrawEffects? = null,
     ) {
-        wireSaveDraw(lifecycle, postSaveMenu)
+        wireSaveDraw(lifecycle, postSaveMenu, slots, effects)
         hooks.initScreen = ProcFunc { proc -> screen.saveMenuInitScreen(proc) }
     }
 

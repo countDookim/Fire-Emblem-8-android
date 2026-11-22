@@ -25,7 +25,7 @@ public interface SaveDrawSlotsParent : SaveMenuParent {
     public val cursorConfig: Int
 
     /** `unk_44` (+0x44, `u16`): suspend bookmark spin angle (`0x100` when at rest). */
-    public val unk44: Int
+    public var unk44: Int
 
     /** `unk_46` (+0x46, `u16`): horizontal offset of the extras menu. */
     public val unk46: Int

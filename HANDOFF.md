@@ -18,10 +18,17 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-3d: scheduled, until ~17:35Z
-- PC-4e1: scheduled, until ~17:35Z
 
 ## Current state
+
+- 2026-11-22 ~17:25Z scheduled (Sonnet agents): **PC-3d partial**: new `PartyGoldValue.kt`
+  (`GetPartyTotalGoldValue`, `GetUnitItemCostSum`, `GetConvoyItemCostSum`) + `ItemInfo.getItemCost`, wired into
+  `ChapterRankings` in `Fe8Boot` (convoy = `playerWiring.unitMenu.convoy`); value 7910 equals `unk_30.total_gold`
+  f9444 (`PartyGoldValueDifferentialTest`, 4 mutations fail); all Transcribed (convoy/gold 0, no dead/5-item unit).
+  **PC-4e1 partial**: `SaveMenuSelectLoop.kt`; `SaveMenuDrawSubSelBoxExt` Ported, select loop/misc option/help-box/
+  SubSelBox Transcribed (`SaveMenuSelectLoopDifferentialTest`: subbox f9600, slot-0 write dispatch + clear f9802);
+  `SaveMenuPostChapter.wireSelectLoop` exists but no caller yet (PC-4: call it, `hooks.writeGameSave` =
+  `BmGameSave.writeGameSave`); SRAM bytes not compared. `:game:jvmTest` + targeted suites green.
 
 - 2026-11-22 owner PC Gemini (Pro agents): **EP-w done (`de3830e8`/`624ec558`, finishing GPT's `75c68c4a`; device check pending)** — wired `berserkCpPhase`, primitive-keyed `WorldMapApHost.objectAt` cache, verified `EnemyPhaseReplayTest` (turn 2, blue berserk AI flags, unit array & RNG equal `ram_trace_prologue_enemy_phase`), profiled all 1,452 frames (`boot.pack()` 0 B/frame; added `EnemyPhaseAllocationTest` confirming 0 B/frame across all 18 steady windows), and added `EP-w` to `docs/MANUAL_TEST.md`; `:testing:test --tests EnemyPhaseReplayTest` (1 ok), `:game:jvmTest` (87 ok), `:game:dokkaGenerate`, untargeted `:testing:serialTest --rerun` (18 suites, 66 ok, incl. `EnemyPhaseAllocationTest` & `WorldMapApHostAllocationTest`), `standins.py`/`unverified.py --check` green. **PC-4c2 done (`315e3ca8`)** — ported `sub_80AA7AC` (`@VerifiesPort`) and transcribed `sub_80AACBC` & `sub_80AB56C` (`SaveDrawEffects.kt`), wired `SaveDrawLifecycle.wireLoopMain` & `SaveMenuState : SaveDrawSlotsParent` (`STANDINS.md` 237->236); verified `SaveDrawEffectsDifferentialTest` (2 ok, 4 break-checks), `SaveDraw*`/`SaveMenu*` (10 suites, 20 ok), `:game:jvmTest` (87 ok), `:game:dokkaGenerate`, untargeted `:testing:serialTest --rerun` (64 ok). Wrapped up (0 claims open).
 

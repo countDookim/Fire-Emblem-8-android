@@ -42,6 +42,19 @@ public class ArchivedPaletteFade(
         ),
     ) { State() }
 
+    /** The fade-out proc script, `ProcScr_BmFadeOUT`. */
+    public val fadeOutScript: ProcScript = ProcScript(
+        "ProcScr_BmFadeOUT",
+        listOf(
+            yield(),
+            call(ProcFunc { hardware.lcd.setDispEnable(1, 1, 1, 1, 1) }),
+            call(ProcFunc { init(it) }),
+            repeat(ProcFunc { fadeOutLoop(it) }),
+            call(ProcFunc { disableGfx(it) }),
+            end(),
+        ),
+    ) { State() }
+
     /**
      * Starts the fade-in on proc tree 4; [parent] is unused, as in the original.
      *
@@ -62,6 +75,27 @@ public class ArchivedPaletteFade(
      * Ported from src/sysutil.c: FadeInExists
      */
     public fun exists(): Boolean = engine.find(script) != null
+
+    /**
+     * Starts the fade-out on proc tree 4; [parent] is unused, as in the original.
+     *
+     * Ported from src/sysutil.c: NewFadeOut
+     */
+    public fun newFadeOut(speed: Int, @Suppress("UNUSED_PARAMETER") parent: Proc?): Proc {
+        val proc = engine.start(fadeOutScript, 4)
+        val state = proc.state as State
+        state.whiteOut = false
+        state.speed = speed
+        state.mask = -1
+        return proc
+    }
+
+    /**
+     * Returns whether a fade-out proc is running.
+     *
+     * Ported from src/sysutil.c: FadeOutExists
+     */
+    public fun fadeOutExists(): Boolean = engine.find(fadeOutScript) != null
 
     /** Returns the fade state of [proc], a proc started by [newFadeIn]. */
     public fun stateOf(proc: Proc): State = proc.state as State
@@ -100,5 +134,20 @@ public class ArchivedPaletteFade(
     private fun disableGfx(proc: Proc) {
         val obj = if ((proc.state as State).mask == 0xFFFF) 1 else 0
         hardware.lcd.setDispEnable(0, 0, 0, 0, obj)
+    }
+
+    /**
+     * Advances the timer, writes the faded palette and breaks at timer 0x80.
+     *
+     * Ported from src/sysutil.c: FadeOut_Loop. Checked with `NewFadeOut(8)` at f9845..9861; the
+     * `white_out` branch is not observed. The script's `EnableAllGfx` call is not checked apart
+     * from the display state at the end.
+     */
+    private fun fadeOutLoop(proc: Proc) {
+        val state = proc.state as State
+        state.timer += state.speed
+        val color = if (state.whiteOut) 0x100 + state.timer * 2 else 0x100 - state.timer * 2
+        fade.writeFadedPaletteFromArchive(color, color, color, state.mask)
+        if (state.timer == 0x80) engine.breakProc(proc)
     }
 }

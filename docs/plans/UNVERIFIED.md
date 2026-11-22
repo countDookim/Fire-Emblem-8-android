@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 745 across 105 decomp files (missing reason: 0).
+Total entries: 747 across 105 decomp files (missing reason: 0).
 
 ## src/bmunit.c (36)
 
@@ -667,6 +667,21 @@ Total entries: 745 across 105 decomp files (missing reason: 0).
 | `SyncLoOam` | `engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt` | no test checks it against a trace yet |
 | `SetObjAffine` | `engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt` | no test checks it against a trace yet |
 
+## src/savemenu.c (10)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SaveMenuGetBitfile` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuChoice.kt` | no capture window calls it |
+| `SaveMenu_SetLcdChapterIdx` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | world-map, EVFLAG_136, and non-save_menu_type-2 chapter-override branches are not exercised in ram_trace_prologue_end; LCD, blend, and help-text setup for chapter 1 / save_menu_type 2 are verified at f09444 |
+| `SaveMenu_InitScreen` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | individual setup calls masked by identical `f09444` pre-state are `resetTextFont`, `loadObjUiGfx`, `gEndingTmScratchA` copy, `scrollCnt = 0`, `win0/win1_enableBlend = 1`, `hbEn = false`, `setWinEnable(0, 0, 0)`, `palette[0] = 0`, and the second `enableBgSyncByMask(2)`; graphics, tilemaps, palettes, LCD, OAM affine matrices, and VRAM are differential-checked at `r09458`/ `r09459`/`f09494` in `SaveMenuInitScreenDifferentialTest` |
+| `SaveMenuPutChapterTitle` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | empty-slot `chapterIdx == 0xFF` branch passing `-1` is unexercised in `ram_trace_prologue_end`, where all three slots are valid `[0, 7, 6]`; valid-slot path verified at `r09459`/`f09494` |
+| `SaveMenuCopyPalette` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | `count <= 0` early-return guard is unexercised in `ram_trace_prologue_end`, where calls pass `count = 1` and `count = 2`; `PAL_OBJ(2) -> PAL_OBJ(1)` copy verified at `r09450`/`r09458` |
+| `SaveMenu_SaveSlotSelectLoop` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `ram_trace_prologue_end` presses only `A` with `MAIN_MENU_OPTION_INVALID`, so the D-pad, `B`, and the other main option branches are not exercised |
+| `ExecSaveMenuMiscOption` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `ram_trace_prologue_end` runs only the `MAIN_MENU_OPTION_INVALID` branches, with `cursor_config` 0 -> 1 -> write; copy, erase, restart, extras, new game and the cancel branch are not exercised |
+| `SaveMenuWaitHelpBoxAnim` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `ram_trace_prologue_end` only runs it with `ctrl_timer == 0` and no `R` / `B` / D-pad press |
+| `SaveMenuHandleHelpBox` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `ram_trace_prologue_end` only runs the close branch, `sus_slot_cur == 0xFF` |
+| `SaveMenuWaitSlotBoxScrolling` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSlotFlip.kt` | `ram_trace_prologue_end` runs the frame 8 refresh, the affine flip, the frame `0x20` branch with `main_sel_bitfile == MAIN_MENU_OPTION_INVALID` and no `0x30` frame; the `NEW_GAME` and has-options branches, the `0x30` branch and the non-zero `sus_slot` and non-empty title branches are not observed; frames 0..0x20 match f9804..9844 otherwise |
+
 ## src/gamerankings.c (9)
 
 | Function | Kotlin file | Reason |
@@ -719,19 +734,6 @@ Total entries: 745 across 105 decomp files (missing reason: 0).
 | `sub_8009E28` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | wired by `Fe8Boot`; no dump compares the blend registers at this point |
 | `GameControlHandlePostNormalOrExtraChapter` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
 | `GameControl_ChapterSwitch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `computeChapterRankings` is PC-3c, `winFlagSet` false branch is unexercised at f9443 -> f9444, and `registerChapterTimeAndTurnCount` / `chapterChangeUnitCleanup` stay transcribed |
-
-## src/savemenu.c (8)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SaveMenu_SetLcdChapterIdx` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | world-map, EVFLAG_136, and non-save_menu_type-2 chapter-override branches are not exercised in ram_trace_prologue_end; LCD, blend, and help-text setup for chapter 1 / save_menu_type 2 are verified at f09444 |
-| `SaveMenu_InitScreen` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | individual setup calls masked by identical `f09444` pre-state are `resetTextFont`, `loadObjUiGfx`, `gEndingTmScratchA` copy, `scrollCnt = 0`, `win0/win1_enableBlend = 1`, `hbEn = false`, `setWinEnable(0, 0, 0)`, `palette[0] = 0`, and the second `enableBgSyncByMask(2)`; graphics, tilemaps, palettes, LCD, OAM affine matrices, and VRAM are differential-checked at `r09458`/ `r09459`/`f09494` in `SaveMenuInitScreenDifferentialTest` |
-| `SaveMenuPutChapterTitle` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | empty-slot `chapterIdx == 0xFF` branch passing `-1` is unexercised in `ram_trace_prologue_end`, where all three slots are valid `[0, 7, 6]`; valid-slot path verified at `r09459`/`f09494` |
-| `SaveMenuCopyPalette` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | `count <= 0` early-return guard is unexercised in `ram_trace_prologue_end`, where calls pass `count = 1` and `count = 2`; `PAL_OBJ(2) -> PAL_OBJ(1)` copy verified at `r09450`/`r09458` |
-| `SaveMenu_SaveSlotSelectLoop` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `ram_trace_prologue_end` presses only `A` with `MAIN_MENU_OPTION_INVALID`, so the D-pad, `B`, and the other main option branches are not exercised |
-| `ExecSaveMenuMiscOption` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `ram_trace_prologue_end` runs only the `MAIN_MENU_OPTION_INVALID` branches, with `cursor_config` 0 -> 1 -> write; copy, erase, restart, extras, new game and the cancel branch are not exercised |
-| `SaveMenuWaitHelpBoxAnim` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `ram_trace_prologue_end` only runs it with `ctrl_timer == 0` and no `R` / `B` / D-pad press |
-| `SaveMenuHandleHelpBox` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `ram_trace_prologue_end` only runs the close branch, `sus_slot_cur == 0xFF` |
 
 ## src/cp_utility.c (7)
 

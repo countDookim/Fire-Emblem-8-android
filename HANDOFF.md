@@ -23,6 +23,12 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## Current state
 
+- 2026-11-23 ~23:30Z scheduled (Sonnet agent): **PC-4e2 partial**: `SaveMenuSlotFlip.kt`, `SaveMenuChoice.kt`,
+  fade-out in `gbafe.render.ArchivedPaletteFade`; Ported `SaveMenuRegisterSlotSelected`, `Add{Main,Extra}MenuOption`,
+  `InitSaveMenuChoice`, `NewFadeOut`/`FadeOutExists`/`FadeOut_Loop` (`SaveMenuSlotFlipDifferentialTest`, 8 mutations
+  fail); `SaveMenuWaitSlotBoxScrolling`, `SaveMenuGetBitfile` Transcribed; `IsExtra*`/`SaveMenuModifySaveSlot` are
+  hooks stand-ins; `wireSlotFlip` added, no production caller (PC-4). PC-4g claim dropped unstarted.
+
 - 2026-11-22 ~17:25Z scheduled (Sonnet agents): **PC-3d partial**: new `PartyGoldValue.kt`
   (`GetPartyTotalGoldValue`, `GetUnitItemCostSum`, `GetConvoyItemCostSum`) + `ItemInfo.getItemCost`, wired into
   `ChapterRankings` in `Fe8Boot` (convoy = `playerWiring.unitMenu.convoy`); value 7910 equals `unk_30.total_gold`

@@ -75,6 +75,12 @@ public class SaveMenuState : SaveDrawSlotsParent {
     /** `unk_31` (u8, 0x31): number of visible main menu options. */
     public var unk31: Int = 0
 
+    /** `extra_options` (u8, 0x32): bitfield of enabled Extras options (`EXTRA_MENU_OPTION_*`). */
+    public var extraOptions: Int = 0
+
+    /** `max_choice` (u8, 0x33): number of enabled Extras options. */
+    public var maxChoice: Int = 0
+
     /** `extra_select` (u8, 0x34): current index in the Extras menu. */
     public var extraSelect: Int = 0
 
@@ -175,13 +181,13 @@ public class SaveMenuPostChapter(
         public var initScreen: ProcFunc = ProcFunc { },
         /** `SaveMenu_SaveSlotSelectLoop`; wired by [wireSelectLoop]. */
         public var saveSlotSelectLoop: ProcFunc = ProcFunc { },
-        /** `SaveMenuRegisterSlotSelected`. Stand-in (PC-4e2) until slot confirm is ported. */
+        /** `SaveMenuRegisterSlotSelected`. Wired by [wireSlotFlip]. */
         public var registerSlotSelected: ProcFunc = ProcFunc { },
-        /** `SaveMenuWaitSlotBoxScrolling`. Stand-in (PC-4e2) until slot box scroll is ported. */
+        /** `SaveMenuWaitSlotBoxScrolling`. Wired by [wireSlotFlip]. */
         public var waitSlotBoxScrolling: ProcFunc = ProcFunc { },
-        /** `NewFadeOut`. Stand-in (PC-4e2) until archived fade-out is ported. */
+        /** `NewFadeOut`. Wired by [wireSlotFlip]. */
         public var newFadeOut: (speed: Int, parent: Proc?) -> Unit = { _, _ -> },
-        /** `FadeOutExists`. Stand-in (PC-4e2) until archived fade-out is ported. */
+        /** `FadeOutExists`. Wired by [wireSlotFlip]. */
         public var fadeOutExists: () -> Boolean = { false },
         /** `PostSaveMenuHandler` (PC-4g); callers can wire [PostSaveMenu.postSaveMenuHandler]. */
         public var postSaveMenuHandler: ProcFunc = ProcFunc { },
@@ -443,6 +449,17 @@ public class SaveMenuPostChapter(
     ) {
         wireSaveDraw(lifecycle, postSaveMenu, slots, effects)
         hooks.initScreen = ProcFunc { proc -> screen.saveMenuInitScreen(proc) }
+    }
+
+    /**
+     * Wires [flip] (`SaveMenuRegisterSlotSelected`, `SaveMenuWaitSlotBoxScrolling`) and
+     * [archivedFade]'s fade-out (`NewFadeOut`, `FadeOutExists`) into [hooks].
+     */
+    public fun wireSlotFlip(flip: SaveMenuSlotFlip) {
+        hooks.registerSlotSelected = ProcFunc { proc -> flip.saveMenuRegisterSlotSelected(proc) }
+        hooks.waitSlotBoxScrolling = ProcFunc { proc -> flip.saveMenuWaitSlotBoxScrolling(proc) }
+        hooks.newFadeOut = { speed, parent -> archivedFade.newFadeOut(speed, parent) }
+        hooks.fadeOutExists = { archivedFade.fadeOutExists() }
     }
 
     /** Wires [loop] (`SaveMenu_SaveSlotSelectLoop`) into [Hooks.saveSlotSelectLoop]. */

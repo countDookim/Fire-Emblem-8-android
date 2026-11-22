@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 710 across 104 decomp files (missing reason: 0).
+Total entries: 714 across 104 decomp files (missing reason: 0).
 
 ## src/bmunit.c (36)
 
@@ -300,6 +300,32 @@ Total entries: 710 across 104 decomp files (missing reason: 0).
 | `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 
+## src/bmsave-bwl.c (21)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `IsPlaythroughIdUnique` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
+| `GetNewPlaythroughId` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
+| `GetGlobalCompletionCntByInfo` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no test checks it against a trace yet |
+| `GetGlobalCompletionCount` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
+| `GetChapterStats` | `game/src/commonMain/kotlin/fe8/game/save/ChapterStats.kt` | only slot 0 is accessed at f9443 -> f9444 in `ram_trace_prologue_end`, so a constant-0 offset or wrong stride survives |
+| `GetNextChapterStatsSlot` | `game/src/commonMain/kotlin/fe8/game/save/ChapterStats.kt` | `gChapterStats` is all zeros at `r09443` in `ram_trace_prologue_end`, so the `chapter_turn != 0` traversal loop never runs |
+| `RegisterChapterTimeAndTurnCount` | `game/src/commonMain/kotlin/fe8/game/save/ChapterStats.kt` | f9443 -> f9444 in `ram_trace_prologue_end` exercises slot 0 time division by 180 and turn count encoding only; unexercised branches: `chapter_index != 0`, `time > 50 * 60 * 20` clamp, `turn > 500` clamp, and `slot > 0` |
+| `PidStatsRecordLoseData` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | no player death in captures |
+| `PidStatsSubFavval100` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | prep screen undeployment not in prologue clear |
+| `PidStatsAddSquaresMoved` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | units in prologue clear do not move across turns |
+| `PidStatsAddStatViewAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | status screen views not captured in differential tests |
+| `PidStatsAddDeployAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | prep screen deployment not in prologue clear |
+| `PidStatsRecordDefeatInfo` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | no player death in captures |
+| `PidStatsGetTotalBattleAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
+| `PidStatsGetTotalWinAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
+| `PidStatsGetTotalLossAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
+| `PidStatsGetTotalLevel` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
+| `PidStatsGetTotalExpGain` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
+| `PidStatsGetExpGain` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
+| `PidStatsGetFavval` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ending details not in prologue clear |
+| `ClearPidStats` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | new game / save init in differential tests |
+
 ## src/worldmap_mapmu.c (21)
 
 | Function | Kotlin file | Reason |
@@ -325,29 +351,6 @@ Total entries: 710 across 104 decomp files (missing reason: 0).
 | `sub_80BE330` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt` | no @VerifiesPort test names it |
 | `sub_80BE3E8` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt` | no @VerifiesPort test names it |
 | `MapMU_SetUnitChar` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt` | no @VerifiesPort test names it |
-
-## src/bmsave-bwl.c (18)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `IsPlaythroughIdUnique` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
-| `GetNewPlaythroughId` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
-| `GetGlobalCompletionCntByInfo` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no test checks it against a trace yet |
-| `GetGlobalCompletionCount` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
-| `PidStatsRecordLoseData` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | no player death in captures |
-| `PidStatsSubFavval100` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | prep screen undeployment not in prologue clear |
-| `PidStatsAddSquaresMoved` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | units in prologue clear do not move across turns |
-| `PidStatsAddStatViewAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | status screen views not captured in differential tests |
-| `PidStatsAddDeployAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | prep screen deployment not in prologue clear |
-| `PidStatsRecordDefeatInfo` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | no player death in captures |
-| `PidStatsGetTotalBattleAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
-| `PidStatsGetTotalWinAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
-| `PidStatsGetTotalLossAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
-| `PidStatsGetTotalLevel` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
-| `PidStatsGetTotalExpGain` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
-| `PidStatsGetExpGain` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
-| `PidStatsGetFavval` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ending details not in prologue clear |
-| `ClearPidStats` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | new game / save init in differential tests |
 
 ## src/mu.c (17)
 
@@ -609,6 +612,21 @@ Total entries: 710 across 104 decomp files (missing reason: 0).
 | `ProcScr_WorldMapMain` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | prefix, up to and including `PROC_REPEAT(WorldMap_PostBeginningEvent)`; the rest is not transcribed yet |
 | `ProcScr_WorldMapMain` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMainScript.kt` | only the path label 15 -> label 25 -> `PROC_END` of the Prologue exit is observed, by WorldMapExitTest |
 
+## src/bmio.c (10)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GameCtrl_StartResumedGame` | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | the only reference resume has camera 0, so the camera centring is unchecked; the blend setup is not compared |
+| `EndBMapMain` | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | no test checks it against a trace yet |
+| `sProc_BMVSync` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | data symbol; script execution verified via BMapVSync_Start and BMapVSync_OnLoop |
+| `BMapVSync_UpdateMapPalAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | only the tile animation is compared against a trace |
+| `BMapVSync_End` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | no battle map teardown trace exercises ending the VSync proc |
+| `BMapVSync_OnEnd` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | secondary HBlank handler is a stub / weather effect teardown not traced |
+| `DisableMapPaletteAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | no trace exercises disabling map palette animations |
+| `ResetMapPaletteAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | no trace exercises resetting map palette animations |
+| `IsFirstPlaythrough` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | it only matters with A held during a walk, which no capture has |
+| `ChapterChangeUnitCleanup` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | f9443 -> f9444 in `ram_trace_prologue_end` only exercises healing Seth/Eirika to maxHP and setting `US_HIDDEN \| US_NOT_DEPLOYED`; unexercised branches: phantom clearing, non-empty green/red unit clearing, non-zero status/torch/barrier/rescue/supportBits clearing, `US_NOT_DEPLOYED` -> `US_BIT21` preservation, keeping `US_DEAD \| US_GROWTH_BOOST \| US_SOLOANIM_* \| US_BIT16 \| US_BIT20 \| US_BIT21 \| US_BIT25 \| US_BIT26`, `CA_SUPPLY` dead-bit clear, and clearing `PLAY_FLAG_PREPSCREEN` |
+
 ## src/hardware.c (10)
 
 | Function | Kotlin file | Reason |
@@ -623,20 +641,6 @@ Total entries: 710 across 104 decomp files (missing reason: 0).
 | `SetBlendBackdropB` | `engine/render/src/commonMain/kotlin/gbafe/render/LcdControl.kt` | never called by a traced path |
 | `SyncLoOam` | `engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt` | no test checks it against a trace yet |
 | `SetObjAffine` | `engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt` | no test checks it against a trace yet |
-
-## src/bmio.c (9)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GameCtrl_StartResumedGame` | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | the only reference resume has camera 0, so the camera centring is unchecked; the blend setup is not compared |
-| `EndBMapMain` | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | no test checks it against a trace yet |
-| `sProc_BMVSync` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | data symbol; script execution verified via BMapVSync_Start and BMapVSync_OnLoop |
-| `BMapVSync_UpdateMapPalAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | only the tile animation is compared against a trace |
-| `BMapVSync_End` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | no battle map teardown trace exercises ending the VSync proc |
-| `BMapVSync_OnEnd` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | secondary HBlank handler is a stub / weather effect teardown not traced |
-| `DisableMapPaletteAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | no trace exercises disabling map palette animations |
-| `ResetMapPaletteAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | no trace exercises resetting map palette animations |
-| `IsFirstPlaythrough` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | it only matters with A held during a walk, which no capture has |
 
 ## src/bmudisp.c (8)
 
@@ -675,7 +679,7 @@ Total entries: 710 across 104 decomp files (missing reason: 0).
 | `GameControl_RestoreChapterId` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
 | `sub_8009E28` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | wired by `Fe8Boot`; no dump compares the blend registers at this point |
 | `GameControlHandlePostNormalOrExtraChapter` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
-| `GameControl_ChapterSwitch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | the hooked calls are PC-3b/3c; the capture is only compared for RN and chapter index |
+| `GameControl_ChapterSwitch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `computeChapterRankings` is PC-3c, `winFlagSet` false branch is unexercised at f9443 -> f9444, and `registerChapterTimeAndTurnCount` / `chapterChangeUnitCleanup` stay transcribed |
 
 ## src/cp_utility.c (7)
 

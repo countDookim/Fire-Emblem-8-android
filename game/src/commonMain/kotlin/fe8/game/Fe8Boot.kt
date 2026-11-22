@@ -104,6 +104,7 @@ import fe8.game.opanim.OpAnim
 import fe8.game.opanim.OpSubtitle
 import fe8.game.save.BmSaveLib
 import fe8.game.save.BmSuspendSave
+import fe8.game.save.ChapterStats
 import fe8.game.save.NewGameRam
 import fe8.game.save.PidStats
 import fe8.game.save.SuspendRam
@@ -242,6 +243,9 @@ public class Fe8Boot(
     /** The per-unit battle statistics (`gPidStatsData`). */
     public val pidStats: PidStats by lazy { PidStats(rom, saveLib.pidStatsData) }
 
+    /** The per-chapter completion records (`gChapterStats`). */
+    public val chapterStats: ChapterStats by lazy { ChapterStats(saveLib.chapterStatsData) }
+
     /** The suspend save's RAM, shared by the write hook and the resume read (`actionData`). */
     private val suspendRam: SuspendRam by lazy {
         SuspendRam(
@@ -283,6 +287,20 @@ public class Fe8Boot(
 
     /** The units the battle map start path touches (raw unit bytes). */
     public val units: UnitTable by lazy { UnitTable(rom) }
+
+    /**
+     * Unit stats/item-rules helper shared by player phase, battle, AI, and chapter cleanup; loads
+     * no units itself.
+     */
+    private val statsUnitLoader: UnitLoader by lazy {
+        val playSt = control.playSt
+        UnitLoader(
+            units, rom,
+            // `gPlaySt.unk1C[weaponType]`, the character that unseals a weapon type (types 0, 1).
+            { type -> if (type == 0) playSt.unk1C0 else if (type == 1) playSt.unk1C1 else 0 },
+            rng, { playSt.chapterStateBits and PLAY_FLAG_HARD != 0 },
+        )
+    }
 
     /** `sub_80141B0` of the event skip (only its [FadeCore.darkenEnd] is used). */
     private val skipFade: FadeCore by lazy { FadeCore(engine, hw) }
@@ -1213,14 +1231,7 @@ public class Fe8Boot(
         eventInfos: EventInfos,
     ) {
         val playSt = control.playSt
-        // Used for item rules and unit stats only (the player phase, battle and AI read them); it
-        // loads no units, so unlike the event engine's loader it has no level bonus or weather.
-        val loader = UnitLoader(
-            units, rom,
-            // `gPlaySt.unk1C[weaponType]`, the character that unseals a weapon type (types 0, 1).
-            { type -> if (type == 0) playSt.unk1C0 else if (type == 1) playSt.unk1C1 else 0 },
-            rng, { playSt.chapterStateBits and PLAY_FLAG_HARD != 0 },
-        ).apply { bmMap = battleBmMap }
+        val loader = statsUnitLoader.apply { bmMap = battleBmMap }
         val handles = checkNotNull(spriteHandles)
         val battle = BmBattle(rom, units, loader, playSt, loop.bmSt) { y, x ->
             battleBmMap.terrain[y, x]
@@ -1596,6 +1607,16 @@ public class Fe8Boot(
         }
         control.sound.setDefaultMaxNumChannels() // AgbMain, after m4aSoundInit
         control.hooks.gmDataInit = ProcFunc { gmData.init() }
+        control.hooks.registerChapterTimeAndTurnCount = ProcFunc {
+            chapterStats.registerChapterTimeAndTurnCount(control.playSt, clock.get().toInt())
+        }
+        if (rom.isWholeRom) {
+            control.hooks.chapterChangeUnitCleanup = ProcFunc {
+                units.chapterChangeUnitCleanup(control.playSt) { id ->
+                    statsUnitLoader.getUnitMaxHp(units.unitOffset(id))
+                }
+            }
+        }
         control.hooks.blendSetup = ProcFunc {
             hw.lcd.setBlendConfig(3, 0, 0, 16)
             hw.lcd.setBlendTargetA(1, 1, 1, 1, 1)

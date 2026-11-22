@@ -145,6 +145,15 @@ public class UnitTable(
     public fun charId(id: Int): Int = rom.u8(u32(bytes, unitOffset(id) + OFF_CHARACTER) + 4)
 
     /**
+     * Zeroes all 0x48 bytes of unit [id] while preserving its `index` byte (offset 0x0B), matching
+     * `ClearUnit` (`src/bmunit.c`).
+     */
+    public fun clearUnit(id: Int) {
+        val offset = unitOffset(id)
+        if (offset >= 0) clearUnit(bytes, offset)
+    }
+
+    /**
      * Ported from src/bmunit.c: UnitKill
      *
      * Removes unit [id] from play. A non-blue unit (and a blue phantom) loses its character
@@ -156,7 +165,11 @@ public class UnitTable(
     public fun unitKill(id: Int) {
         val offset = unitOffset(id)
         if ((s8(bytes, offset + 0x0B) and 0xC0) == 0 && classId(id) != CLASS_PHANTOM) {
-            StructCodec.put32(bytes, offset + 0x0C, u32(bytes, offset + 0x0C) or US_DEAD or 1)
+            StructCodec.put32(
+                bytes,
+                offset + 0x0C,
+                u32(bytes, offset + 0x0C) or US_DEAD or US_HIDDEN,
+            )
         } else {
             StructCodec.put32(bytes, offset + OFF_CHARACTER, 0)
         }
@@ -524,6 +537,67 @@ public class UnitTable(
         refreshUnitSprites()
     }
 
+    /**
+     * Transcribed from src/bmio.c: ChapterChangeUnitCleanup (not verified: f9443 -> f9444 in
+     * `ram_trace_prologue_end` only exercises healing Seth/Eirika to maxHP and setting
+     * `US_HIDDEN | US_NOT_DEPLOYED`; unexercised branches: phantom clearing, non-empty green/red
+     * unit clearing, non-zero status/torch/barrier/rescue/supportBits clearing, `US_NOT_DEPLOYED`
+     * -> `US_BIT21` preservation, keeping `US_DEAD | US_GROWTH_BOOST | US_SOLOANIM_* | US_BIT16 |
+     * US_BIT20 | US_BIT21 | US_BIT25 | US_BIT26`, `CA_SUPPLY` dead-bit clear, and clearing
+     * `PLAY_FLAG_PREPSCREEN`)
+     *
+     * Cleans up unit state across all factions at chapter transition:
+     * 1. Clears blue phantom units (`CLASS_PHANTOM`).
+     * 2. Clears all green and red units (`0x41 until 0xC0`).
+     * 3. For each valid blue unit (`1 until 0x40`): restores `curHP` to [getUnitMaxHp], clears
+     *    status, torch, barrier, rescue and `supportBits`, copies `US_NOT_DEPLOYED` into
+     *    `US_BIT21`, keeps persistent state bits (clearing `US_DEAD` when `CA_SUPPLY`), and sets
+     *    `US_HIDDEN | US_NOT_DEPLOYED`.
+     * 4. Clears `PLAY_FLAG_PREPSCREEN` in [playSt].
+     */
+    public fun chapterChangeUnitCleanup(
+        playSt: PlaySt,
+        getUnitMaxHp: (id: Int) -> Int,
+    ) {
+        // Clear phantoms
+        for (i in 1 until 0x40) {
+            if (isValid(i) && classId(i) == CLASS_PHANTOM) {
+                clearUnit(i)
+            }
+        }
+
+        // Clear all non player units (green & red units)
+        for (i in 0x41 until 0xC0) {
+            if (isValid(i)) {
+                clearUnit(i)
+            }
+        }
+
+        // Reset player unit "temporary" states (HP, status, some state flags, etc)
+        for (j in 1 until 0x40) {
+            if (!isValid(j)) continue
+            val offset = unitOffset(j)
+            bytes[offset + OFF_CUR_HP] = getUnitMaxHp(j).toByte()
+            setUnitStatus(j, 0)
+            bytes[offset + OFF_TORCH_BARRIER] = 0
+
+            var s = state(j)
+            s = if ((s and US_NOT_DEPLOYED) != 0) s or US_BIT21 else s and US_BIT21.inv()
+            s = s and CHAPTER_CLEANUP_KEEP_STATE_MASK
+            if ((cAttributes(j) and CA_SUPPLY) != 0) {
+                s = s and US_DEAD.inv()
+            }
+            s = s or US_HIDDEN or US_NOT_DEPLOYED
+            setState(j, s)
+
+            setRescue(j, 0)
+            bytes[offset + OFF_SUPPORT_BITS] = 0
+        }
+
+        playSt.chapterStateBits = playSt.chapterStateBits and
+            BattleMapStart.PLAY_FLAG_PREPSCREEN.inv()
+    }
+
     /** Layout and flag constants. */
     public companion object {
         /** `sizeof(struct Unit)`. */
@@ -578,8 +652,17 @@ public class UnitTable(
         /** `statusIndex` and `statusDuration` (u8, 0x30) in `struct Unit`. */
         public const val OFF_STATUS: Int = 0x30
 
+        /** `curHP` (s8, 0x13) in `struct Unit`. */
+        private const val OFF_CUR_HP = 0x13
+
+        /** `torchDuration` and `barrierDuration` (u8, 0x31) in `struct Unit`. */
+        private const val OFF_TORCH_BARRIER = 0x31
+
         /** `supports[6]` (u8, 0x38, `UNIT_LEADER_CHARACTER`) in `struct Unit`. */
         public const val OFF_LEADER: Int = 0x38
+
+        /** `supportBits` (s8, 0x39) in `struct Unit`. */
+        private const val OFF_SUPPORT_BITS = 0x39
 
         /** `UNIT_ITEM_COUNT`: 5 item slots per unit. */
         public const val UNIT_ITEM_COUNT: Int = 5
@@ -592,6 +675,9 @@ public class UnitTable(
 
         /** `CLASS_PHANTOM`. */
         private const val CLASS_PHANTOM = 0x51
+
+        /** `US_HIDDEN`. */
+        private const val US_HIDDEN = 1 shl 0
 
         /** `US_UNSELECTABLE`. */
         public const val US_UNSELECTABLE: Int = 1 shl 1
@@ -617,8 +703,37 @@ public class UnitTable(
         /** `US_IN_BALLISTA`. */
         public const val US_IN_BALLISTA: Int = 1 shl 11
 
+        /** `US_GROWTH_BOOST`. */
+        private const val US_GROWTH_BOOST = 1 shl 13
+
+        /** `US_SOLOANIM_1`. */
+        private const val US_SOLOANIM_1 = 1 shl 14
+
+        /** `US_SOLOANIM_2`. */
+        private const val US_SOLOANIM_2 = 1 shl 15
+
         /** `US_BIT16`, an unnamed state bit that `US_UNAVAILABLE` includes. */
         private const val US_BIT16 = 1 shl 16
+
+        /** `US_BIT20`. */
+        private const val US_BIT20 = 1 shl 20
+
+        /** `US_BIT21`. */
+        private const val US_BIT21 = 1 shl 21
+
+        /** `US_BIT25`. */
+        private const val US_BIT25 = 1 shl 25
+
+        /** `US_BIT26`. */
+        private const val US_BIT26 = 1 shl 26
+
+        /** State bits preserved across chapter transitions by [chapterChangeUnitCleanup]. */
+        private const val CHAPTER_CLEANUP_KEEP_STATE_MASK =
+            US_DEAD or US_GROWTH_BOOST or US_SOLOANIM_1 or US_SOLOANIM_2 or
+                US_BIT16 or US_BIT20 or US_BIT21 or US_BIT25 or US_BIT26
+
+        /** `CA_SUPPLY` (bmunit.h, bit 9). */
+        private const val CA_SUPPLY = 1 shl 9
 
         /** `US_UNAVAILABLE`. */
         public const val US_UNAVAILABLE: Int = US_DEAD or US_NOT_DEPLOYED or US_BIT16
@@ -681,6 +796,16 @@ public class UnitTable(
 
         /** `CHAPTER_MODE_EPHRAIM`. */
         private const val CHAPTER_MODE_EPHRAIM = 3
+
+        /**
+         * Zeroes all 0x48 bytes of the unit at byte [offset] in [b], preserving its `index` byte
+         * (`OFF_INDEX`, offset 0x0B). Matches `ClearUnit` (`src/bmunit.c`).
+         */
+        internal fun clearUnit(b: ByteArray, offset: Int) {
+            val index = b[offset + OFF_INDEX]
+            b.fill(0, offset, offset + UNIT_SIZE)
+            b[offset + OFF_INDEX] = index
+        }
 
         /**
          * Transcribed from src/bmitem.c: GetUnitItemSlot (not verified: captured calls have one

@@ -865,6 +865,9 @@ public class BmSaveLib(public val sram: CartSram) {
     /** `gChapterStats`: one packed `ChapterStats` (4 bytes) per chapter slot, 0x30 entries. */
     public val chapterStatsData: ByteArray = ByteArray(CHAPTER_STATS_SIZE)
 
+    /** Returns a [ChapterStats] view over [chapterStatsData]. */
+    public fun chapterStats(): ChapterStats = ChapterStats(chapterStatsData)
+
     /** `gPidStatsSaveLoc` as an SRAM offset (-1 = NULL). */
     public var pidStatsSaveLoc: Int = -1
         private set

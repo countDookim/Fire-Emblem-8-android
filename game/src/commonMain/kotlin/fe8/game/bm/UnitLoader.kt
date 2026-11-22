@@ -860,9 +860,7 @@ public class UnitLoader(
      * Zeroes the unit at byte offset [o] of the unit arrays but keeps its `index`.
      */
     internal fun clearUnit(o: Int) {
-        val index = table.bytes[o + OFF_INDEX]
-        table.bytes.fill(0, o, o + UnitTable.UNIT_SIZE)
-        table.bytes[o + OFF_INDEX] = index
+        UnitTable.clearUnit(table.bytes, o)
     }
 
     /**

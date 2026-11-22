@@ -465,11 +465,17 @@ public class GameControl(
         public var startIntroMonologue: ProcFunc = ProcFunc { },
         /** `CheckFlag(EVFLAG_WIN)` for [chapterSwitch]; the event flags are not owned here. */
         public var winFlagSet: () -> Boolean = { false },
-        /** `RegisterChapterTimeAndTurnCount` (PC-3b, not ported). */
+        /**
+         * `RegisterChapterTimeAndTurnCount`; `Fe8Boot` wires
+         * `ChapterStats.registerChapterTimeAndTurnCount` (transcribed, not verified).
+         */
         public var registerChapterTimeAndTurnCount: ProcFunc = ProcFunc { },
         /** `ComputeChapterRankings` (PC-3c, not ported). */
         public var computeChapterRankings: ProcFunc = ProcFunc { },
-        /** `ChapterChangeUnitCleanup` (PC-3b, not ported). */
+        /**
+         * `ChapterChangeUnitCleanup`; `Fe8Boot` wires `UnitTable.chapterChangeUnitCleanup`
+         * (transcribed, not verified).
+         */
         public var chapterChangeUnitCleanup: ProcFunc = ProcFunc { },
         /** `Make6C_SaveMenuPostChapter`, called by [callPostChapterSaveMenu]. */
         public var startPostChapterSaveMenu: ProcFunc = ProcFunc { },
@@ -621,10 +627,11 @@ public class GameControl(
     /**
      * Advances the RNG three times, stores its state in [gmMonsterRnState], registers the chapter
      * time when [Hooks.winFlagSet], computes the rankings, switches `gPlaySt.chapterIndex` to
-     * `nextChapter` and runs the unit cleanup (the three through their hooks, not ported).
+     * `nextChapter` and runs the unit cleanup.
      *
-     * Transcribed from src/gamecontrol.c: GameControl_ChapterSwitch (not verified: the hooked
-     *   calls are PC-3b/3c; the capture is only compared for RN and chapter index)
+     * Transcribed from src/gamecontrol.c: GameControl_ChapterSwitch (not verified:
+     *   `computeChapterRankings` is PC-3c, `winFlagSet` false branch is unexercised at f9443 ->
+     *   f9444, and `registerChapterTimeAndTurnCount` / `chapterChangeUnitCleanup` stay transcribed)
      */
     public fun chapterSwitch(proc: Proc) {
         repeat(3) { rng.next() }

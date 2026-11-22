@@ -13,8 +13,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-4d: scheduled, until ~05:30Z (finishing wip/pc4d)
-- PC-6i-load: scheduled, until ~05:30Z (finishing wip/pc6i-load)
+- PC-3a: scheduled, until ~05:40Z (on wip/pc3a if unfinished)
 
 ## Current state
 

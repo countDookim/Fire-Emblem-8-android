@@ -6,7 +6,8 @@ Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
 ## NEEDS USER
 
-Nothing blocks development. Owner device test 0.1.622 (11-12): D-11 and PP-0a confirmed; new reports D-14, D-15 below.
+Nothing blocks development. Owner quick play of 0.1.793 (issue #6, 11-22, not a full pass): APP-icon OK; new
+reports D-16 (exp-bar sound/beep), D-17 (menus without background); rest expected gaps (Device status).
 Extensive modding scope, separate vanilla tests and replaceable camera/controls/AI are accepted (ADR 0016).
 [M7 decisions](docs/plans/M7-modding.md): release staging (D2), API details (D5), layout/debug/storage/packaging
 (D4/D6/D8/D9) and executable runtime (D10) remain open; M6 and design inventories are not blocked.
@@ -242,6 +243,9 @@ Close an issue only after reference verification and owner confirmation; preserv
 | D-09 Rapier popup | **Resolved:** owner confirmed the popup correct on 0.1.571 (11-11); reference: `WiredItemPopupTest`/`GotItemPopupDifferentialTest`. Other popup branches stay D09-3 (low priority). |
 | D-13 Start in cutscene | **Open (owner, 0.1.590, 11-11):** Start during the Prologue in-game cutscene fast-forwards visibly instead of skipping. Triage: `EventEngine_StartSkip` sets the skip bit but its effects (`StartLockingFadeToBlack(0x40)`, `sub_800D488`, `Proc_BlockEachMarked(5)`) sit behind the no-op `startSkipEffects` hook. Rows D13-cap1, D13-1. |
 | PP-0a hover cursor | **Confirmed by the owner on 0.1.622 (11-12):** the cursor grows/shrinks over units and player units play their hover animation. |
+| D-16 exp sound / beep | **Open (owner, 0.1.793, issue #6):** during Prologue combat the EXP-gain sound is wrong and a loud beep sometimes stops at once, sometimes lingers. Triage only: `MapAnimExpBar` plays/stops `SONG_74` (`songNumStop`, line ~166) through a nullable `sound.sound`; check the stop reaches the M4A player and the SE loop. Repro steps unknown. |
+| D-17 menu background | **Open (owner, 0.1.793, issue #6):** menus sometimes open without background/textures, take a while to appear or never do; trigger unknown. Needs a repro (which menu, after what action). |
+| #6 expected gaps | **Not bugs (0.1.793):** only Attack and End act in the unit/map menus (MANUAL_TEST "Ignore"); no battle animations (M6-G); boss never moves (boss turn / one-enemy-left events EP-11; capture shows the boss idle until then); after the last enemy dies the ending dialogue plays and the map stays (post-chapter teardown, save menu and Ch1 start PC-3a..PC-5 not wired). APP-icon confirmed (quick check). |
 | D-05 interactions | Expected missing gameplay; re-test when player actions are ported. |
 
 D-01–04, D-06, D-08, D-10 and normal portrait mouths are owner-confirmed solved.

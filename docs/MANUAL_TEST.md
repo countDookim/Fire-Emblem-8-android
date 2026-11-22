@@ -4,7 +4,7 @@
 [latest release](https://github.com/countDookim/Fire-Emblem-8-android/releases/tag/latest)
 (rolling: always the newest master build; its title names the commit). Every build needs your ROM.
 
-Last owner test: 0.1.622 (`22cfc9d`, 2026-11-12). Everything confirmed up to then has been removed
+Last owner test: 0.1.793 (`702e364`, 2026-11-22, quick play, [issue #6](https://github.com/countDookim/Fire-Emblem-8-android/issues/6)); last full pass 0.1.622 (`22cfc9d`, 2026-11-12). Everything confirmed up to then has been removed
 from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Only untested items remain.
 
 ## Test now
@@ -12,12 +12,6 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
 Map battles, MISS effects, EXP and level-up portraits are included in published run 793
 (`702e364`, 2026-11-21). The enemy-phase replay fix described in later commits requires a newer APK.
 
-- **APP-icon:** (1) The launcher icon is a gold shield with a sword on dark blue (original art, not
-  from the game). (2) After importing the ROM (and on each later start), recents shows Eirika's
-  portrait as the app icon. (3) After an import a dialog offers "Add to home screen"; the launcher
-  also has an "Add to home screen" button. Accept the system prompt: the shortcut shows the portrait
-  and starts the app. Limits: needs a launcher that supports pinned shortcuts; recents icon
-  may depend on the Android version; before an import there is no portrait.
 - **D-14 world-map Start skip:** New Game, wait for the world-map narration, press Start once
   while a portrait or text is shown (try a few times, also while a portrait is up). Expected: the
   screen cuts to black at once (no slow fade), the whole chapter title card plays, black, then the
@@ -90,6 +84,11 @@ Map battles, MISS effects, EXP and level-up portraits are included in published 
   - Limits: resulting game state is checked against the original; whole-flow timing still needs
     comparison. Missing systems are listed under "Ignore".
 
+Open from issue #6 (0.1.793), no fix yet; note when they happen if you see them again:
+- **D-16 exp sound / beep:** during combat, the EXP-gain sound and a loud beep that sometimes lingers.
+- **D-17 menu background:** a menu opening without its background, slowly or not at all (which menu,
+  after which action?).
+
 ## Ignore (known gaps, not bugs)
 
 Re-test these only when a change to them is announced.
@@ -99,6 +98,8 @@ Re-test these only when a change to them is announced.
 - **Commands and screens:** Item answers with the refusal beep; the map menu's Unit, Status, Guide,
   Options and Suspend, and R / L / START on the map do nothing; no help box, inventory or info
   screens (M6-E, M6-F, M6-H). Selecting an enemy shows no range.
+- **Prologue flow:** the boss never moves (EP-11); after the last enemy the ending dialogue plays and
+  the map stays, no save menu or Chapter 1 (PC-3a..PC-5).
 - **Map events and rules:** no staff range, traps, after-move or tutorial events, dialogue during
   the enemy phase, or records (M6-C, M6-E, M6-H). Enemy and green phase banners (D12-2).
 - **Opening:** the title's class reel (D-15, M6-G); the chapter intro's closing sound-effect fade;

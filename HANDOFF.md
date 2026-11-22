@@ -18,6 +18,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- `APP-icon2`: Gemini owner PC, until ~11:00Z (`wip/app-icon2`, 2026-11-22).
+- `PC-4b`: Gemini owner PC, until ~11:00Z (`wip/pc4b`, 2026-11-22).
 
 ## Current state
 

@@ -13,9 +13,16 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-3a: scheduled, until ~05:40Z (on wip/pc3a if unfinished)
 
 ## Current state
+
+- 2026-11-22 05:25Z scheduled (Sonnet agents): **PC-4d done** (`SaveDrawCursorDifferentialTest`; `StartSaveDrawCursor`,
+  `sub_80AB4F4` Ported; Init/Loop Transcribed). **PC-6i-load done** (`Chapter1LoadInventoryTest` 4 ok; no map changes;
+  added `PC-6l-a..e`, PC-6 unblocked to todo). **PC-3a partial** (`PrologueTeardownDifferentialTest` 2 ok):
+  `GameControl_CallPostChapterSaveMenu`, `StoreRNState` Ported; new `GameControl.chapterSwitch` Transcribed (PC-3b/3c
+  hooks), not wired in `Fe8Boot` yet; `RestoreChapterId` unobservable in this window (ChapterSwitch overwrites);
+  `PostChapterSwitch` only USR_SKIPPED path; `EventEngine_OnEnd`/`EndAllMus`/`EndBMapMain` untouched.
+  Note: an agent's `./gradlew --stop` kills other builds sharing the Gradle home.
 
 - 2026-11-22 scheduled (Sonnet agents): **PC-4f done** (`PostChapterSaveMenuDifferentialTest` 2 ok; 6 Ported,
   `IsGameNotFirstChapter`/`SaveDrawSetDifficultSlotPalette` Transcribed). **PC-6i-event done**

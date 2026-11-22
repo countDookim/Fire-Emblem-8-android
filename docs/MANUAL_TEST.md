@@ -12,6 +12,11 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
 Map battles, MISS effects, EXP and level-up portraits are included in published run 793
 (`702e364`, 2026-11-21). The enemy-phase replay fix described in later commits requires a newer APK.
 
+- **EP-w enemy phase (requires newer APK than 793):** Open the map menu on an empty tile and
+  choose End (see PP-17 step 5 below). Expected: after the "Enemy Phase" banner, both Soldiers
+  walk to Eirika with the target cursor and attack through the map battle display (MISS sprite
+  on a dodge, hit flash, death fade/dialogue, EXP bar, and ~0.3 s map fade after each), then the
+  Turn 2 "Player Phase" banner plays and Eirika is active again without hanging or hitching.
 - **APP-icon2 (requires newer APK than 793):** Open the launcher after importing (or re-importing)
   the ROM and open Android's recents (overview) screen. Expected: (1) no "Add to home screen?"
   dialog appears after ROM import and no "Add to home screen" button is on the launcher screen;

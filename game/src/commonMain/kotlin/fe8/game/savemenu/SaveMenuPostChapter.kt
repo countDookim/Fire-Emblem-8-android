@@ -173,7 +173,7 @@ public class SaveMenuPostChapter(
     public class Hooks(
         /** `SaveMenu_InitScreen` (PC-4a2); callers can wire [SaveMenuScreen.saveMenuInitScreen]. */
         public var initScreen: ProcFunc = ProcFunc { },
-        /** `SaveMenu_SaveSlotSelectLoop`. Stand-in (PC-4e1) until slot selection loop is ported. */
+        /** `SaveMenu_SaveSlotSelectLoop`; wired by [wireSelectLoop]. */
         public var saveSlotSelectLoop: ProcFunc = ProcFunc { },
         /** `SaveMenuRegisterSlotSelected`. Stand-in (PC-4e2) until slot confirm is ported. */
         public var registerSlotSelected: ProcFunc = ProcFunc { },
@@ -443,6 +443,11 @@ public class SaveMenuPostChapter(
     ) {
         wireSaveDraw(lifecycle, postSaveMenu, slots, effects)
         hooks.initScreen = ProcFunc { proc -> screen.saveMenuInitScreen(proc) }
+    }
+
+    /** Wires [loop] (`SaveMenu_SaveSlotSelectLoop`) into [Hooks.saveSlotSelectLoop]. */
+    public fun wireSelectLoop(loop: SaveMenuSelectLoop) {
+        hooks.saveSlotSelectLoop = ProcFunc { proc -> loop.saveMenuSaveSlotSelectLoop(proc) }
     }
 
     /** Proc labels and chapter / hardware constants from `savemenu.c` and `savemenu.h`. */

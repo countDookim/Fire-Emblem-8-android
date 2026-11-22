@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 236 across 49 Kotlin files.
+Total entries: 238 across 50 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -37,7 +37,7 @@ Total entries: 236 across 49 Kotlin files.
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 14 |
+| unassigned | 16 |
 
 ## M6-B (13)
 
@@ -376,7 +376,7 @@ Total entries: 236 across 49 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (14)
+## unassigned (16)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -390,7 +390,9 @@ Total entries: 236 across 49 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `fadeOutExists` | Stand-in (PC-4e2) until archived fade-out is ported. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `newFadeOut` | Stand-in (PC-4e2) until archived fade-out is ported. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `registerSlotSelected` | Stand-in (PC-4e2) until slot confirm is ported. |
-| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `saveSlotSelectLoop` | Stand-in (PC-4e1) until slot selection loop is ported. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `waitSlotBoxScrolling` | Stand-in (PC-4e2) until slot box scroll is ported. |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `loadSaveMenuInfo` | Stand-in (not ported). |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `newGame` | Stand-in (not ported). |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `writeNewGame` | Stand-in (not ported). |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `biosPlaySt` | Stand-in for the BIOS bytes `IsGameNotFirstChapter` reads: a non-zero `chapterIndex`. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `saveMenuInitSaveSlotData` | The port passes [biosPlaySt], a stand-in `PlaySt` that gives that answer, so bit 0 of `unk_3a` is always set for a valid game slot. |

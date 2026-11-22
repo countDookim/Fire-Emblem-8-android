@@ -272,6 +272,22 @@ public class ItemInfo(private val rom: RomView) {
         if ((getItemAttributes(item) and IA_UNBREAKABLE) != 0) 0xFF else (item shr 8) and 0xFF
 
     /**
+     * Transcribed from src/bmitem.c: GetItemCost (not verified: the unbreakable branch
+     *   does not occur in the PC-3d capture, only the uses factor is checked)
+     *
+     * The gold value of [item]: `costPerUse` for an unbreakable item, else `costPerUse` times its
+     * uses left.
+     */
+    public fun getItemCost(item: Int): Int {
+        val costPerUse = rom.u16(getItemData(getItemIndex(item)) + 0x1A)
+        return if ((getItemAttributes(item) and IA_UNBREAKABLE) != 0) {
+            costPerUse
+        } else {
+            costPerUse * getItemUses(item)
+        }
+    }
+
+    /**
      * Ported from src/bmitem.c: GetItemIconId
      *
      * The `iconId` of [item]: its icon in the item icon sheet, -1 for no item.

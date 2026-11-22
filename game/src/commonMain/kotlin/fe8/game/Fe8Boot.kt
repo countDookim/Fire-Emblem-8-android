@@ -12,7 +12,9 @@ import fe8.game.bm.MovementMap
 import fe8.game.bm.PathArrow
 import fe8.game.bm.BattleGenerate
 import fe8.game.bm.BmBattle
+import fe8.game.bm.BmContainer
 import fe8.game.bm.ItemInfo
+import fe8.game.bm.PartyGoldValue
 import fe8.game.bm.BMapMain.Companion.SAVE_ID_SUSPEND
 import fe8.game.bm.BattleMapNodes
 import fe8.game.bm.BattleMapStart
@@ -1613,9 +1615,13 @@ public class Fe8Boot(
             chapterStats.registerChapterTimeAndTurnCount(control.playSt, clock.get().toInt())
         }
         if (rom.isWholeRom) {
-            // GetPartyTotalGoldValue is PC-3d: the funds rank sees a total of 0 until then.
+            val itemInfo = ItemInfo(rom)
             val rankings = ChapterRankings(
                 control.playSt, chapterStats, pidStats, units, battleChapters,
+                getPartyTotalGoldValue = {
+                    val convoy = playerWiring?.unitMenu?.convoy ?: BmContainer()
+                    PartyGoldValue(itemInfo, units, convoy, control.playSt).getPartyTotalGoldValue()
+                },
             )
             control.hooks.computeChapterRankings = ProcFunc { rankings.computeChapterRankings() }
             control.hooks.chapterChangeUnitCleanup = ProcFunc {

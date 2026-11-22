@@ -18,8 +18,8 @@ import java.io.File
  * `PC-3c` (`r09443 -> f09444`) of `ram_trace_prologue_end` (`PC-cap1`): `ComputeChapterRankings`
  * and the chapter rank functions of `src/gamerankings.c`, run on `gPlaySt`, `gChapterStats`
  * (as at f9444, after `RegisterChapterTimeAndTurnCount`), `gPidStatsData` and the units of r09443
- * and compared with `gPlaySt` at f9444. `GetPartyTotalGoldValue` (PC-3d) is fed the total the
- * original left in `unk_30.total_gold`. Every rank is 4 at f9444, so no function is `Ported`:
+ * and compared with `gPlaySt` at f9444. `GetPartyTotalGoldValue` is fed the total the
+ * original left in `unk_30.total_gold` (it is checked in PartyGoldValueDifferentialTest). Every rank is 4 at f9444, so no function is `Ported`:
  * break-checks showed most mutations of thresholds, operators and clamps survive.
  */
 class ChapterRankingsDifferentialTest {

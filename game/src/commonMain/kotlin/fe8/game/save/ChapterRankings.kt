@@ -111,9 +111,9 @@ public class ChapterRankings(
     }
 
     /**
-     * Transcribed from src/gamerankings.c: GetChapterFundsRank (not verified: the previous
-     *   `total_gold` is 0, the rank is the top 4 and `GetPartyTotalGoldValue` is fed from the
-     *   capture, so the gold difference and lower ranks survive mutation)
+     * Transcribed from src/gamerankings.c: GetChapterFundsRank (not verified: the rank is the top 4, so
+     *   the lower ranks survive mutation; the gold stored, 7910 over a previous 0, matches the
+     *   capture through [getPartyTotalGoldValue])
      *
      * Stores the party gold in `unk_30.total_gold` and returns 0..4 from the gold gained since the
      * last call against 20/40/60/80 percent of the cleared chapter's `goldForFundsRank`.

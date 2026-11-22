@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 736 across 105 decomp files (missing reason: 0).
+Total entries: 740 across 105 decomp files (missing reason: 0).
 
 ## src/bmunit.c (36)
 
@@ -90,6 +90,42 @@ Total entries: 736 across 105 decomp files (missing reason: 0).
 | `InitTalkTextWin` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no |
 
+## src/bmitem.c (31)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetUnitEquippedWeaponSlot` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | see [setBattleUnitWeapon] |
+| `GetUnitItemSlot` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
+| `IsItemCoveringRange` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
+| `IsItemEffectiveAgainst` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
+| `IsUnitEffectiveAgainst` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
+| `GetItemIndex` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | a dropped or narrowed mask survives the traced loads |
+| `GetItemRequiredExp` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no test checks it against a trace yet |
+| `GetItemStatBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no test checks it against a trace yet |
+| `GetItemHpBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no test checks it against a trace yet |
+| `GetItemWeight` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
+| `GetItemMaxRange` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | a mask narrowed to 3 bits survives the traced weapons |
+| `GetItemWeaponEffect` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
+| `GetItemUseEffect` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | every usable item in `ram_trace_prologue_clear` f3803..3872 and `CpAiFlagsDifferentialTest` has `useEffectId` 0, so a constant-0 implementation survives |
+| `GetItemEffectiveness` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
+| `GetItemPowBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | the traced weapons have no stat bonuses, so a wrong field offset survives |
+| `GetItemSklBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
+| `GetItemSpdBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
+| `GetItemDefBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
+| `GetItemResBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
+| `GetItemLckBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
+| `GetItemCost` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | the unbreakable branch does not occur in the PC-3d capture, only the uses factor is checked |
+| `GetConvoyItemCostSum` | `game/src/commonMain/kotlin/fe8/game/bm/PartyGoldValue.kt` | the convoy is empty at f9443, so the sum is 0 whatever this does |
+| `GetUnitItemCostSum` | `game/src/commonMain/kotlin/fe8/game/bm/PartyGoldValue.kt` | the sum 7910 at f9444 checks the unit walk and the uses factor, but dropping the `US_DEAD`/`US_BIT16` skip or the fifth slot survives mutation: no such unit or item occurs |
+| `GetPartyTotalGoldValue` | `game/src/commonMain/kotlin/fe8/game/bm/PartyGoldValue.kt` | party gold and convoy are 0 at f9443, so the chapter-5 zero and the convoy term are unobserved; the 9999999 cap was mutation-checked only as far as the 7910 total |
+| `CanUnitUseStaff` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `CanUnitUseStaff` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitEquippedWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `CanUnitUseWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `IsItemUnsealedForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitItemSlot` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | captured calls have one return value; Prologue captures have no matching key/item slot; EP-29a tracks positive matches under EP-29cap |
+| `GetUnitItemSlot` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | captured calls have one return value; Prologue captures have no matching key/item slot; EP-29a tracks positive matches under EP-29cap |
+
 ## src/worldmap_rm.c (29)
 
 | Function | Kotlin file | Reason |
@@ -123,38 +159,6 @@ Total entries: 736 across 105 decomp files (missing reason: 0).
 | `ProcScr_GmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | the script order is checked through the proc cursor, but no unit of it is ported here |
 | `GmapRmBorder1_End` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | removing either sprite delete or the pulse end leaves the traced OAM, blend and palette unchanged |
 | `EndGmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | no traced call |
-
-## src/bmitem.c (27)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GetUnitEquippedWeaponSlot` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | see [setBattleUnitWeapon] |
-| `GetUnitItemSlot` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
-| `IsItemCoveringRange` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
-| `IsItemEffectiveAgainst` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
-| `IsUnitEffectiveAgainst` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
-| `GetItemIndex` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | a dropped or narrowed mask survives the traced loads |
-| `GetItemRequiredExp` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no test checks it against a trace yet |
-| `GetItemStatBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no test checks it against a trace yet |
-| `GetItemHpBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no test checks it against a trace yet |
-| `GetItemWeight` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
-| `GetItemMaxRange` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | a mask narrowed to 3 bits survives the traced weapons |
-| `GetItemWeaponEffect` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
-| `GetItemUseEffect` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | every usable item in `ram_trace_prologue_clear` f3803..3872 and `CpAiFlagsDifferentialTest` has `useEffectId` 0, so a constant-0 implementation survives |
-| `GetItemEffectiveness` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
-| `GetItemPowBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | the traced weapons have no stat bonuses, so a wrong field offset survives |
-| `GetItemSklBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
-| `GetItemSpdBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
-| `GetItemDefBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
-| `GetItemResBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
-| `GetItemLckBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
-| `CanUnitUseStaff` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `CanUnitUseStaff` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitEquippedWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `CanUnitUseWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `IsItemUnsealedForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitItemSlot` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | captured calls have one return value; Prologue captures have no matching key/item slot; EP-29a tracks positive matches under EP-29cap |
-| `GetUnitItemSlot` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | captured calls have one return value; Prologue captures have no matching key/item slot; EP-29a tracks positive matches under EP-29cap |
 
 ## src/eventscr.c (26)
 
@@ -670,7 +674,7 @@ Total entries: 736 across 105 decomp files (missing reason: 0).
 | `GetChapterTacticsRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | only the "turn <= every threshold" result 4 occurs (turn 3), so the compare operator and the D/C/B/A thresholds survive mutation |
 | `GetChapterSurvivalRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | only death count 0 (rank 4) occurs, so `>=` vs `>` survives mutation |
 | `GetChapterDeathCount` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | no unit is dead at r09443 and chapterIndex is 0, so the `deathLoc` compare survives mutation |
-| `GetChapterFundsRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | the previous `total_gold` is 0, the rank is the top 4 and `GetPartyTotalGoldValue` is fed from the capture, so the gold difference and lower ranks survive mutation |
+| `GetChapterFundsRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | the rank is the top 4, so the lower ranks survive mutation; the gold stored, 7910 over a previous 0, matches the capture through [getPartyTotalGoldValue] |
 | `GetChapterCombatRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | only rank 4 occurs, so `<` vs `<=` survives mutation; PC-3d |
 | `GetChapterWinPerc` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | the percentage is only seen through the combat rank 4, so the `* 100`, the 100 clamp, the `unk_8_1` split and the no-battle 40 survive mutation |
 | `GetChapterExpRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | the previous `unk_8_2` is 0 and only rank 4 occurs, so the difference, the 0xFFFFF clamp and the thresholds survive mutation |

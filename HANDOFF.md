@@ -19,7 +19,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 ## In progress
 
 - PC-4e2: scheduled, until ~23:35Z
-- PC-4e1 (wire select loop): scheduled, until ~23:35Z
+- PC-4g: scheduled, until ~23:35Z
 
 ## Current state
 

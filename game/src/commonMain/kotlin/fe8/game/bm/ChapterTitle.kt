@@ -7,8 +7,8 @@ import gbafe.render.BgHardware
  * The chapter title card graphics of `src/chapter_title.c`, as far as the chapter intro uses them
  * (`ChapterIntro_DrawChapterTitle`): the title palette, the title image (a 4bpp graphic per
  * `chap_title_data` entry, decompressed into BG VRAM) and the tilemap row of its tiles. Only the
- * functions the `ram_trace_newgame_intro` window runs are here, plus `GetChapterTitleExtra` for
- * the save menu (not `PutChapterTitleBG` or the other tilemap helpers).
+ * functions the `ram_trace_newgame_intro` window runs are here, plus `PutChapterTitleBG` and
+ * `GetChapterTitleExtra` for the save menu (not the remaining tilemap helpers).
  *
  * @param getPlayChapterId `GetPlayChapterId(chapterIndex)` (worldmap_path.c): the world map node of
  *   a chapter, or -1. Stand-in supplied by the caller until M6-I (the rest of the world map).
@@ -22,6 +22,13 @@ public class ChapterTitle(
     private val getPlayChapterId: (Int) -> Int,
     private val getNextUnclearedNode: () -> Int,
 ) {
+    /**
+     * `gChapterTitleFxSt.chr_bg`: first tile of the title background, set by
+     * [putChapterTitleBg].
+     */
+    public var chrBg: Int = 0
+        private set
+
     /** `gChapterTitleFxSt.chr_str`: first tile of the title image, set by [putChapterTitleGfx]. */
     public var chrStr: Int = 0
         private set
@@ -77,6 +84,17 @@ public class ChapterTitle(
      */
     public fun putChapterTitleGfxWrapper(chr: Int, titleId: Int) {
         putChapterTitleGfx(chr, titleId)
+    }
+
+    /**
+     * Ported from src/chapter_title.c: PutChapterTitleBG
+     *
+     * Decompresses the chapter title background graphic (`gGfx_08A09E4C`) to tile [chr] of VRAM
+     * (`chr * 0x20` bytes from the start of VRAM) and remembers the 10-bit tile index as [chrBg].
+     */
+    public fun putChapterTitleBg(chr: Int) {
+        chrBg = chr and 0x3FF
+        rom.decompressInto(GFX_TITLE_BG, hardware.vram, chr * 0x20)
     }
 
     /**
@@ -142,6 +160,9 @@ public class ChapterTitle(
 
         /** `sizeof(ChapTitle)`. */
         const val CHAP_TITLE_SIZE = 12
+
+        /** `gGfx_08A09E4C`: chapter title background tiles (`PutChapterTitleBG`). */
+        const val GFX_TITLE_BG = 0x08A09E4C
 
         /** `gWMMonsterSpawnLocations`: world map node ids, one byte per monster spawn. */
         const val MONSTER_SPAWN_LOCATIONS = 0x08206948

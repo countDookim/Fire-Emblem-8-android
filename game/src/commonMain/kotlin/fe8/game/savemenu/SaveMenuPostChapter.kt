@@ -47,6 +47,9 @@ public class SaveMenuState : SaveMenuParent {
     /** Selection fields shared with [PostSaveMenu.postSaveMenuHandler]. */
     public val selection: PostSaveMenu.Selection = PostSaveMenu.Selection()
 
+    /** `scroll_cnt` (u8, 0x29): scroll frame counter cleared in `SaveMenu_InitScreen`. */
+    public var scrollCnt: Int = 0
+
     /** `main_select` (u8, 0x2B): current index in the main menu list. */
     public var mainSelect: Int = 0
 
@@ -56,6 +59,9 @@ public class SaveMenuState : SaveMenuParent {
         set(value) {
             selection.susSlot = value
         }
+
+    /** `cursor_slot` (u8, 0x2D): static cursor slot index, or `0xFF` when hidden. */
+    public var cursorSlot: Int = 0
 
     /** `jump_label` (u8, 0x2E): target proc label (`PL_SAVEMENU_*`). */
     public var jumpLabel: Int = 0
@@ -78,6 +84,21 @@ public class SaveMenuState : SaveMenuParent {
         set(value) {
             selection.extraSelBitfile = value
         }
+
+    /**
+     * `cursor_config` (u8, 0x36): confirm sub-box selection state, cleared in
+     * `SaveMenu_InitScreen`.
+     */
+    public var cursorConfig: Int = 0
+
+    /** `unk_3d` (u8, 0x3D): unknown byte cleared in `SaveMenu_InitScreen`. */
+    public var unk3d: Int = 0
+
+    /** `hb_en` (bool, 0x3E): whether help box mode is active. */
+    public var hbEn: Boolean = false
+
+    /** `ctrl_timer` (u8, 0x40): help box animation timer cleared in `SaveMenu_InitScreen`. */
+    public var ctrlTimer: Int = 0
 
     /** `main_sel_bitfile` (u16, 0x42): bitmask of the chosen main option (`MAIN_MENU_OPTION_*`). */
     public override var mainSelBitfile: Int
@@ -136,7 +157,7 @@ public class SaveMenuPostChapter(
      * or neutral fallbacks until their owning tasks are ported.
      */
     public class Hooks(
-        /** `SaveMenu_InitScreen`. Stand-in (PC-4a2) until screen setup is ported. */
+        /** `SaveMenu_InitScreen` (PC-4a2); callers can wire [SaveMenuScreen.saveMenuInitScreen]. */
         public var initScreen: ProcFunc = ProcFunc { },
         /** `SaveMenu_SaveSlotSelectLoop`. Stand-in (PC-4e1) until slot selection loop is ported. */
         public var saveSlotSelectLoop: ProcFunc = ProcFunc { },
@@ -159,7 +180,7 @@ public class SaveMenuPostChapter(
         /** `GetChapterIndexOnWmNode(&gGMData)`. Stand-in (PC-4f) until ported. */
         public var getChapterIndexOnWmNode: () -> Int = { 0 },
         /**
-         * `StartSaveDraw(proc)` called from `SaveMenu_InitScreen`. Stand-in (PC-4a2) until ported.
+         * `StartSaveDraw(proc)` called from `SaveMenu_InitScreen`; wired by [wireSaveDraw].
          */
         public var startSaveDraw: (Proc) -> Proc? = { null },
     )
@@ -383,6 +404,19 @@ public class SaveMenuPostChapter(
                 postSaveMenu.postSaveMenuHandler(state.selection)
             }
         }
+    }
+
+    /**
+     * Wires [screen] (`SaveMenu_InitScreen`), [lifecycle] (`StartSaveDraw` / `SaveDraw_OnEnd`),
+     * and optionally [postSaveMenu] (`PostSaveMenuHandler`) into [hooks].
+     */
+    public fun wireScreen(
+        screen: SaveMenuScreen,
+        lifecycle: SaveDrawLifecycle,
+        postSaveMenu: PostSaveMenu? = null,
+    ) {
+        wireSaveDraw(lifecycle, postSaveMenu)
+        hooks.initScreen = ProcFunc { proc -> screen.saveMenuInitScreen(proc) }
     }
 
     /** Proc labels and chapter / hardware constants from `savemenu.c` and `savemenu.h`. */

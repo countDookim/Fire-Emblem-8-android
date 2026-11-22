@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 714 across 104 decomp files (missing reason: 0).
+Total entries: 717 across 104 decomp files (missing reason: 0).
 
 ## src/bmunit.c (36)
 
@@ -868,6 +868,15 @@ Total entries: 714 across 104 decomp files (missing reason: 0).
 | `Proc_ForAll` | `engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt` | its only callers, sub_8009A84 via GameControl label 3 and ClassReel_OnEnd, were not found running in any of the 41 reference runs; the search was not exhaustive |
 | `Proc_ForEachMarked` | `engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt` | the game never calls it |
 
+## src/savemenu.c (4)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SaveMenu_SetLcdChapterIdx` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | world-map, EVFLAG_136, and non-save_menu_type-2 chapter-override branches are not exercised in ram_trace_prologue_end; LCD, blend, and help-text setup for chapter 1 / save_menu_type 2 are verified at f09444 |
+| `SaveMenu_InitScreen` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | individual setup calls masked by identical `f09444` pre-state are `resetTextFont`, `loadObjUiGfx`, `gEndingTmScratchA` copy, `scrollCnt = 0`, `win0/win1_enableBlend = 1`, `hbEn = false`, `setWinEnable(0, 0, 0)`, `palette[0] = 0`, and the second `enableBgSyncByMask(2)`; graphics, tilemaps, palettes, LCD, OAM affine matrices, and VRAM are differential-checked at `r09458`/ `r09459`/`f09494` in `SaveMenuInitScreenDifferentialTest` |
+| `SaveMenuPutChapterTitle` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | empty-slot `chapterIdx == 0xFF` branch passing `-1` is unexercised in `ram_trace_prologue_end`, where all three slots are valid `[0, 7, 6]`; valid-slot path verified at `r09459`/`f09494` |
+| `SaveMenuCopyPalette` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | `count <= 0` early-return guard is unexercised in `ram_trace_prologue_end`, where calls pass `count = 1` and `count = 2`; `PAL_OBJ(2) -> PAL_OBJ(1)` copy verified at `r09450`/`r09458` |
+
 ## src/worldmap_face.c (4)
 
 | Function | Kotlin file | Reason |
@@ -1188,12 +1197,6 @@ Total entries: 714 across 104 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetPlayerLeaderPid` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no test checks it against a trace yet |
-
-## src/savemenu.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SaveMenu_SetLcdChapterIdx` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | world-map, EVFLAG_136, and non-save_menu_type-2 chapter-override branches are not exercised in ram_trace_prologue_end; LCD, blend, and help-text setup for chapter 1 / save_menu_type 2 are verified at f09444 |
 
 ## src/sysutil.c (1)
 

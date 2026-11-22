@@ -18,6 +18,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- PC-3d: scheduled, until ~17:35Z
+- PC-4e1: scheduled, until ~17:35Z
 
 ## Current state
 

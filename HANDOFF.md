@@ -18,6 +18,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- `EP-w`: Gemini owner PC (finishing GPT `wip/gpt-nov21-enemy`), until ~12:45Z (`wip/epw`, 2026-11-22).
+- `PC-4c2`: Gemini owner PC, until ~12:45Z (`wip/pc4c2`, 2026-11-22).
 
 ## Current state
 

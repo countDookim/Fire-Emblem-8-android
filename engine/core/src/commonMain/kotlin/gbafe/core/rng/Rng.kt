@@ -73,8 +73,7 @@ public class Fe8Rng : RandomSource {
      * Copies the three state words into [out] starting at [offset] (used by saves and suspend
      * data).
      *
-     * Transcribed from src/rng.c: StoreRNState (not verified: no test checks it against a trace
-     *   yet)
+     * Ported from src/rng.c: StoreRNState
      */
     public fun store(out: IntArray, offset: Int = 0) {
         out[offset] = s0

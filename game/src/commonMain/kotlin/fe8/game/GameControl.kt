@@ -2,6 +2,7 @@ package fe8.game
 
 import fe8.game.bm.PlaySt
 import fe8.game.title.TitleScreen
+import gbafe.core.rng.RngService
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcBoolFunc
@@ -462,6 +463,16 @@ public class GameControl(
         public var gmDataInit: ProcFunc = ProcFunc { },
         /** `StartIntroMonologue`; `Fe8Boot` sets the port (whole ROM only), else nothing runs. */
         public var startIntroMonologue: ProcFunc = ProcFunc { },
+        /** `CheckFlag(EVFLAG_WIN)` for [chapterSwitch]; the event flags are not owned here. */
+        public var winFlagSet: () -> Boolean = { false },
+        /** `RegisterChapterTimeAndTurnCount` (PC-3b, not ported). */
+        public var registerChapterTimeAndTurnCount: ProcFunc = ProcFunc { },
+        /** `ComputeChapterRankings` (PC-3c, not ported). */
+        public var computeChapterRankings: ProcFunc = ProcFunc { },
+        /** `ChapterChangeUnitCleanup` (PC-3b, not ported). */
+        public var chapterChangeUnitCleanup: ProcFunc = ProcFunc { },
+        /** `Make6C_SaveMenuPostChapter`, called by [callPostChapterSaveMenu]. */
+        public var startPostChapterSaveMenu: ProcFunc = ProcFunc { },
         /** `EndAllMus`. Stand-in until M6-E. */
         public var endAllMus: ProcFunc = ProcFunc { },
         /**
@@ -599,6 +610,39 @@ public class GameControl(
                 LGAMECTRL_POST_NORMAL_CHAPTER
             },
         )
+    }
+
+    /** `gGmMonsterRnState`: the RN state [chapterSwitch] stores (three u16 words). */
+    public val gmMonsterRnState: IntArray = IntArray(3)
+
+    /** The generator [chapterSwitch] advances; share the game's with `Fe8Boot`. */
+    public var rng: RngService = RngService()
+
+    /**
+     * Advances the RNG three times, stores its state in [gmMonsterRnState], registers the chapter
+     * time when [Hooks.winFlagSet], computes the rankings, switches `gPlaySt.chapterIndex` to
+     * `nextChapter` and runs the unit cleanup (the three through their hooks, not ported).
+     *
+     * Transcribed from src/gamecontrol.c: GameControl_ChapterSwitch (not verified: the hooked
+     *   calls are PC-3b/3c; the capture is only compared for RN and chapter index)
+     */
+    public fun chapterSwitch(proc: Proc) {
+        repeat(3) { rng.next() }
+        rng.primary.store(gmMonsterRnState)
+        if (hooks.winFlagSet()) hooks.registerChapterTimeAndTurnCount.invoke(proc)
+        hooks.computeChapterRankings.invoke(proc)
+        playSt.chapterIndex = (proc.state as State).nextChapter
+        hooks.chapterChangeUnitCleanup.invoke(proc)
+    }
+
+    /**
+     * Starts the post-chapter save menu ([Hooks.startPostChapterSaveMenu]) unless
+     * `gPlaySt.chapterIndex` is `0x38`.
+     *
+     * Ported from src/gamecontrol.c: GameControl_CallPostChapterSaveMenu
+     */
+    public fun callPostChapterSaveMenu(proc: Proc) {
+        if (playSt.chapterIndex != 0x38) hooks.startPostChapterSaveMenu.invoke(proc)
     }
 
     /** Constants from `gamecontrol.h` / `proc.h` / `types.h` / `gbaio.h`. */

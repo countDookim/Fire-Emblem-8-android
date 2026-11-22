@@ -86,8 +86,11 @@ Map battles, MISS effects, EXP and level-up portraits are included in published 
 
 Open from issue #6 (0.1.793), no fix yet; note when they happen if you see them again:
 - **D-16 exp sound / beep:** during combat, the EXP-gain sound and a loud beep that sometimes lingers.
-- **D-17 menu background:** a menu opening without its background, slowly or not at all (which menu,
-  after which action?).
+- **D-17 menu background:** menus always open, but sometimes their background/textures are missing
+  or appear late. Seen on the level-up stat panel (0.1.793); note which other menus and what came before.
+- **Still to test (EP-18/EP-26):** a miss (MISS sprite) and a critical hit; in the 0.1.793 quick play
+  every attack hit. Hits, damage, exp and a level-up looked right at a glance (no emulator comparison,
+  growths unchecked).
 
 ## Ignore (known gaps, not bugs)
 

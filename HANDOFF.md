@@ -20,6 +20,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 - `TEST-m4astale`: Gemini owner PC, until ~11:45Z (`wip/test-m4astale`, 2026-11-22).
 - `PC-4a2`: Gemini owner PC, until ~12:00Z (`wip/pc4a2`, 2026-11-22).
+- `PC-3c`: scheduled, until ~11:30Z (2026-11-22).
+- `PC-4c1`: scheduled, until ~11:30Z (2026-11-22).
 
 ## Current state
 

@@ -12,11 +12,9 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 [M7 decisions](docs/plans/M7-modding.md): release staging (D2), API details (D5), layout/debug/storage/packaging
 (D4/D6/D8/D9) and executable runtime (D10) remain open; M6 and design inventories are not blocked.
 
-- **APP-icon2 (owner 11-22):** drop the "Add to home screen" shortcut and change the launcher icon itself to
-  Eirika's portrait right after an import (and on start if a ROM is kept but the icon is still the sword and
-  shield), without asking. **Blocker to confirm with the owner:** as far as known, Android only lets an app
-  switch its launcher icon between icons bundled in the APK (`activity-alias`), and the portrait comes from the
-  ROM, which the APK may not contain (rule 3). Before coding, verify this and ask the owner which way to go.
+- **APP-icon2 (owner 11-22, decided):** remove the "Add to home screen" shortcut. No exception to rule 3: change the
+  launcher icon to the portrait only if Android can do it without bundling ROM data; otherwise leave the
+  sword-and-shield icon.
 
 ## In progress
 

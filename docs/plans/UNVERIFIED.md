@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 717 across 104 decomp files (missing reason: 0).
+Total entries: 726 across 105 decomp files (missing reason: 0).
 
 ## src/bmunit.c (36)
 
@@ -641,6 +641,20 @@ Total entries: 717 across 104 decomp files (missing reason: 0).
 | `SetBlendBackdropB` | `engine/render/src/commonMain/kotlin/gbafe/render/LcdControl.kt` | never called by a traced path |
 | `SyncLoOam` | `engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt` | no test checks it against a trace yet |
 | `SetObjAffine` | `engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt` | no test checks it against a trace yet |
+
+## src/gamerankings.c (9)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ComputeChapterRankings` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | the `unk_2C_04` 0xFF clamp, the skipped `chapterModeIndex` arms and the swapped `expRank`/`combatRank` argument order survive mutation (both ranks are 4) |
+| `GetChapterTacticsRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | only the "turn <= every threshold" result 4 occurs (turn 3), so the compare operator and the D/C/B/A thresholds survive mutation |
+| `GetChapterSurvivalRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | only death count 0 (rank 4) occurs, so `>=` vs `>` survives mutation |
+| `GetChapterDeathCount` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | no unit is dead at r09443 and chapterIndex is 0, so the `deathLoc` compare survives mutation |
+| `GetChapterFundsRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | the previous `total_gold` is 0, the rank is the top 4 and `GetPartyTotalGoldValue` is fed from the capture, so the gold difference and lower ranks survive mutation |
+| `GetChapterCombatRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | only rank 4 occurs, so `<` vs `<=` survives mutation; PC-3d |
+| `GetChapterWinPerc` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | the percentage is only seen through the combat rank 4, so the `* 100`, the 100 clamp, the `unk_8_1` split and the no-battle 40 survive mutation |
+| `GetChapterExpRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | the previous `unk_8_2` is 0 and only rank 4 occurs, so the difference, the 0xFFFFF clamp and the thresholds survive mutation |
+| `GetOverallRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | only all-4 ranks (sum 550, result 5) occur, so most weights and limits survive mutation |
 
 ## src/bmudisp.c (8)
 

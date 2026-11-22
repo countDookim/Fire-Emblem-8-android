@@ -104,6 +104,7 @@ import fe8.game.opanim.OpAnim
 import fe8.game.opanim.OpSubtitle
 import fe8.game.save.BmSaveLib
 import fe8.game.save.BmSuspendSave
+import fe8.game.save.ChapterRankings
 import fe8.game.save.ChapterStats
 import fe8.game.save.NewGameRam
 import fe8.game.save.PidStats
@@ -1611,6 +1612,11 @@ public class Fe8Boot(
             chapterStats.registerChapterTimeAndTurnCount(control.playSt, clock.get().toInt())
         }
         if (rom.isWholeRom) {
+            // GetPartyTotalGoldValue is PC-3d: the funds rank sees a total of 0 until then.
+            val rankings = ChapterRankings(
+                control.playSt, chapterStats, pidStats, units, battleChapters,
+            )
+            control.hooks.computeChapterRankings = ProcFunc { rankings.computeChapterRankings() }
             control.hooks.chapterChangeUnitCleanup = ProcFunc {
                 units.chapterChangeUnitCleanup(control.playSt) { id ->
                     statsUnitLoader.getUnitMaxHp(units.unitOffset(id))

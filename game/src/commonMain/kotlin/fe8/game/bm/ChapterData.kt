@@ -162,6 +162,28 @@ public class ChapterData(
     public fun victorySongEnemyThreshold(chapterIndex: Int): Int =
         u8(chapterIndex, OFF_VICTORY_SONG_ENEMY_THRESHOLD).toByte().toInt()
 
+    /**
+     * `turnsForTacticsRank{D,C,B,A}InEliwoodStory[hard]` (u8) of chapter [chapterIndex]: the turn
+     * count above which the chapter's tactics rank stays below [rank] (0 = D .. 3 = A);
+     * [hard] picks the difficult mode entry (FE7 leftover, used by src/gamerankings.c).
+     */
+    public fun turnsForTacticsRank(chapterIndex: Int, rank: Int, hard: Boolean): Int =
+        u8(chapterIndex, OFF_TURNS_TACTICS_RANK[rank] + if (hard) 1 else 0)
+
+    /**
+     * `gainedExpForExpRank{D,C,B,A}InEliwoodStory[hard]` (u16) of chapter [chapterIndex]: the
+     * experience threshold of [rank] (0 = D .. 3 = A) (FE7 leftover, src/gamerankings.c).
+     */
+    public fun gainedExpForExpRank(chapterIndex: Int, rank: Int, hard: Boolean): Int =
+        rom.u16(getROMChapterStruct(chapterIndex) + OFF_EXP_EXP_RANK[rank] + if (hard) 2 else 0)
+
+    /**
+     * `goldForFundsRankInEliwoodStory[hard]` (u32) of chapter [chapterIndex]: the gold the funds
+     * rank compares against (FE7 leftover, src/gamerankings.c).
+     */
+    public fun goldForFundsRank(chapterIndex: Int, hard: Boolean): Int =
+        rom.u32(getROMChapterStruct(chapterIndex) + OFF_GOLD_FUNDS_RANK + if (hard) 4 else 0)
+
     /** Reads the unsigned byte at [offset] within the chapter struct of [chapterIndex]. */
     private fun u8(chapterIndex: Int, offset: Int): Int =
         rom.u8(getROMChapterStruct(chapterIndex) + offset)
@@ -174,6 +196,15 @@ public class ChapterData(
 
     /** Table addresses and struct layout (`struct ROMChapterData`, include/chapterdata.h). */
     public companion object {
+        /** Offsets of `turnsForTacticsRank{D,C,B,A}InEliwoodStory` (u8[2] each). */
+        private val OFF_TURNS_TACTICS_RANK: IntArray = intArrayOf(0x39, 0x35, 0x31, 0x2D)
+
+        /** Offsets of `gainedExpForExpRank{D,C,B,A}InEliwoodStory` (u16[2] each). */
+        private val OFF_EXP_EXP_RANK: IntArray = intArrayOf(0x56, 0x4E, 0x46, 0x3E)
+
+        /** Offset of `goldForFundsRankInEliwoodStory` (u32[2]). */
+        private const val OFF_GOLD_FUNDS_RANK: Int = 0x60
+
         /** GBA address of `gChapterDataTable`. */
         public const val CHAPTER_DATA_TABLE: Int = 0x088B0890
 

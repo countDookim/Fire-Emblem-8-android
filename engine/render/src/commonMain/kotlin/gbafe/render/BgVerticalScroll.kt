@@ -12,7 +12,7 @@ package gbafe.render
  * register image (`ByteArray` laid out like the I/O region) that [HBlankLines] turns into [LineTable]
  * overrides.
  */
-public class BgVerticalScroll {
+public class BgVerticalScroll : HBlankHandler {
     /** `buf`: two frames × three registers × 160 lines, index `frame * 480 + reg * 160 + line`. */
     public val buf: ShortArray = ShortArray(3 * 320)
 
@@ -63,7 +63,7 @@ public class BgVerticalScroll {
      *
      * Ported from src/bmlib-hblank.c: HBlank_BgVerticalScroll
      */
-    public fun onHBlank(vcount: Int, io: ByteArray) {
+    public override fun onHBlank(vcount: Int, io: ByteArray) {
         var line = (vcount + 1) and 0xFFFF
         if (line == TOTAL_LINES) line = 0
         if (line < LINES) {
@@ -107,7 +107,63 @@ public class BgVerticalScroll {
         frameFlip = frameFlip xor 1
     }
 
+    /**
+     * Clears [mode], [src], [dst], [frame], [frameFlip], [updating], and [scrollEnabled], then
+     * installs this instance as [hblank]'s primary HBlank handler (`SetPrimaryHBlankHandler(NULL)`
+     * followed by `SetPrimaryHBlankHandler(HBlank_BgVerticalScroll)`).
+     *
+     * Ported from src/bmlib-hblank.c: StartBgVerticalScroll
+     */
+    public fun start(hblank: HBlankHandlers) {
+        for (i in 0 until REGISTER_COUNT) {
+            mode[i] = 0
+            src[i] = -1
+            dst[i] = -1
+        }
+        frame = 0
+        frameFlip = 0
+        updating = false
+        scrollEnabled = false
+        hblank.setPrimary(null)
+        hblank.setPrimary(this)
+    }
+
+    /**
+     * Clears [hblank]'s primary HBlank handler, zeroes [buf], and clears [scrollEnabled].
+     *
+     * Ported from src/bmlib-hblank.c: EndBgVerticalScroll
+     */
+    public fun end(hblank: HBlankHandlers) {
+        hblank.setPrimary(null)
+        buf.fill(0)
+        scrollEnabled = false
+    }
+
+    /**
+     * Arms register slot [index] (`0..2`) to write I/O register offset [regOffset] (offset from
+     * `0x04000000`, or `-1` for none) starting on the next VBlank latch.
+     *
+     * Ported from src/bmlib-hblank.c: SetBgVerticalScrollPosition
+     */
+    public fun setPosition(index: Int, regOffset: Int) {
+        src[index] = regOffset
+    }
+
+    /**
+     * Keeps bits `0..1` of [mode]`[index]` (`unk_798[index]`).
+     *
+     * Transcribed from src/bmlib-hblank.c: sub_8014EF4 (not verified: StartBgVerticalScroll
+     * zeroes mode[0] immediately before SaveDraw_Init calls sub_8014EF4 with index 0, and
+     * HBlank_BgVerticalScroll never reads mode, so masking cannot be told from a no-op in PC-cap1)
+     */
+    public fun sub8014EF4(index: Int) {
+        mode[index] = mode[index] and 3
+    }
+
     private companion object {
+        /** Number of per-scanline I/O register slots (`src`, `dst`, `mode`). */
+        const val REGISTER_COUNT = 3
+
         /** Visible scanlines (`DISPLAY_HEIGHT`); the handler's VBlank check is for this line. */
         const val LINES = 160
 

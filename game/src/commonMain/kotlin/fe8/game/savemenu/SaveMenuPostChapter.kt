@@ -38,11 +38,12 @@ public class SaveMenuRTextData(
 )
 
 /**
- * The `struct SaveMenuProc` fields (`include/savemenu.h`) that `SaveMenuInit` writes.
+ * The `struct SaveMenuProc` fields (`include/savemenu.h`) that `SaveMenuInit` writes, plus the
+ * slot metadata and child proc handles shared with [SaveDrawLifecycle] and [PostSaveMenu].
  * [selection] stores `susSlot`, `extraSelBitfile`, and `mainSelBitfile` so
  * [PostSaveMenu.postSaveMenuHandler] can read them without extra allocations.
  */
-public class SaveMenuState {
+public class SaveMenuState : SaveMenuParent {
     /** Selection fields shared with [PostSaveMenu.postSaveMenuHandler]. */
     public val selection: PostSaveMenu.Selection = PostSaveMenu.Selection()
 
@@ -50,7 +51,7 @@ public class SaveMenuState {
     public var mainSelect: Int = 0
 
     /** `sus_slot` (u8, 0x2C): selected save slot index (0..2). */
-    public var susSlot: Int
+    public override var susSlot: Int
         get() = selection.susSlot
         set(value) {
             selection.susSlot = value
@@ -72,14 +73,14 @@ public class SaveMenuState {
     public var extraSelect: Int = 0
 
     /** `extra_sel_bitfile` (u8, 0x35): bitmask of the selected Extras option. */
-    public var extraSelBitfile: Int
+    public override var extraSelBitfile: Int
         get() = selection.extraSelBitfile
         set(value) {
             selection.extraSelBitfile = value
         }
 
     /** `main_sel_bitfile` (u16, 0x42): bitmask of the chosen main option (`MAIN_MENU_OPTION_*`). */
-    public var mainSelBitfile: Int
+    public override var mainSelBitfile: Int
         get() = selection.mainSelBitfile
         set(value) {
             selection.mainSelBitfile = value
@@ -87,6 +88,22 @@ public class SaveMenuState {
 
     /** `unk_46` (u16, 0x46): unknown halfword cleared in `SaveMenuInit`. */
     public var unk46: Int = 0
+
+    /** Per-slot metadata (`chapter_idx`, `unk_3a`, `sus_slot_cur`, `unk_44`, `played_time`). */
+    public val slots: SaveSlotData.Slots = SaveSlotData.Slots()
+
+    /** `sus_slot_cur` (u8, 0x3F): game slot of the active suspend save, or `0xFF` if none. */
+    public override var susSlotCur: Int
+        get() = slots.susSlotCur
+        set(value) {
+            slots.susSlotCur = value
+        }
+
+    /** `savedraw` (0x58): child `ProcScr_savedraw` proc started by `SaveMenu_InitScreen`. */
+    public var savedraw: Proc? = null
+
+    /** `approc` (0x60): suspend bookmark `ProcScr_ApProc` proc started by `SaveDraw_Init`. */
+    public override var approc: Proc? = null
 }
 
 /**
@@ -141,6 +158,10 @@ public class SaveMenuPostChapter(
         public var wmLocGetChapterId: (Int) -> Int = { 0 },
         /** `GetChapterIndexOnWmNode(&gGMData)`. Stand-in (PC-4f) until ported. */
         public var getChapterIndexOnWmNode: () -> Int = { 0 },
+        /**
+         * `StartSaveDraw(proc)` called from `SaveMenu_InitScreen`. Stand-in (PC-4a2) until ported.
+         */
+        public var startSaveDraw: (Proc) -> Proc? = { null },
     )
 
     /**
@@ -317,6 +338,51 @@ public class SaveMenuPostChapter(
         rTextData.pid = 0
         rTextData.level = -1
         rTextData.nodeId = -1
+    }
+
+    /**
+     * Starts `ProcScr_savedraw` via [Hooks.startSaveDraw] and records it on
+     * [SaveMenuState.savedraw].
+     */
+    public fun startSaveDraw(proc: Proc): Proc? =
+        hooks.startSaveDraw(proc).also { (proc.state as SaveMenuState).savedraw = it }
+
+    /**
+     * Ends the suspend bookmark `ProcScr_ApProc` (when non-null) and the child `ProcScr_savedraw`
+     * proc (`APProc_Delete(proc->approc); Proc_End(proc->savedraw);` in `PostSaveMenuHandler`).
+     */
+    public fun endMenuProcs(proc: Proc) {
+        val state = proc.state as SaveMenuState
+        state.approc?.let { engine.end(it) }
+        engine.end(state.savedraw)
+    }
+
+    /**
+     * Clears the primary HBlank interrupt handler (`SetPrimaryHBlankHandler(0)` in
+     * `PostSaveMenuHandler`).
+     */
+    public fun clearHBlankHandler() {
+        hardware.hblank.setPrimary(null)
+    }
+
+    /**
+     * Wires [lifecycle]'s `StartSaveDraw` into [Hooks.startSaveDraw] and, when [postSaveMenu] is
+     * provided, wires [endMenuProcs], [clearHBlankHandler], and [PostSaveMenu.postSaveMenuHandler]
+     * into [Hooks.postSaveMenuHandler].
+     */
+    public fun wireSaveDraw(
+        lifecycle: SaveDrawLifecycle,
+        postSaveMenu: PostSaveMenu? = null,
+    ) {
+        hooks.startSaveDraw = { parent -> lifecycle.startSaveDraw(parent) }
+        if (postSaveMenu != null) {
+            postSaveMenu.effects.clearHBlankHandler = ::clearHBlankHandler
+            hooks.postSaveMenuHandler = ProcFunc { proc ->
+                val state = proc.state as SaveMenuState
+                postSaveMenu.effects.endMenuProcs = { endMenuProcs(proc) }
+                postSaveMenu.postSaveMenuHandler(state.selection)
+            }
+        }
     }
 
     /** Proc labels and chapter / hardware constants from `savemenu.c` and `savemenu.h`. */

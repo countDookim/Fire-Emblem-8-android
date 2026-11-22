@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 704 across 102 decomp files (missing reason: 0).
+Total entries: 710 across 104 decomp files (missing reason: 0).
 
 ## src/bmunit.c (36)
 
@@ -664,6 +664,19 @@ Total entries: 704 across 102 decomp files (missing reason: 0).
 | `GetCharTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
 | `EndGreenText` | `game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt` | only `sProc_MenuMain` calls it after the menu's idle callback breaks, which no capture does |
 
+## src/gamecontrol.c (8)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GameControl_EnableSoundEffects` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | the traced option bits are already clear when it runs |
+| `sub_8009B64` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no trace reaches it |
+| `GameCtrl_CheckNewGameAndBranch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no reference run has save_menu_type 2 or 4 |
+| `GameCtrl_CheckGameCompleteAndBranch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no reference run has the complete state bit |
+| `GameControl_RestoreChapterId` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
+| `sub_8009E28` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | wired by `Fe8Boot`; no dump compares the blend registers at this point |
+| `GameControlHandlePostNormalOrExtraChapter` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
+| `GameControl_ChapterSwitch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | the hooked calls are PC-3b/3c; the capture is only compared for RN and chapter index |
+
 ## src/cp_utility.c (7)
 
 | Function | Kotlin file | Reason |
@@ -675,18 +688,6 @@ Total entries: 704 across 102 decomp files (missing reason: 0).
 | `AiCouldReachByBirdsEyeDistance` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | for the Prologue's first enemy and the second player unit the formula says true, but the capture's danger map shows no damage of that unit |
 | `AiGetUnitClosestValidPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no reference trace exercises the occupied case |
 | `CharStoreAI` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | every traced definition has zero AI bytes, so a skipped or wrong store survives |
-
-## src/gamecontrol.c (7)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GameControl_EnableSoundEffects` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | the traced option bits are already clear when it runs |
-| `sub_8009B64` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no trace reaches it |
-| `GameCtrl_CheckNewGameAndBranch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no reference run has save_menu_type 2 or 4 |
-| `GameCtrl_CheckGameCompleteAndBranch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no reference run has the complete state bit |
-| `GameControl_RestoreChapterId` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
-| `sub_8009E28` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | wired by `Fe8Boot`; no dump compares the blend registers at this point |
-| `GameControlHandlePostNormalOrExtraChapter` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
 
 ## src/uimenu.c (7)
 
@@ -733,16 +734,25 @@ Total entries: 704 across 102 decomp files (missing reason: 0).
 | `ProcScr_PopupUpdateIcon` | `game/src/commonMain/kotlin/fe8/game/ui/PopupScript.kt` | no @VerifiesPort test names it |
 | `ProcScr_Popup` | `game/src/commonMain/kotlin/fe8/game/ui/PopupScript.kt` | no @VerifiesPort test names it |
 
-## src/rng.c (6)
+## src/rng.c (5)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `LoadRNState` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
-| `StoreRNState` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
 | `NextRN_100` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
 | `NextRN_N` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
 | `Roll1RN` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
 | `Roll2RN` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
+
+## src/savedraw.c (5)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ProcScr_savedraw` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | script order and mark are checked against the procs watch in SaveDrawLifecycleDifferentialTest, which cannot tag a data array |
+| `SaveDraw_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | the `susSlotCur == 0xFF` branch is unexercised in PC-cap1 where `susSlotCur == 0`, `SetObjAffine(0..3)` writes identity over an already-identity OAM matrix buffer from `SaveMenu_InitScreen`, and `sub_8014EF4(0)` masks already-zeroed `mode[0]`; `SaveDrawProc` fields, child cursor and AP proc creation, `StartBgVerticalScroll`/`SetBgVerticalScrollPosition`, `SaveDraw_ScrollFogBG`, `scrollEnabled = true`, and `sub_80AB548` match `r09459` |
+| `gProcScr_SaveDrawCursor` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | script order checked against the procs watch in SaveDrawCursorDifferentialTest, which cannot tag a script |
+| `SaveDrawCursor_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | PC-cap1 observes only the clearing of unk2a, susSlot, mainOptions, unk34 and unk38; cursorEn, unk2e, unk32 and unk3a are overwritten by sub_80AB4F4 before the first dump, and unk37 is already zero |
+| `SaveDrawCursor_Loop` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | PC-cap1 exercises only parent cursorDrawActive != 0, susSlot < 4, cursorEn != 0, unk3a == 1, and unk38 == 0; unexercised branches are parent cursorDrawActive == 0 early return, susSlot >= 4 settled motion, cursorEn == 0 idle branch, unk3a == 0 dual horizontal bracket cursors, and unk38 != 0 static copy cursor |
 
 ## src/worldmap_automu.c (5)
 
@@ -1096,6 +1106,12 @@ Total entries: 704 across 102 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `HasConvoyAccess` | `game/src/commonMain/kotlin/fe8/game/bm/BmContainer.kt` | at f4181 the Supply item is hidden whatever this returns, so the capture does not show its value |
+
+## src/bmlib-hblank.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `sub_8014EF4` | `engine/render/src/commonMain/kotlin/gbafe/render/BgVerticalScroll.kt` | StartBgVerticalScroll zeroes mode[0] immediately before SaveDraw_Init calls sub_8014EF4 with index 0, and HBlank_BgVerticalScroll never reads mode, so masking cannot be told from a no-op in PC-cap1 |
 
 ## src/bmmind.c (1)
 

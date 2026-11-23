@@ -19,6 +19,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- AUD-recent (test audit of d477d4c..81acfed + full suite), DOC-readme, DOC-manualtest, issue #5/#6/#7 progress notes: owner PC Claude, until ~23:10Z
 
 ## Current state
 

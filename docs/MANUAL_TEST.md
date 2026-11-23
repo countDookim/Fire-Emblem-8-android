@@ -81,10 +81,7 @@ Open from issue #7 (0.1.852), no fix yet:
 - **D-20 after lord death:** if Eirika dies (no game over yet, PC-8), enemy AI stops and menus/text
   get wrong palettes. Game over itself is a known gap.
 
-Open from issue #6 (0.1.793); D-16/D-17 not mentioned in #7, still to check:
-- **D-16 exp sound / beep:** during combat, the EXP-gain sound and a loud beep that sometimes lingers.
-  Fix for the lingering beep (stopped PSG notes now silenced, f54bd78) is in builds after 0.1.793:
-  win a Prologue fight; the exp tick must stop exactly when the bar stops. Tick timbre not yet fixed.
+Open from issue #6 (0.1.793); D-17 not mentioned in #7, still to check (D-16 sound confirmed OK):
 - **D-17 menu background:** menus always open, but sometimes their background/textures are missing
   or appear late. Seen on the level-up stat panel (0.1.793); note which other menus and what came before.
   Builds after c7658cf: the level-up panel frame (BG1 box) and its palette must appear on the panel's

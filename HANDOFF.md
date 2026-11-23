@@ -8,7 +8,7 @@ Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
 Nothing blocks development. Owner test of 0.1.852 (issue #7, 11-23): enemy movement, cutscene skips (D-13/14),
 title idle (D-15) and unit select OK; new D-18 (kill teleport/grey), D-19 (battle box no BG), D-20 (palettes and AI
-after Eirika dies); rest expected gaps (Device status). D-16/D-17 not re-reported (unconfirmed).
+after Eirika dies); rest expected gaps (Device status). D-16 sound OK (owner); D-17 unconfirmed.
 Extensive modding scope, separate vanilla tests and replaceable camera/controls/AI are accepted (ADR 0016).
 [M7 decisions](docs/plans/M7-modding.md): release staging (D2), API details (D5), layout/debug/storage/packaging
 (D4/D6/D8/D9) and executable runtime (D10) remain open; M6 and design inventories are not blocked.
@@ -294,7 +294,7 @@ Close an issue only after reference verification and owner confirmation; preserv
 | D-09 Rapier popup | **Resolved:** owner confirmed the popup correct on 0.1.571 (11-11); reference: `WiredItemPopupTest`/`GotItemPopupDifferentialTest`. Other popup branches stay D09-3 (low priority). |
 | D-13 Start in cutscene | **Resolved:** owner confirmed skips fade to black instead of fast-forwarding on 0.1.852 (issue #7, 11-23). |
 | PP-0a hover cursor | **Confirmed by the owner on 0.1.622 (11-12):** the cursor grows/shrinks over units and player units play their hover animation. |
-| D-16 exp sound / beep | **Open (owner, 0.1.793, issue #6):** during Prologue combat the EXP-gain sound is wrong and a loud beep sometimes stops at once, sometimes lingers. Triage only: `MapAnimExpBar` plays/stops `SONG_74` (`songNumStop`, line ~166) through a nullable `sound.sound`; check the stop reaches the M4A player and the SE loop. Repro steps unknown. |
+| D-16 exp sound / beep | **Resolved:** owner heard no sound problem on 0.1.852 (issue #7, 11-23); fix f54bd78 (`CgbOscOff`), `MapExpBarSoundDifferentialTest`. |
 | D-17 menu textures | **Open (owner, 0.1.793, issue #6):** menus always open, but sometimes with missing or late-loading background/textures. Seen at least on the level-up stat panel after Eirika's level-up (`MapLevelUpAnnouncement` / MC-18 BG setup is a first place to look). Other triggers unknown. |
 | #6 expected gaps | **Not bugs (0.1.793):** only Attack and End act in the unit/map menus (MANUAL_TEST "Ignore"); no battle animations (M6-G); boss never moves (boss turn / one-enemy-left events EP-11; capture shows the boss idle until then); after the last enemy dies the ending dialogue plays and the map stays (post-chapter teardown, save menu and Ch1 start PC-3a..PC-5 not wired). APP-icon confirmed (quick check). No-animation combat (hits, damage, exp, level-up) looked right at a glance, not emulator-compared; growths, miss and crit untested. |
 | EP-w enemy phase | **Confirmed by the owner on 0.1.852 (issue #7):** bandits move and attack on their turn. Unit select (A shows ranges, A menu, B deselect) also OK. |

@@ -6,9 +6,10 @@ Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
 ## NEEDS USER
 
-Nothing blocks development. Owner test of 0.1.852 (issue #7, 11-23): enemy movement, cutscene skips (D-13/14),
-title idle (D-15) and unit select OK; new D-18 (kill teleport/grey), D-19 (battle box no BG), D-20 (palettes and AI
-after Eirika dies); rest expected gaps (Device status). D-16 sound OK (owner); D-17 unconfirmed.
+Nothing blocks development. Owner tests of 0.1.852 (issue #7, 11-23): the whole Prologue turn-1 walkthrough
+(PP-17, closes M6-B), enemy phase, crit and miss, cutscene skips, APP-icon2, D-16 and the D-17 level-up panel background
+are OK. Open: D-18 (kill teleport), D-19 (enemy-initiated battle box no BG), D-20 (after Eirika dies), new D-21
+(level-up stat numbers wrong palette), D-22 (boss name wrong palette); rest expected gaps (Device status).
 Extensive modding scope, separate vanilla tests and replaceable camera/controls/AI are accepted (ADR 0016).
 [M7 decisions](docs/plans/M7-modding.md): release staging (D2), API details (D5), layout/debug/storage/packaging
 (D4/D6/D8/D9) and executable runtime (D10) remain open; M6 and design inventories are not blocked.
@@ -297,13 +298,17 @@ Close an issue only after reference verification and owner confirmation; preserv
 | D-13 Start in cutscene | **Resolved:** owner confirmed skips fade to black instead of fast-forwarding on 0.1.852 (issue #7, 11-23). |
 | PP-0a hover cursor | **Confirmed by the owner on 0.1.622 (11-12):** the cursor grows/shrinks over units and player units play their hover animation. |
 | D-16 exp sound / beep | **Resolved:** owner heard no sound problem on 0.1.852 (issue #7, 11-23); fix f54bd78 (`CgbOscOff`), `MapExpBarSoundDifferentialTest`. |
-| D-17 menu textures | **Open (owner, 0.1.793, issue #6):** menus always open, but sometimes with missing or late-loading background/textures. Seen at least on the level-up stat panel after Eirika's level-up (`MapLevelUpAnnouncement` / MC-18 BG setup is a first place to look). Other triggers unknown. |
-| #6 expected gaps | **Not bugs (0.1.793):** only Attack and End act in the unit/map menus (MANUAL_TEST "Known gaps"); no battle animations (M6-G); boss never moves (boss turn / one-enemy-left events EP-11; capture shows the boss idle until then); after the last enemy dies the ending dialogue plays and the map stays (post-chapter teardown, save menu and Ch1 start PC-3a..PC-5 not wired). APP-icon confirmed (quick check). No-animation combat (hits, damage, exp, level-up) looked right at a glance, not emulator-compared; growths, miss and crit untested. |
+| D-17 menu textures | **Resolved:** owner confirmed the level-up panel background on 0.1.852 (issue #7 retest, 11-23); fix c7658cf (`PutManimLevelUpFrame` BG0/BG1 + palette sync), `MapLevelUpStatsDifferentialTest`; no other menu reported. Its stat numbers' palette is D-21. |
+| PP-17 player phase | **Confirmed by the owner on 0.1.852 (issue #7 retest, 11-23):** the whole MANUAL_TEST turn-1 walkthrough (select, move, weapon list, forecast, map battle, exp/level-up, Wait, End, enemy phase, suspend/resume) is correct apart from D-18/D-19/D-21/D-22. Crit and miss also correct. Closes M6-B. |
+| APP-icon2 | **Confirmed by the owner on 0.1.852 (issue #7 retest, 11-23).** |
+| #6 expected gaps | **Not bugs (0.1.793):** only Attack and End act in the unit/map menus (MANUAL_TEST "Known gaps"); no battle animations (M6-G); boss never moves (boss turn / one-enemy-left events EP-11; capture shows the boss idle until then); after the last enemy dies the ending dialogue plays and the map stays (post-chapter teardown, save menu and Ch1 start PC-3a..PC-5 not wired). APP-icon confirmed (quick check). No-animation combat (hits, damage, exp, level-up) looked right at a glance, not emulator-compared; growths unchecked; miss and crit confirmed on 0.1.852. |
 | EP-w enemy phase | **Confirmed by the owner on 0.1.852 (issue #7):** bandits move and attack on their turn. Unit select (A shows ranges, A menu, B deselect) also OK. |
-| D-18 kill teleport | **Open (owner, 0.1.852, issue #7):** Seth killed a bandit (tile below him); Seth's sprite went grey and briefly showed on the bandit's tile before snapping back. Suspects: map anim/MU end restoring the wrong unit position or the dead-unit grey (`UNIT_STATUS` refresh) on the actor; compare `ram_trace_prologue_kill`. |
-| D-19 battle box BG | **Open (owner, 0.1.852, issue #7):** enemy-initiated battle (bandit on Eirika): map battle HP info box drawn without its background. Build includes the D-17 fix; check `MapAnimInfoBox` gradient/BG sync on the enemy-phase path. |
+| D-18 kill teleport | **Open (owner, 0.1.852, issue #7):** Seth killed a bandit (tile below him); Seth's sprite went grey and briefly showed on the bandit's tile before snapping back. Suspects: map anim/MU end restoring the wrong unit position or the dead-unit grey (`UNIT_STATUS` refresh) on the actor; compare `ram_trace_prologue_kill`. **Still on retest (11-23):** Seth flashes onto the defeated enemy's tile, and the enemy unit also reappears there for a split second. |
+| D-19 battle box BG | **Open (owner, 0.1.852, issue #7):** enemy-initiated battle (bandit on Eirika): map battle HP info box drawn without its background. Build includes the D-17 fix; check `MapAnimInfoBox` gradient/BG sync on the enemy-phase path. **Still on retest (11-23).** |
+| D-21 level-up numbers | **Open (owner, 0.1.852, issue #7 retest):** the level-up panel's background is now right, but its stat numbers use a wrong palette. Suspect: the D-17 fix's `EnablePaletteSync` in `MapLevelUpFrame` vs the number glyph palette load order (compare MC-cap3 f6760.. palette RAM). |
+| D-22 boss name palette | **Open (owner, 0.1.852, issue #7 retest):** the boss's name is drawn with a wrong palette (screen not stated; likely the unit window or battle box). Possibly related to D-20/D-21. |
 | D-20 after lord death | **Open (owner, 0.1.852, issue #7, screenshot there):** Eirika dies: death quote, unit removed, but no game over (expected: PC-7/PC-8); then enemy AI stops and menus/text use wrong palettes. |
-| #7 expected gaps | **Not bugs (0.1.852):** title class reel (D-15, M6-G); Item command (Ignore list); no game over on lord death (PC-7/PC-8). |
+| #7 expected gaps | **Not bugs (0.1.852):** title class reel (D-15, M6-G); Item command (Known gaps list); no game over on lord death (PC-7/PC-8). |
 | D-05 interactions | Expected missing gameplay; re-test when player actions are ported. |
 
 D-01–04, D-06, D-08, D-10 and normal portrait mouths are owner-confirmed solved.

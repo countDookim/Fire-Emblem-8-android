@@ -9,7 +9,7 @@ needs your ROM, imported on first start.
 
 | | Build | Date | Report |
 |---|---|---|---|
-| Latest APK | 0.1.852 (`5ee1049`) | 2026-11-23 | — |
+| Latest APK | 0.1.855 (`c4376eb`), CI building | 2026-11-23 | — |
 | Last owner test | 0.1.852 (`5ee1049`) | 2026-11-23 | [issue #7 retest](https://github.com/countDookim/Fire-Emblem-8-android/issues/7#issuecomment-7113627348) |
 | Last full pass | 0.1.622 (`22cfc9d`) | 2026-11-12 | HANDOFF "Device status" |
 
@@ -18,21 +18,26 @@ Items are removed from this page once the owner confirms them; the history is in
 
 ## 1. Test now
 
-Nothing new: every item up to 0.1.852 has been tested. New items appear here with the build that has them.
+Fixes for four bugs from [issue #7](https://github.com/countDookim/Fire-Emblem-8-android/issues/7) are in
+**0.1.855 (`c4376eb`) and later**. 0.1.852 does not have them. Play the Prologue's first turns.
+
+- **D-18 kill teleport:** kill an enemy with a player unit (Seth can on turn 1). Expected: after the fight
+  the attacker stays on his own tile and greys out there; the dead enemy fades out and never reappears.
+  Also check that after a fight where both units survive, both stay visible.
+- **D-19 battle box background:** let an enemy attack Eirika (End turn 1). Expected: the HP box has its
+  framed background, as when the player attacks.
+- **D-21 level-up numbers:** level a unit up. Expected: the stat numbers on the level-up panel have the
+  normal text colours (before, they used the dialogue font's colours after a battle quote).
+- **D-22 boss name:** attack the boss after his battle quote. Expected: his name in the HP box has the
+  normal text colours.
+- **D-20 after Eirika dies (check only):** the D-21/D-22 fix also resets the text after a death quote, so
+  the wrong menu and text colours may be gone. There is still no game over, and the enemy AI may still
+  stop; note what you see.
 
 ## 2. Open bugs (no fix yet)
 
-Reported on 0.1.852 in [issue #7](https://github.com/countDookim/Fire-Emblem-8-android/issues/7). No
-retest needed until a fix is announced.
-
-- **D-18 kill teleport:** when Seth kills a bandit, his sprite turns grey and briefly appears on the
-  bandit's tile before snapping back to his own; the bandit also reappears there for a split second.
-- **D-19 battle box background:** when an enemy starts the fight, the HP box has no background.
-- **D-20 after Eirika dies:** there is no game over yet (known gap), but afterwards the enemy AI stops and
-  menus and text use wrong palettes.
-- **D-21 level-up numbers:** the level-up panel's background is right now, but its stat numbers have the
-  wrong colours.
-- **D-22 boss name:** in the map battle's HP box, the boss's name is drawn with the wrong colours.
+- **D-20 after Eirika dies:** there is no game over yet (known gap), but on 0.1.852 the enemy AI stopped
+  afterwards and menus and text used wrong palettes. See the check above.
 
 ## 3. Known gaps (not bugs)
 

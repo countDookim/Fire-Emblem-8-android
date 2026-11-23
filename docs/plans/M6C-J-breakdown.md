@@ -1746,3 +1746,46 @@ PORT rows (each one window, <= 8 functions; verify-or-port against the `f`-windo
 `MuExists`, `MuStepSe_Init`, `UpdateMuStepSounds`, `PlayMuStepSe` start/foot-class), `PC-6l-e` W3a/W4
 `Event2F_MoveUnit`/`Event30_ENUN` full state (`gBmMapUnit`/`Other` per frame, not just end tiles) and W2/W3b `KILL`
 fade (`UnitKill`, `MU_StartDeathFade`, `MuDeathFade_OnLoop`, `StartMuHitFlash`).
+
+### BA-i2 result
+
+`BattleHitParseInventoryTest` (EWRAM dumps per step; no function-entry trace exists, so "observed" below means
+inferred from state before/after one step, not logged calls). Windows:
+
+| | `ram_trace_prologue_attack` | `ram_trace_prologue_battle` |
+|---|---|---|
+| Hit array final | f1430 (f1463 is mid-rewrite: only hit 0 kept, then final again) | f14430 |
+| Parse step (`gAnimRoundData`, `gEfxHpLut`, `gEkrInitialHitSide`, `gBanimValid`, `gEkrGaugeHp` all 0 before) | f1464 | f14431 |
+| `ekrBattle` proc (`gpProcEkrBattle`) -> anims | proc f1496, `gAnims[0..3]` set f1497 | proc f14467, anims f14468 |
+| Hits | 3: BEGIN 7, RETALIATION 9, FOLLOWUP 7, then END | 2: BEGIN+MISS, RETALIATION 17, then END |
+| `gAnimRoundData` (L,R per hit) | (6,0) (0,6) (6,0), rest 0xFFFF | (4,9) (0,6), rest 0xFFFF |
+| `gEfxHpLut` | 0x16 0x10 | 0xf 7 | 8 (rest 0xFFFF) | 0x22 0x1e | 0xFFFF 0xd |
+
+Both fights are `EKR_DISTANCE_CLOSE`, `gBanimPositionIsEnemy` = (1,0), so `gEkrInitialHitSide` = POS_R, triangle
+units NULL, `gEfxHpLutOff` 0; outputs are read-only to the window end. Actor setup: `gAnims` are four consecutive
+0x48 pool entries (`0x02028f78`), state ENABLED, y 0x58, x 0x5C (left pair) / 0x94 (right pair), `currentRoundType` 6
+(`ANIM_ROUND_TAKING_HIT_CLOSE`, the `InitMainAnims` CLOSE arm); `gEkrBgPosition` 0 (the `gEkrInitPosReal != 0` arm).
+`state2` is rewritten over the next frames (0x2400 -> 0x0400, 0x4500 later), not asserted.
+
+Functions run (inferred, branch in brackets): `PrepareBattleGraphicsMaybe` -> `ParseBattleHitToBanimCmd`
+[not PROMOTION, not REFRESH; no Runesword/axe far remap; per hit: non-crit non-silencer arm with
+`UnitHasMagicRank` false, MISS arm in the scripted window only; no TATTACK, no DEVIL; HP chain via `GetEfxHp`];
+`ekrBattle_Init` [`gEkrInitPosReal != 0`, ShouldCallBattleQuote; arena flag false -> timer 0x1E] ->
+`InitMainAnims` [CLOSE arm] -> `InitBattleAnimFrame` -> `InitLeftAnim`, `InitRightAnim` (both `gBanimValid`) ->
+`AnimCreate` x4, `RegisterEkrDragonStatusType`, `InitEkrDragonStatus`. Not run: PROMOTION/REFRESH returns, FAR and
+FARFAR arms, crit/silencer, devil, triangle attack, dragon.
+
+Existing Kotlin: `BanimPrepare.parseBattleHitToBanimCmd` (and `sub8055BC4`, `GetEfxHp`) is ported and verified by
+`BanimPrepareDifferentialTest` at three map-animation attacks (state after the call; same function and variables).
+The two animated windows add no new branch for it, only an extra check (rebuilt array, the CLOSE arm in an
+animation-on run). Nothing covers `ekrBattle_Init`, `InitMainAnims` and the Anim init (no Kotlin `Anim`/`AnimCreate`
+user in the battle path), and `gAnims` structures need `anime.c` (`AnimCreate`, `AnimDelete`, pool) first.
+
+Proposed rows:
+
+| ID | Kind | Task | Acceptance | Deps | Status |
+|---|---|---|---|---|---|
+| BA-p2a | PORT | Anim pool and `AnimCreate` for the two animated windows (anime.c: `AnimCreate`, `AnimInit`/pool helpers it runs, <= 8 functions) | `gAnims` structs 0x48 stride, f1497 and f14468 Anim bytes (state, x, y, timer, oam2Base, priority, round type) equal the dumps | BA-i2 | todo |
+| BA-p2b | PORT | `InitMainAnims`, `InitBattleAnimFrame`, `InitLeftAnim`, `InitRightAnim` (CLOSE arm only) | `gAnims[0..3]` and `gEkrXPos*/YPos*Real/Base`, `gEfxHpLutOff` equal the dumps at f1497 and f14468; first-frame `state2` compare; mutation checked | BA-p2a | todo |
+| BA-p2c | PORT | `ekrBattle_Init` (+ `RegisterEkrDragonStatusType`, `InitEkrDragonStatus`, `ShouldCallBattleQuote`) | `gEkrBgPosition`, `gCtrlC01Blocking`, proc timer/is_quote/unk58 at f1496 and f14467 equal the dumps; the scripted quote branch (Talk f14480) vs the attack's | BA-p2b | todo |
+| BA-cap2 | CAP | Parse variants: crit, far/runesword, devil, triangle, REFRESH, PROMOTION battle-animation windows | Hit array and `gAnimRoundData`/`gEfxHpLut` dumps at the parse step per variant | BA-i2 | todo |

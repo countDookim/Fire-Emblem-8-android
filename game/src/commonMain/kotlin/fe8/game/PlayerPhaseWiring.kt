@@ -391,15 +391,19 @@ internal class PlayerPhaseWiring(
     }
 
     /**
-     * `GetUnitWeaponUsabilityBits` for the weapon bit only: 1 when the unit holds a weapon it can
-     * wield now, else 0. Stand-in until M6-C (the staff bit needs `CanUnitUseStaff`).
+     * Transcribed from src/bmunit.c: GetUnitWeaponUsabilityBits (not verified: no magic-seal
+     *   capture; the staff bit is omitted until M6-C, which needs `CanUnitUseStaff`)
+     *
+     * The weapon bit only: [USEBIT_WEAPON] when the unit holds a weapon passing
+     * [UnitLoader.canUnitUseWeapon], else 0. Like the C it uses `CanUnitUseWeapon`, not
+     * `CanUnitUseWeaponNow`, so a magic seal on the unit's tile does not clear the bit.
      */
-    private fun weaponUsabilityBits(unit: Int): Int {
+    internal fun weaponUsabilityBits(unit: Int): Int {
         val o = units.unitOffset(unit)
         for (i in 0 until UnitLoader.UNIT_ITEM_COUNT) {
             val item = units.item(unit, i) and 0xFFFF
             if (item == 0) break
-            if (unitMenu.canUnitUseWeaponNow(o, item)) return USEBIT_WEAPON
+            if (unitLoader.canUnitUseWeapon(o, item)) return USEBIT_WEAPON
         }
         return 0
     }

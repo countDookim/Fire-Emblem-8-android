@@ -7,12 +7,13 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 747 across 105 decomp files (missing reason: 0).
+Total entries: 748 across 105 decomp files (missing reason: 0).
 
-## src/bmunit.c (36)
+## src/bmunit.c (37)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
+| `GetUnitWeaponUsabilityBits` | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | no magic-seal capture; the staff bit is omitted until M6-C, which needs `CanUnitUseStaff` |
 | `GetUnitPower` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a power bonus item, so the bonus term is not exercised |
 | `GetUnitSkill` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
 | `GetUnitSpeed` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |

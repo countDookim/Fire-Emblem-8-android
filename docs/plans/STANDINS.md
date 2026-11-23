@@ -10,12 +10,12 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 237 across 52 Kotlin files.
+Total entries: 236 across 52 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 13 |
-| M6-C | 6 |
+| M6-C | 5 |
 | M6-D | 13 |
 | M6-E | 42 |
 | M6-F | 16 |
@@ -57,11 +57,10 @@ Total entries: 237 across 52 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/save/SuspendRam.kt` | `SuspendRam` | The only things held here are buffers that have no owner yet (the stand-ins [actionData] and [menuOverride] until M6-B, [traps] until M6-H, [worldMapStuff] when [gmData] is null and [dungeonState]... |
 | `game/src/commonMain/kotlin/fe8/game/save/SuspendRam.kt` | `SuspendRam` | The save packs these into 0xB0 bytes. @property gmData Optional `gGMData` world map state; when non-null, `WriteSuspendSave` serializes it via [BmSaveGmap.writeWorldMapStuff] instead of copying the... |
 
-## M6-C (6)
+## M6-C (5)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `weaponUsabilityBits` | Stand-in until M6-C (the staff bit needs `CanUnitUseStaff`). |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wire` | Sets every hook of [phase] that has a ported implementation; the rest keeps its default (stand-ins, M6-C to M6-I, listed on [PlayerPhase.Hooks]). |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireStandIns` | The hooks left at their defaults are stand-ins that never block the phase: the cursor, unit menu and Wait keep working; the plan rows are on the hooks' declarations in [PlayerPhase.Hooks] (`M6-C`,... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `generateAttackRange` | `Fe8Boot` sets it (`PlayerPhaseWiring`) with the weapon case of `AttackRange.generateUnitCompleteAttackRange`; the staff range and `GenerateMagicSealMap` are a stand-in until M6-C. |

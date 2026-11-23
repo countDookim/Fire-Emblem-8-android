@@ -8,7 +8,7 @@ Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
 Nothing blocks development. Owner tests of 0.1.852 (issue #7, 11-23): the whole Prologue turn-1 walkthrough
 (PP-17, closes M6-B), enemy phase, crit and miss, cutscene skips, APP-icon2, D-16 and the D-17 level-up panel background
-are OK. D-18, D-19, D-21, D-22 fixed after it (device check on 0.1.855, MANUAL_TEST "Test now"); D-20 open
+are OK. D-18, D-19, D-21, D-22 fixed after it (device check on 0.1.856, MANUAL_TEST "Test now"); D-20 open
 (maybe partly fixed by the D-22 font reset); rest expected gaps (Device status).
 Extensive modding scope, separate vanilla tests and replaceable camera/controls/AI are accepted (ADR 0016).
 [M7 decisions](docs/plans/M7-modding.md): release staging (D2), API details (D5), layout/debug/storage/packaging
@@ -24,7 +24,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 ## Current state
 
 - 2026-11-23 ~23:00Z owner PC Claude (2 Sonnet agents): **D-19, D-21, D-22, D-18 fixed; device check pending
-  (0.1.855)**. D-19: `setDefaultColorEffects` (SetBlendNone) was a no-op, the enemy phase's alpha blend hid the
+  (0.1.856)**. D-19: `setDefaultColorEffects` (SetBlendNone) was a no-op, the enemy phase's alpha blend hid the
   box (38cf8ba). D-22 + D-21: `Fe8Boot` never overrode `EventEngineHooks.resetTextFont` (EventEngine_OnEnd), so
   after a quote the talk font (bank 2) stayed active for battle-box names and level-up numbers (38cf8ba,
   `MapLevelUpTextFontTest` 2b3d72a). D-18: `MapAnimApi` stand-in `afterCleanup` ended MUs at cleanup (attacker
@@ -312,10 +312,10 @@ Close an issue only after reference verification and owner confirmation; preserv
 | APP-icon2 | **Confirmed by the owner on 0.1.852 (issue #7 retest, 11-23).** |
 | #6 expected gaps | **Not bugs (0.1.793):** only Attack and End act in the unit/map menus (MANUAL_TEST "Known gaps"); no battle animations (M6-G); boss never moves (boss turn / one-enemy-left events EP-11; capture shows the boss idle until then); after the last enemy dies the ending dialogue plays and the map stays (post-chapter teardown, save menu and Ch1 start PC-3a..PC-5 not wired). APP-icon confirmed (quick check). No-animation combat (hits, damage, exp, level-up) looked right at a glance, not emulator-compared; growths unchecked; miss and crit confirmed on 0.1.852. |
 | EP-w enemy phase | **Confirmed by the owner on 0.1.852 (issue #7):** bandits move and attack on their turn. Unit select (A shows ranges, A menu, B deselect) also OK. |
-| D-18 kill teleport | **Fix c4376eb, owner device check pending (0.1.855).** Was: open (owner, 0.1.852, issue #7): Seth killed a bandit (tile below him); Seth's sprite went grey and briefly showed on the bandit's tile before snapping back. Suspects: map anim/MU end restoring the wrong unit position or the dead-unit grey (`UNIT_STATUS` refresh) on the actor; compare `ram_trace_prologue_kill`. **Still on retest (11-23):** Seth flashes onto the defeated enemy's tile, and the enemy unit also reappears there for a split second. |
-| D-19 battle box BG | **Fix 38cf8ba, owner device check pending (0.1.855).** Was: open (owner, 0.1.852, issue #7): enemy-initiated battle (bandit on Eirika): map battle HP info box drawn without its background. Build includes the D-17 fix; check `MapAnimInfoBox` gradient/BG sync on the enemy-phase path. **Still on retest (11-23).** |
-| D-21 level-up numbers | **Fix 38cf8ba (test 2b3d72a), owner device check pending (0.1.855).** Was: open (owner, 0.1.852, issue #7 retest): the level-up panel's background is now right, but its stat numbers use a wrong palette. Suspect: the D-17 fix's `EnablePaletteSync` in `MapLevelUpFrame` vs the number glyph palette load order (compare MC-cap3 f6760.. palette RAM). |
-| D-22 boss name palette | **Fix 38cf8ba, owner device check pending (0.1.855).** Was: open (owner, 0.1.852, issue #7 retest): the boss's name is drawn with a wrong palette in the map battle HP box (owner 11-23). Check the name text palette in `MapAnimInfoBox` for the boss; possibly related to D-19 (same box) or D-21. |
+| D-18 kill teleport | **Fix c4376eb, owner device check pending (0.1.856).** Was: open (owner, 0.1.852, issue #7): Seth killed a bandit (tile below him); Seth's sprite went grey and briefly showed on the bandit's tile before snapping back. Suspects: map anim/MU end restoring the wrong unit position or the dead-unit grey (`UNIT_STATUS` refresh) on the actor; compare `ram_trace_prologue_kill`. **Still on retest (11-23):** Seth flashes onto the defeated enemy's tile, and the enemy unit also reappears there for a split second. |
+| D-19 battle box BG | **Fix 38cf8ba, owner device check pending (0.1.856).** Was: open (owner, 0.1.852, issue #7): enemy-initiated battle (bandit on Eirika): map battle HP info box drawn without its background. Build includes the D-17 fix; check `MapAnimInfoBox` gradient/BG sync on the enemy-phase path. **Still on retest (11-23).** |
+| D-21 level-up numbers | **Fix 38cf8ba (test 2b3d72a), owner device check pending (0.1.856).** Was: open (owner, 0.1.852, issue #7 retest): the level-up panel's background is now right, but its stat numbers use a wrong palette. Suspect: the D-17 fix's `EnablePaletteSync` in `MapLevelUpFrame` vs the number glyph palette load order (compare MC-cap3 f6760.. palette RAM). |
+| D-22 boss name palette | **Fix 38cf8ba, owner device check pending (0.1.856).** Was: open (owner, 0.1.852, issue #7 retest): the boss's name is drawn with a wrong palette in the map battle HP box (owner 11-23). Check the name text palette in `MapAnimInfoBox` for the boss; possibly related to D-19 (same box) or D-21. |
 | D-20 after lord death | **Open (owner, 0.1.852, issue #7, screenshot there):** Eirika dies: death quote, unit removed, but no game over (expected: PC-7/PC-8); then enemy AI stops and menus/text use wrong palettes. |
 | #7 expected gaps | **Not bugs (0.1.852):** title class reel (D-15, M6-G); Item command (Known gaps list); no game over on lord death (PC-7/PC-8). |
 | D-05 interactions | Expected missing gameplay; re-test when player actions are ported. |

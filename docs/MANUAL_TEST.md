@@ -9,7 +9,7 @@ needs your ROM, imported on first start.
 
 | | Build | Date | Report |
 |---|---|---|---|
-| Latest APK | 0.1.855 (`c4376eb`), CI building | 2026-11-23 | — |
+| Latest APK | 0.1.856 (`50943a9`) | 2026-11-23 | — |
 | Last owner test | 0.1.852 (`5ee1049`) | 2026-11-23 | [issue #7 retest](https://github.com/countDookim/Fire-Emblem-8-android/issues/7#issuecomment-7113627348) |
 | Last full pass | 0.1.622 (`22cfc9d`) | 2026-11-12 | HANDOFF "Device status" |
 
@@ -19,7 +19,7 @@ Items are removed from this page once the owner confirms them; the history is in
 ## 1. Test now
 
 Fixes for four bugs from [issue #7](https://github.com/countDookim/Fire-Emblem-8-android/issues/7) are in
-**0.1.855 (`c4376eb`) and later**. 0.1.852 does not have them. Play the Prologue's first turns.
+**0.1.856 (`50943a9`) and later**. 0.1.852 does not have them. Play the Prologue's first turns.
 
 - **D-18 kill teleport:** kill an enemy with a player unit (Seth can on turn 1). Expected: after the fight
   the attacker stays on his own tile and greys out there; the dead enemy fades out and never reappears.

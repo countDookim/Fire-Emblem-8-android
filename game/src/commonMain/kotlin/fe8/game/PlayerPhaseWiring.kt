@@ -461,6 +461,9 @@ internal class PlayerPhaseWiring(
         mapAnim.hooks.spritePalette = { id -> handles.getUnitSpritePalette(id) }
         mapAnim.hooks.eventEngineExists = eventEngineExists
         mapAnim.hooks.resetText = { talk.text.resetText() }
+        // `SetDefaultColorEffects` is `SetBlendNone`: without it the info box keeps the blend
+        // the enemy phase left (alpha on BG1), which hides the frame (D-19).
+        mapAnim.hooks.setDefaultColorEffects = { hw.lcd.setBlendConfig(0, 0x10, 0, 0) }
         mapAnim.hooks.battleEventEngineExists = battleEventEngineExists
         val spacialSe = SpacialSe(sound)
         mapAnim.hooks.playSeSpacial = fe8.game.bm.SeSpacial { song, x ->

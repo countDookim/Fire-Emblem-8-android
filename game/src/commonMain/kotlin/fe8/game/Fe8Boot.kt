@@ -423,6 +423,16 @@ public class Fe8Boot(
                 screenFade.startLockingFadeToBlack(speed, parent)
             }
             override fun blendY(): Int = hw.lcd.blendY
+
+            // `SetTextFont(NULL)`, `InitSystemTextFont`, `LoadUiFrameGraphics`: without it the
+            // talk font of a battle quote stays active and the map battle names use its palette
+            // bank (D-22).
+            override fun resetTextFont() {
+                if (!rom.isWholeRom) return
+                talkScene.text.setTextFont(null)
+                talkScene.text.initSystemTextFont()
+                UiFrame.loadUiFrameGraphics(hw, rom, control.playSt.windowColor)
+            }
             override fun lockGame() { loop.lockGame() }
             override fun freezeMenu() { playerWiring?.menu?.freezeMenu() }
             // `UnlockGame`, `ResumeMenu`, `ResetBkselPalette` (`ClearCutsceneUnits` is EP-11h

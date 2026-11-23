@@ -20,6 +20,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- D-21, D-19+D-22 (then D-18): owner PC Claude (2 Sonnet agents), until ~00:13Z
 
 ## Current state
 

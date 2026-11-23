@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-23 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -18,10 +18,15 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-4: scheduled, until ~11:30Z
-- BUG-charknown: scheduled, until ~11:30Z
 
 ## Current state
+
+- 2026-11-23 ~11:20Z scheduled (Sonnet agents): **PC-4 partial**: new `SaveMenuAssembly` applies every
+  `SaveMenuPostChapter.wire*`; `Fe8Boot.postChapterSaveMenu` sets `makeSaveMenuPostChapter` (whole ROM).
+  `PostChapterSaveMenuWireTest`: wired loop's real slot-0 write equals s09802 except M6-I stand-ins (RN, WM stuff,
+  0x84B, checksums) and BUG-suspinval (new row). Still stand-ins: sub-box/options hooks, `readGameSave`, WM-node hooks;
+  not run end to end. **BA-0 done** (`BattleAnimationWindowInventoryTest` 5 ok; "BA-0 result"; BA-i7 needs capture).
+  **BUG-charknown done**. Full jvmTest 819: 3 fails were a concurrent-build race, rerun green. Decomp needs `git -C .assets/decomp sparse-checkout add /src /include` (still sparse).
 
 - 2026-11-23 ~05:30Z scheduled (Sonnet agents): **PC-4g done** (bf25eba): `PostSaveMenuHandler` INVALID branch
   verified f9862->f9863 in `SaveDrawLifecycleDifferentialTest`; HBlank/menu-end hooks redundant in this window.

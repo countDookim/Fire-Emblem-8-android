@@ -37,8 +37,17 @@ public class Anim {
     /** `state3` (0x10). */
     public var state3: Int = 0
 
+    /** `unk13` (0x13): the FRAME instruction's byte 2. */
+    public var unk13: Int = 0
+
     /** `commandQueueSize` (0x14). */
     public var commandQueueSize: Int = 0
+
+    /** `commandQueue[7]` (0x15..0x1B), one command id byte per entry. */
+    public val commandQueue: IntArray = IntArray(COMMAND_QUEUE_CAPACITY)
+
+    /** `pImgSheet` (0x28), set by a FRAME instruction. */
+    public var pImgSheet: Int = 0
 
     /** `oamBase` (0x1C). */
     public var oamBase: Int = 0
@@ -55,6 +64,9 @@ public class Anim {
     /** `pSpriteDataPool` (0x30). */
     public var pSpriteDataPool: Int = 0
 
+    /** `pSpriteData` (0x3C), set by a FRAME or forced-sprite instruction. */
+    public var pSpriteData: Int = 0
+
     /** `pPrev` (0x34), previous entry of the priority list. */
     public var pPrev: Anim? = null
 
@@ -66,6 +78,12 @@ public class Anim {
 
     /** `pUnk44` (0x44). */
     public var pUnk44: Int = 0
+
+    /** Queue capacity. */
+    public companion object {
+        /** `sizeof(commandQueue)`. */
+        public const val COMMAND_QUEUE_CAPACITY: Int = 7
+    }
 }
 
 /**

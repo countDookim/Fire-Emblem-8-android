@@ -32,7 +32,7 @@ public class MenuTargets(
 
         /**
          * `CanUnitSupportNow(unit, num)` (src/bmreliance.c): whether unit [unit] can have the
-         * support conversation with its supporter [num] now.
+         * support talk with its supporter [num] now.
          * Stand-in until EP-10c ports it with a support capture (EP10c-cap); no capture reaches it.
          */
         public var canUnitSupportNow: (unit: Int, num: Int) -> Boolean = { _, _ -> false }

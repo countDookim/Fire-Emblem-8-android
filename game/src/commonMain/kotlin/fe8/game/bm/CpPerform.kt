@@ -55,7 +55,7 @@ public class AiTargetCursorState {
 }
 
 /**
- * What an enemy-phase AI unit does once [CpDecide] has chosen its move and action
+ * The steps an enemy-phase AI unit performs once [CpDecide] has chosen its move and action
  * (`gProcScr_CpPerform`, ROM 0x085A8024, src/cp_perform.c): the camera goes onto the unit, the
  * unit walks (an MU along the best path to the decided tile), the camera goes onto the action's
  * target with the target cursor `gProcScr_AiTargetCursor` (0x085A8004), the action runs, and the

@@ -29,21 +29,37 @@ import gbafe.text.TextSystem
 public object SaveMenuAssembly {
     /** The shared game objects the save menu runs on. */
     public class Deps(
+        /** Proc engine the menu procs run on. */
         public val engine: ProcEngine,
+        /** BG/palette hardware buffers. */
         public val hardware: BgHardware,
+        /** ROM view for graphics and tables. */
         public val rom: RomView,
+        /** OAM buffer. */
         public val oam: OamBuffer,
+        /** Sprite layers. */
         public val layers: SpriteLayers,
+        /** BG vertical scroll procs. */
         public val scroll: BgVerticalScroll,
+        /** AP (sprite animation) procs. */
         public val apProcs: ApProcs,
+        /** `gPlaySt`. */
         public val playSt: PlaySt,
+        /** `gBmSt`. */
         public val bmSt: BmSt,
+        /** World map data (`gGMData`). */
         public val gmData: GmData,
+        /** SRAM save helpers. */
         public val saveLib: BmSaveLib,
+        /** Archived palette fade procs. */
         public val archivedFade: ArchivedPaletteFade,
+        /** Chapter title drawing. */
         public val chapterTitle: ChapterTitle,
+        /** Text system. */
         public val text: TextSystem,
+        /** Message strings. */
         public val messages: MsgStrings,
+        /** LCG random generator. */
         public val lcg: LcgRng,
         /** `LoadObjUIGfx`. */
         public val loadObjUiGfx: () -> Unit,
@@ -61,12 +77,19 @@ public object SaveMenuAssembly {
 
     /** What [assemble] built, so callers (and tests) can reach the wired parts. */
     public class Result(
+        /** The `ProcScr_SaveMenuPostChapter` menu. */
         public val menu: SaveMenuPostChapter,
+        /** The save draw lifecycle procs. */
         public val lifecycle: SaveDrawLifecycle,
+        /** Slot box drawing. */
         public val slots: SaveDrawSlots,
+        /** Save draw effects. */
         public val effects: SaveDrawEffects,
+        /** Post-write slot flip. */
         public val flip: SaveMenuSlotFlip,
+        /** Slot select and confirm loop. */
         public val selectLoop: SaveMenuSelectLoop,
+        /** Per-slot display data. */
         public val slotData: SaveSlotData,
     )
 

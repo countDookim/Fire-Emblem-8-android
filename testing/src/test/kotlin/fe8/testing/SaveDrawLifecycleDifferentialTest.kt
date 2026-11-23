@@ -358,7 +358,7 @@ class SaveDrawLifecycleDifferentialTest {
     }
 
     @Test
-    @VerifiesPort("SaveDraw_OnEnd", "EndBgVerticalScroll")
+    @VerifiesPort("SaveDraw_OnEnd", "EndBgVerticalScroll", "PostSaveMenuHandler")
     fun `exit at f9862 to f9863 ends savedraw, cursor, and HBlank scroll`() {
         val h = createHarness()
         val ew9862 = h.run.region("r09862", "ewram")
@@ -378,11 +378,15 @@ class SaveDrawLifecycleDifferentialTest {
         gameControl.idleCb = null
         val gcNextAction = gc9862.u8(GC_NEXT_ACTION)
         var recordedAction = gcNextAction
+        var setActionCalls = 0
 
         val postSaveMenu = PostSaveMenu(
             h.playSt,
             h.saveLib,
-            setNextGameActionId = { recordedAction = it },
+            setNextGameActionId = {
+                recordedAction = it
+                setActionCalls++
+            },
         )
         h.menu.wireSaveDraw(h.lifecycle, postSaveMenu)
 
@@ -411,6 +415,11 @@ class SaveDrawLifecycleDifferentialTest {
         assertNull(h.engine.find(h.lifecycle.script), "ProcScr_savedraw ended at f9863")
         assertNull(h.engine.find(h.cursor.script), "gProcScr_SaveDrawCursor ended at f9863")
         assertEquals(gc9863.u8(PROC_LOCK_CNT), gameControl.lockCnt, "GameControl unlocked")
+        // MAIN_MENU_OPTION_INVALID branch: no choice made, so no next action is set.
+        assertEquals(PostSaveMenu.MAIN_MENU_OPTION_INVALID, sm9862.u16(SM_MAIN_SEL_BITFILE))
+        assertEquals(0, setActionCalls, "INVALID branch sets no next action")
+        assertEquals(2, gc9863.u8(GC_NEXT_ACTION), "captured nextAction at f9863")
+        assertEquals(gc9862.u8(GC_NEXT_ACTION), gc9863.u8(GC_NEXT_ACTION), "capture unchanged")
         assertEquals(gc9863.u8(GC_NEXT_ACTION), recordedAction, "nextAction untouched")
 
         assertEquals(0, u32(iw9863, ADDR_HBLANK1 - IWRAM), "captured sHBlankHandler1 == 0")

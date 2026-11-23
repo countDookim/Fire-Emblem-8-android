@@ -61,7 +61,7 @@ Retest these only when a change to them is announced.
 - **Opening and title:**
   - Idling on the title replays the opening instead of the class showcase (D-15, M6-G).
   - The chapter intro's closing sound-effect fade is missing.
-  - There are no world-map node icons.
+  - World-map node icons are missing.
   - New Game always uses Normal difficulty.
 - **Popups:** only the Rapier item popup is confirmed; the other branches are low priority (D09-3).
 

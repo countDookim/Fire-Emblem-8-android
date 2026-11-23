@@ -30,7 +30,7 @@ A native Kotlin reimplementation of *Fire Emblem: The Sacred Stones* (GBA, USA) 
 [fireemblem8u decomp](https://github.com/FireEmblemUniverse/fireemblem8u) and checked against the original
 game running in headless mGBA.
 
-You must own the game. This repository contains no ROM data, and no APK (debug or release) bundles game
+Owning the game is required. This repository contains no ROM data, and no APK (debug or release) bundles game
 data: the app extracts everything from your own ROM on the device
 ([decision 0011](docs/decisions/0011-player-supplied-rom.md)).
 

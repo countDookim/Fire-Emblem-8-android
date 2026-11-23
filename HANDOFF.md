@@ -20,6 +20,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 - PC-4g: scheduled, until ~05:40Z
 - D-16: scheduled, until ~05:40Z
+- BUG-wpnbits: scheduled, until ~05:40Z
 
 ## Current state
 

@@ -142,8 +142,7 @@ class MapLevelUpStatsDifferentialTest {
         frame.putManimLevelUpFrame(0, 1, 1)
         // BG_EnableSyncByMask(BG0 + BG1) and ApplyPalette's EnablePaletteSync: the original's
         // BG1 map and palette reach VRAM at the next VBlank (captured below at f6520).
-        assertEquals(3, hardware.modifiedBgs, "BG0+BG1 sync requested")
-        assertTrue(hardware.modifiedPalette, "palette sync requested")
+        assertSyncRequested(hardware, bgMask = 3, palette = true, message = "level-up frame")
         for (stat in 0..8) stats.putManimLevelUpStat(0, 1, 1, stat, false)
         assertArrayEquals(
             ShortArray(1024) { u16(after, bg0Address + 2 * it).toShort() }, bg0, "BG0",

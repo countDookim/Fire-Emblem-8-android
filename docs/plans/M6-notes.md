@@ -159,3 +159,27 @@ Break-check: dropping the BG1 bit fails it; restored, green.
 `OpAnim.kt` also takes `palette: ShortArray`. Audit rule: for every port that writes a BG buffer or
 `hardware.palette`, the C's `EnablePaletteSync` / `BG_EnableSyncByMask` must appear in Kotlin;
 differential tests should assert `modifiedBgs`/`modifiedPalette` or the VRAM/PRAM dump after a flush.
+
+## AUD-SYNC result: BG/palette sync requests vs the C (2026-11-23)
+
+Method: for every Kotlin file with `Ported from`/`Transcribed from src/*.c: Func` lines, a script
+(not committed) counted `EnablePaletteSync` / `BG_EnableSyncByMask` / `BG_EnableSync` /
+`ApplyPalette(s)` calls in the cited C functions and compared with Kotlin `enablePaletteSync` /
+`enableBgSyncByMask` calls in that file; every file with fewer Kotlin than C calls was read by hand
+(the count over-reports: `ApplyPalette` + `EnablePaletteSync` pairs and shared helpers).
+
+| C | Kotlin | Gap | Impact |
+|---|---|---|---|
+| mapanim_lvupfx.c:35 `BG_EnableSyncByMask(BG0\|BG1)`, `ApplyPalette` | `MapLevelUpFrame.kt` (before c7658cf) | no sync requests | level-up BG1 frame/palette missing or late; fixed (D-17) |
+
+No other gap found. Checked OK (sync present directly or in the host/caller): `PhaseIntro`,
+`ChapterIntro`, `OpSubtitle*` (Transitions, Scenes, Slides, Flare, Setup), `BmMapRender`,
+`BmxFade`, `PopupScript` (`GfxClear`; `GeneratePopupText`'s sync is covered by `drawUiFrame2`),
+`WorldMapMuEntry`, `WorldMapCursor`, `WorldMapRoute`, `ItemIcon`, `Mu` (`applyPalette` hook wired
+in `Fe8Boot`), `TalkFace` (`host.applyPalette` in `TalkScene` syncs), `EventTextBg`
+(`Fe8Boot.loadConvoBackground` syncs), `EventText` (via `talkBgSync`), `MapLevelUpAnnouncement`,
+`MapLevelUpGainLabels`, `MapLevelUpLabelColor`, `MapAnimInfoBox`, `MapAnimExpBar`.
+Residual risks: `TalkFace.startFace` skips the `FACE_DISP_BIT_13` branch (zero-fill + sync; no
+caller sets it yet); `EventTextBgHost.displayCg` and the fade procs are no-op stand-ins (M6-E);
+`Popup.generatePopupText` relies on the frame draw having flagged BG0/BG1. Tests that compare only
+EWRAM buffers cannot see this class of bug; use `assertSyncRequested` (testing/`SyncAssert.kt`).

@@ -138,4 +138,162 @@ class MapBattleBoxGameLoopTest {
             assertEquals(want, hw.palette[i].toInt() and 0xFFFF, "BG palette bank 0 colour $i")
         }
     }
+
+    @Test
+    fun `player kill keeps the attacker moveunit until the action ends`() {
+        assumeTrue(available(), "reference data / ROM")
+        val run = ref.run("ram_trace_prologue_kill")
+        val names = ProcArrayDump.romNames()
+        val trace = run.watch("procs")
+        val idleFrame = (1100 until 2020).first {
+            ProcArrayDump.ofWatch(trace, it, names).find("gProcScr_PlayerPhase")?.scrCur == 16
+        }
+        // Capture: Seth's MU lives until f2005, the step his state loses HIDDEN (state 1 -> 2).
+        val unit0 = run.watch("unit0")
+        assertEquals(1, unit0.u8(2004, 0x0C), "capture: attacker hidden at f2004")
+        assertTrue(ProcArrayDump.ofWatch(trace, 2004, names).live.any { it.name == "ProcScr_Mu" })
+        assertEquals(2, unit0.u8(2005, 0x0C), "capture: attacker acted at f2005")
+        assertTrue(ProcArrayDump.ofWatch(trace, 2005, names).live.none { it.name == "ProcScr_Mu" })
+        var frame = 0
+        var idleAt = -1
+        val boot = boot("ram_trace_prologue_kill", { frame }, { idleAt }, idleFrame)
+        var attacker = -1
+        var combatSeen = false
+        var hiddenWithoutMu = 0
+        while (frame < 3000) {
+            boot.frame()
+            frame++
+            if (idleAt < 0 && boot.engine.find(boot.playerPhaseScript)?.scrCur == 16) idleAt = frame
+            if (idleAt < 0) continue
+            val combat = boot.engine.procs.any { it.script?.name == "sProcScr_CombatAction" }
+            if (combat && attacker < 0) {
+                // The unit hidden while its MOVEUNIT acts.
+                attacker = (1..0x3E).first {
+                    boot.units.isValid(it) && boot.units.state(it) and 1 != 0
+                }
+            }
+            if (combat) combatSeen = true
+            if (!combatSeen) continue
+            val mu = boot.engine.procs.any { it.script?.name == "ProcScr_Mu" }
+            if (boot.units.state(attacker) and 1 != 0 && !mu) hiddenWithoutMu++
+            if (!combat && boot.engine.find(boot.playerPhaseScript)?.scrCur == 16) break
+        }
+        assertTrue(combatSeen, "no combat")
+        assertEquals(0, hiddenWithoutMu, "frames the attacker is hidden with no MOVEUNIT")
+    }
+
+    /** One frame of the fight's tail: hidden units (`US_HIDDEN`), MOVEUNIT count and procs. */
+    private data class Tail(val hidden: List<Int>, val mus: Int, val procs: List<String>)
+
+    private val tailProcs = setOf(
+        "ProcScr_MapAnimBattle", "sProcScr_CombatAction", "ProcScr_MapAnimExpBar",
+        "ProcScr_MapBattleInfoBox", "gProcScr_CpPerform", "ProcScr_MuDeathFade",
+    )
+
+    private fun collapse(tail: List<Tail>): List<Tail> =
+        tail.filterIndexed { i, t -> i == 0 || tail[i - 1] != t }
+
+    /** The capture's tail from the first step [from] without `ProcScr_MapAnimBattle`. */
+    private fun captureTail(runName: String, from: Int, steps: Int): List<Tail> {
+        val run = ref.run(runName)
+        val names = ProcArrayDump.romNames()
+        val trace = run.watch("procs")
+        val dumpOfStep = run.dumps.entries.associate { (dump, step) -> step to dump }
+        val out = ArrayList<Tail>()
+        for (step in from until from + steps) {
+            val d = ProcArrayDump.ofWatch(trace, step, names)
+            val dump = dumpOfStep[step]
+            val hidden = if (dump == null) out.lastOrNull()?.hidden ?: emptyList() else {
+                val table = fe8.game.bm.UnitTable(RomView.ofRom(ByteArray(0)))
+                table.loadFrom(run.region(dump, "ewram"))
+                (1..0x3E).plus(0x81..0xA0).filter {
+                    table.isValid(it) && table.state(it) and 1 != 0
+                }
+            }
+            out += Tail(
+                hidden, d.live.count { it.name == "ProcScr_Mu" },
+                d.live.mapNotNull { it.name }.filter { it in tailProcs }.sorted(),
+            )
+        }
+        return out
+    }
+
+    /** The tail from the experience bar to the first frame with no fight proc and no MU. */
+    private fun trim(tail: List<Tail>): List<Tail> {
+        val from = collapse(tail).dropWhile { "ProcScr_MapAnimExpBar" !in it.procs }
+        val end = from.indexOfFirst { it.procs.isEmpty() && it.mus == 0 }
+        return from.take(end + 1)
+    }
+
+    /** Units whose sprite handle has the hide bit (`ShowUnitSprite` clears it), by reflection. */
+    private fun spriteHidden(boot: Fe8Boot): List<Int> {
+        val field = Fe8Boot::class.java.getDeclaredField("spriteHandles").also { it.isAccessible = true }
+        val handles = field.get(boot) as fe8.game.bm.UnitSpriteHandles
+        return (1..0x3E).plus(0x81..0xA0).filter { id ->
+            if (!boot.units.isValid(id)) return@filter false
+            val o = boot.units.unitOffset(id) + 0x3C
+            val b = boot.units.bytes
+            val addr = (b[o].toInt() and 255) or ((b[o + 1].toInt() and 255) shl 8) or
+                ((b[o + 2].toInt() and 255) shl 16) or ((b[o + 3].toInt() and 255) shl 24)
+            addr != 0 && handles.handles[(addr - 0x0203A018) /
+                12 * 12 + 0xB].toInt() and 0x80 != 0
+        }
+    }
+
+    private var spritesHiddenAtEnd: List<Int> = emptyList()
+
+    private fun portTail(runName: String, idleFrame: Int, fromEnemyPhase: Boolean): List<Tail> {
+        var frame = 0
+        var idleAt = -1
+        val boot = boot(runName, { frame }, { idleAt }, idleFrame)
+        val out = ArrayList<Tail>()
+        var combatSeen = false
+        while (frame < 4000) {
+            boot.frame()
+            frame++
+            if (idleAt < 0 && boot.engine.find(boot.playerPhaseScript)?.scrCur == 16) idleAt = frame
+            if (idleAt < 0) continue
+            val procs = boot.engine.procs.mapNotNull { it.script?.name }
+            if ("sProcScr_CombatAction" in procs) combatSeen = true
+            if (!combatSeen) continue
+            val hidden = (1..0x3E).plus(0x81..0xA0).filter {
+                boot.units.isValid(it) && boot.units.state(it) and 1 != 0
+            }
+            val mus = procs.count { it == "ProcScr_Mu" }
+            out += Tail(hidden, mus, procs.filter { it in tailProcs }.sorted())
+            if (out.size > 5 && "ProcScr_MapAnimExpBar" in out.flatMap { it.procs } &&
+                procs.none { it in tailProcs } && mus == 0
+            ) {
+                spritesHiddenAtEnd = spriteHidden(boot)
+                break
+            }
+        }
+        return out
+    }
+
+    private fun assertTailMatches(runName: String, from: Int, steps: Int) {
+        val run = ref.run(runName)
+        val names = ProcArrayDump.romNames()
+        val trace = run.watch("procs")
+        val idleFrame = (1100 until 1525).first {
+            ProcArrayDump.ofWatch(trace, it, names).find("gProcScr_PlayerPhase")?.scrCur == 16
+        }
+        val want = trim(captureTail(runName, from, steps))
+        val got = trim(portTail(runName, idleFrame, false))
+        assertEquals(want, got, "$runName: hidden units, MOVEUNITs and procs after the fight")
+        assertTrue(got.last().hidden.isEmpty(), "everyone visible at the end")
+        assertEquals(emptyList<Int>(), spritesHiddenAtEnd, "unit sprites still hidden at the end")
+    }
+
+    @Test
+    fun `enemy attack tail matches the capture`() {
+        assumeTrue(available(), "reference data / ROM")
+        assertTailMatches("ram_trace_prologue_enemy_phase", 1880, 200)
+    }
+
+    @Test
+    fun `player attack tail matches the capture`() {
+        assumeTrue(available(), "reference data / ROM")
+        assertTailMatches("ram_trace_prologue_attack_noanim", 1980, 140)
+    }
 }

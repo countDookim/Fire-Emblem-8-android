@@ -353,10 +353,9 @@ public class MapAnimApi(
         public var loadObjUiGfx: () -> Unit = {}
 
         /**
-         * Not in the original: what the game still needs when the animation has ended. The
-         * original leaves the MOVEUNITs and the hidden target sprite to later map code (the
-         * cursor hover and the next action). Stand-in until those are ported: [MapAnimApi] sets
-         * it to end all MOVEUNITs and show the target's sprite.
+         * Not in the original: runs at the end of [mapAnimCleanup], default nothing. The
+         * original leaves the MOVEUNITs and the hidden sprites to the action's end (the player
+         * phase), so ending them here shows the target again and hides the attacker (D-18).
          */
         public var afterCleanup: () -> Unit = {}
 
@@ -384,7 +383,6 @@ public class MapAnimApi(
         }
         h.prepareBattleTalk = ProcFunc { mapAnimPrepareBattleTalk() }
         h.moveCameraOntoSubject = ProcFunc { mapAnimMoveCameraOntoSubject(it) }
-        h.afterCleanup = { endAnimation() }
         h.roundProcScript = { mapAnimGetRoundProcScript() }
         h.moveSubjectsAwayFromTarget = ProcFunc { mapAnimMoveSubjectsAwayFromTarget() }
         h.beginMissAnim = IntConsumer { mapAnimBeginMissAnim(it) }
@@ -1373,12 +1371,6 @@ public class MapAnimApi(
         val charPtr = u32(bytes, offset + OFF_CHARACTER)
         if (charPtr == 0) return 0
         return rom.u8(charPtr + 4)
-    }
-
-    /** The default [Hooks.afterCleanup]: ends the MOVEUNITs and shows the target's sprite again. */
-    private fun endAnimation() {
-        mu.endAllMus()
-        if (state.actorCount > 1) hooks.showUnitSprite(s8(battle.target.bytes, OFF_INDEX) and 0xFF)
     }
 
     /** Decomp constants (include/ and constants/ headers) and ROM addresses used above. */

@@ -32,7 +32,7 @@ retest needed until a fix is announced.
   menus and text use wrong palettes.
 - **D-21 level-up numbers:** the level-up panel's background is right now, but its stat numbers have the
   wrong colours.
-- **D-22 boss name:** the boss's name is drawn with the wrong colours.
+- **D-22 boss name:** in the map battle's HP box, the boss's name is drawn with the wrong colours.
 
 ## 3. Known gaps (not bugs)
 

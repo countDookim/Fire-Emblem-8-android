@@ -359,7 +359,7 @@ Scenario scopes and stop conditions: [M6 task scopes](plans/M6-task-scopes.md).
 | D-18 | INV | Kill on player attack: attacker sprite grey and briefly on the victim's tile, victim reappears there a split second (issue #7, Seth vs bandit) | Cause vs `ram_trace_prologue_kill` (MU/map-anim end, grey status); BUG row; owner device check | — | todo |
 | D-19 | INV | Enemy-initiated map battle: HP info box without background (issue #7) | Cause vs enemy-phase capture (`MapAnimInfoBox` BG/gradient/sync); BUG row; owner device check | — | todo |
 | D-21 | INV | Level-up panel stat numbers drawn with a wrong palette (issue #7 retest, 0.1.852; background OK since D-17 fix) | Cause vs MC-cap3 level-up palette RAM (D-17 `EnablePaletteSync` order first); BUG row; owner device check | — | todo |
-| D-22 | INV | Boss name drawn with a wrong palette (issue #7 retest, 0.1.852; screen not stated) | Find the screen (unit window, forecast or battle box) and cause vs Prologue capture; BUG row; owner device check | — | todo |
+| D-22 | INV | Boss name drawn with a wrong palette in the map battle HP box (issue #7 retest, 0.1.852) | Cause vs a capture of a boss fight (`MapAnimInfoBox` name text palette; maybe with D-19); BUG row; owner device check | — | todo |
 | D-20 | INV | After Eirika dies (no game over yet): enemy AI stops, menus/text wrong palettes (issue #7) | Cause found (palette/AI state after lord death); BUG row or fold into PC-7/PC-8 | — | todo |
 | D09-3 | PORT | Remaining item-popup branches (gold, full inventory, red/root, unit-name/number) | Each branch against a capture that reaches it, else not written | — | low priority; Rapier popup confirmed on device 11-11 |
 

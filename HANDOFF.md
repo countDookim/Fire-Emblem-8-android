@@ -19,9 +19,10 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- AUD-recent (test audit of d477d4c..81acfed + full suite), DOC-readme, DOC-manualtest, issue #5/#6/#7 progress notes: owner PC Claude, until ~23:10Z
 
 ## Current state
+
+- 2026-11-23 ~21:40Z owner PC Claude: **AUD-recent done**: every code commit d477d4c..81acfed has a test; full jvmTest 1181 tests, 0 skipped, green; Dokka, text guard, lists ok; app PortraitIconTest 3 ok (needs FE8_ASSETS). Own break-checks of 12 recent ports/fixes (scheduled + Gemini: sub_80AB4F4, StoreRNState, CallPostChapterSaveMenu, BitfileToIndex, AnimInsert, SubSelBoxExt, NewFadeOut, PutChapterTitleBG, sub_80AA7AC, D-16, D-17, BUG-charknown) all fail when mutated. **README and MANUAL_TEST rewritten** (948965e). Progress comments posted on issues #5/#6/#7.
 
 - 2026-11-23 ~17:25Z scheduled (Sonnet agents): **D-17 partial** (c7658cf): `MapLevelUpFrame` never requested
   BG0/BG1 + palette sync (`PutManimLevelUpFrame`), so the level-up box/palette reached VRAM only if another proc

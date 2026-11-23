@@ -97,6 +97,8 @@ Map battles, MISS effects, EXP and level-up portraits are included in published 
 
 Open from issue #6 (0.1.793), no fix yet; note when they happen if you see them again:
 - **D-16 exp sound / beep:** during combat, the EXP-gain sound and a loud beep that sometimes lingers.
+  Fix for the lingering beep (stopped PSG notes now silenced, f54bd78) is in builds after 0.1.793:
+  win a Prologue fight; the exp tick must stop exactly when the bar stops. Tick timbre not yet fixed.
 - **D-17 menu background:** menus always open, but sometimes their background/textures are missing
   or appear late. Seen on the level-up stat panel (0.1.793); note which other menus and what came before.
 - **Still to test (EP-18/EP-26):** a miss (MISS sprite) and a critical hit; in the 0.1.793 quick play

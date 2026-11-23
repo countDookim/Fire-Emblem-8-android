@@ -18,11 +18,14 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-4g: scheduled, until ~05:40Z
-- D-16: scheduled, until ~05:40Z
-- BUG-wpnbits: scheduled, until ~05:40Z
 
 ## Current state
+
+- 2026-11-23 ~05:30Z scheduled (Sonnet agents): **PC-4g done** (bf25eba): `PostSaveMenuHandler` INVALID branch
+  verified f9862->f9863 in `SaveDrawLifecycleDifferentialTest`; HBlank/menu-end hooks redundant in this window.
+  **D-16 partial** (f54bd78): `M4aDriver` never wired `CgbOscOff` (m4aSoundInit), so `TrackStop` left PSG notes
+  sounding = lingering beep; `MapExpBarSoundDifferentialTest` (SONG_74 status f6303..6384). Tick timbre still
+  unexplained (needs audio CAP); device check pending in next APK. **BUG-wpnbits done** (synthetic test, no seal CAP).
 
 - 2026-11-23 ~23:30Z scheduled (Sonnet agent): **PC-4e2 partial**: `SaveMenuSlotFlip.kt`, `SaveMenuChoice.kt`,
   fade-out in `gbafe.render.ArchivedPaletteFade`; Ported `SaveMenuRegisterSlotSelected`, `Add{Main,Extra}MenuOption`,

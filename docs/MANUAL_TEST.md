@@ -4,41 +4,20 @@
 [latest release](https://github.com/countDookim/Fire-Emblem-8-android/releases/tag/latest)
 (rolling: always the newest master build; its title names the commit). Every build needs your ROM.
 
-Last owner test: 0.1.793 (`702e364`, 2026-11-22, quick play, [issue #6](https://github.com/countDookim/Fire-Emblem-8-android/issues/6)); last full pass 0.1.622 (`22cfc9d`, 2026-11-12). Everything confirmed up to then has been removed
+Last owner test: 0.1.852 (`5ee1049`, 2026-11-23, [issue #7](https://github.com/countDookim/Fire-Emblem-8-android/issues/7)); before that 0.1.793 ([issue #6](https://github.com/countDookim/Fire-Emblem-8-android/issues/6)); last full pass 0.1.622 (`22cfc9d`, 2026-11-12). Everything confirmed up to then has been removed
 from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Only untested items remain.
 
 ## Test now
 
-Map battles, MISS effects, EXP and level-up portraits are included in published run 793
-(`702e364`, 2026-11-21). The enemy-phase replay fix described in later commits requires a newer APK.
+Confirmed on 0.1.852 (issue #7) and removed here: enemy phase movement (EP-w), cutscene and world-map
+Start skips (D-13, D-14), title idle without hang (D-15), unit select/deselect with A/B.
 
-- **EP-w enemy phase (requires newer APK than 793):** Open the map menu on an empty tile and
-  choose End (see PP-17 step 5 below). Expected: after the "Enemy Phase" banner, both Soldiers
-  walk to Eirika with the target cursor and attack through the map battle display (MISS sprite
-  on a dodge, hit flash, death fade/dialogue, EXP bar, and ~0.3 s map fade after each), then the
-  Turn 2 "Player Phase" banner plays and Eirika is active again without hanging or hitching.
 - **APP-icon2 (requires newer APK than 793):** Open the launcher after importing (or re-importing)
   the ROM and open Android's recents (overview) screen. Expected: (1) no "Add to home screen?"
   dialog appears after ROM import and no "Add to home screen" button is on the launcher screen;
   (2) the app drawer launcher icon stays the gold shield and sword on dark blue (standard Android
   cannot change the launcher icon to a runtime ROM bitmap without bundling game art in the APK);
   (3) recents still shows Eirika's portrait as the app icon once a ROM is imported.
-- **D-14 world-map Start skip:** New Game, wait for the world-map narration, press Start once
-  while a portrait or text is shown (try a few times, also while a portrait is up). Expected: the
-  screen cuts to black at once (no slow fade), the whole chapter title card plays, black, then the
-  castle scene fades in from black over about a quarter second and its first text box appears. The
-  game must not freeze or stay dark. Limits: the castle scene waits about 3 frames before its fade
-  (the original waits 15 because its loop overruns); pressing Start again during the title card
-  skips it, and during the castle scene skips the scene (as in the original).
-- **D-15 title idle:** Leave the title screen untouched for about 14 seconds. Expected: it fades out
-  and the opening animation plays (no black screen); after it the title returns; idling again goes
-  to the opening animation again. Limits: the class reel that the original plays first is skipped
-  until M6-G (it needs battle animations).
-- **D-13 Start during the Prologue castle cutscene:** New Game, wait for the castle scene's first
-  text box, press Start once. Expected: the screen fades to black in ~4 frames and the rest of the
-  scene is skipped (no visible fast-forward, which was the reported bug). Black for about 45 frames,
-  then the next scene fades in over ~16 frames and plays normally (it waits for A at its first
-  text box).
 
 - **EP-18/EP-26 map battle info box and exp bar:** attack an enemy with Eirika (PP-17 step 3d) and
   let the Soldiers attack at End (step 5). Expected: when the fight starts, a two-row box with both
@@ -95,7 +74,14 @@ Map battles, MISS effects, EXP and level-up portraits are included in published 
   - Limits: resulting game state is checked against the original; whole-flow timing still needs
     comparison. Missing systems are listed under "Ignore".
 
-Open from issue #6 (0.1.793), no fix yet; note when they happen if you see them again:
+Open from issue #7 (0.1.852), no fix yet:
+- **D-18 kill teleport:** when Seth killed a bandit (player attack), his sprite turned grey and he
+  briefly appeared on the bandit's tile before snapping to his own.
+- **D-19 battle box background:** when a bandit attacked Eirika, the HP info box had no background.
+- **D-20 after lord death:** if Eirika dies (no game over yet, PC-8), enemy AI stops and menus/text
+  get wrong palettes. Game over itself is a known gap.
+
+Open from issue #6 (0.1.793); D-16/D-17 not mentioned in #7, still to check:
 - **D-16 exp sound / beep:** during combat, the EXP-gain sound and a loud beep that sometimes lingers.
   Fix for the lingering beep (stopped PSG notes now silenced, f54bd78) is in builds after 0.1.793:
   win a Prologue fight; the exp tick must stop exactly when the bar stops. Tick timbre not yet fixed.
@@ -117,7 +103,7 @@ Re-test these only when a change to them is announced.
   Options and Suspend, and R / L / START on the map do nothing; no help box, inventory or info
   screens (M6-E, M6-F, M6-H). Selecting an enemy shows no range.
 - **Prologue flow:** the boss never moves (EP-11); after the last enemy the ending dialogue plays and
-  the map stays, no save menu or Chapter 1 (PC-3a..PC-5).
+  the map stays, no save menu or Chapter 1 (PC-3a..PC-5); Eirika dying gives no game over (PC-7, PC-8).
 - **Map events and rules:** no staff range, traps, after-move or tutorial events, dialogue during
   the enemy phase, or records (M6-C, M6-E, M6-H). Enemy and green phase banners (D12-2).
 - **Opening:** the title's class reel (D-15, M6-G); the chapter intro's closing sound-effect fade;

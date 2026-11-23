@@ -23,32 +23,95 @@
 | out of scope (link, debug menus) | 0 | 0 | 620 | |
 <!-- progress:end -->
 
-# Fire Emblem: The Sacred Stones — native Kotlin Android reimplementation
+# Fire Emblem: The Sacred Stones for Android
 
-A 1:1 Kotlin reimplementation of *Fire Emblem: The Sacred Stones* (GBA, USA) for Android. **Not an emulator.**
-The [fireemblem8u decomp](https://github.com/FireEmblemUniverse/fireemblem8u) is the spec; the ROM (private
-repo) supplies assets and is the test oracle via headless mGBA.
+A native Kotlin reimplementation of *Fire Emblem: The Sacred Stones* (GBA, USA) for Android.
+**It is not an emulator:** each part of the game is rewritten in Kotlin from the
+[fireemblem8u decomp](https://github.com/FireEmblemUniverse/fireemblem8u) and checked against the original
+game running in headless mGBA.
 
-**Status:** on device, with your imported ROM: boot (health & safety, logos, opening, title) with the original
-sound, GPU renderer (OpenGL ES 3.0), on-screen GBA buttons and gamepad; **New Game plays the Prologue opening**
-(dialogue, portraits, walking units, music) to the turn-1 map, where the cursor moves and suspend/resume works.
-Not yet: the opening cinematic before the castle, unit selection and actions, combat, enemy turns, menus.
-Plan: [docs/plans/ROADMAP.md](docs/plans/ROADMAP.md) ·
-[HANDOFF.md](HANDOFF.md) · [docs/TASKS.md](docs/TASKS.md)
+You must own the game. This repository contains no ROM data, and no APK (debug or release) bundles game
+data: the app extracts everything from your own ROM on the device
+([decision 0011](docs/decisions/0011-player-supplied-rom.md)).
 
-- Install and test: [docs/MANUAL_TEST.md](docs/MANUAL_TEST.md).
-- Docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [decisions](docs/decisions/) · [MODDING.md](MODDING.md) ·
-  [docs/port_map.json](docs/port_map.json) (function → Kotlin → status → test) · API: `dokka-site` CI artifact.
+## What works today
+
+On a device, with your ROM imported:
+
+- **Boot:** health and safety screen, logos, opening, title screen, with the original sound. Rendered on
+  the GPU (OpenGL ES 3.0), with on-screen GBA buttons or a gamepad.
+- **Prologue opening:** New Game plays the opening monologue, the world-map exposition and the castle
+  scenes (dialogue, portraits, walking units, music) up to the turn-1 map. Start skips cutscenes with a
+  fade to black.
+- **Prologue player phase:** cursor, unit selection with move and attack ranges, moving, Attack (weapon
+  list, battle forecast, map battle with HP box, exp bar and level-up) and Wait; the map menu's End.
+  Suspend and resume work.
+- **Enemy phase:** the bandits move and attack on their turn.
+
+Not yet: battle animations, the Item command and the other menu commands, the status screen, the boss's
+turn, game over, and the save menu and Chapter 1 after the Prologue. The current list is in
+[docs/MANUAL_TEST.md](docs/MANUAL_TEST.md) ("Known gaps"); the plan is in
+[docs/plans/ROADMAP.md](docs/plans/ROADMAP.md).
+
+## Try it
+
+Install `fe8-debug.apk` from the
+[latest release](https://github.com/countDookim/Fire-Emblem-8-android/releases/tag/latest) (rebuilt from
+every master push; the release title names the commit), then import your ROM when the app asks for it.
+What to test and what to expect: [docs/MANUAL_TEST.md](docs/MANUAL_TEST.md).
+
+## How a function counts as ported
+
+The decomp is the specification and the original ROM is the test oracle
+([decision 0006](docs/decisions/0006-verification-policy.md)). A function counts in the progress bar
+above only when:
+
+1. its Kotlin port says `Ported from <file>: <Function>` in its KDoc, and
+2. a `@VerifiesPort` test compares it with a capture from the original game, and that test was seen to
+   fail when the port was deliberately broken.
+
+Ports without such a test say `Transcribed from ...` and are listed with the reason in
+[docs/plans/UNVERIFIED.md](docs/plans/UNVERIFIED.md); placeholder code is listed in
+[docs/plans/STANDINS.md](docs/plans/STANDINS.md). Both lists are generated (`tools/unverified.py`,
+`tools/standins.py`). Every function's status and test are in [docs/port_map.json](docs/port_map.json).
+
+## Build and test
+
+Requirements: JDK 17 or newer, Python 3, and access to the private ROM repository (assets and test
+captures). The Android SDK is needed only for the APK.
 
 ```bash
-tools/setup.sh && source .assets.env   # session setup: kotlinc, ROM-repo assets, Gradle warm-up
-./gradlew jvmTest                       # all JVM tests (unit, differential vs mGBA, allocation)
-./gradlew :testing:benchmark            # frame-time benchmark
-./gradlew :app:assembleDebug            # APK (needs Android SDK: CI or owner PC)
-./gradlew dokkaGenerate -Pfe8.docs=true # API docs
-python3 tools/progress.py               # progress from latest test results
+tools/setup.sh && source .assets.env    # once per checkout: kotlinc, ROM-repo assets, Gradle warm-up
+./gradlew jvmTest                        # all JVM tests: unit, differential against mGBA, allocation
+./gradlew :testing:benchmark             # frame-time benchmark
+./gradlew :app:assembleDebug             # debug APK (needs ANDROID_HOME)
+./gradlew dokkaGenerate -Pfe8.docs=true  # API docs (also published as the CI `dokka-site` artifact)
+python3 tools/progress.py                # progress from the latest test results
 ```
 
-Legal: you must own the game; this repo has no ROM data. No APK, debug or release, bundles game data: every
-build extracts the player's ROM on device
-([0011](docs/decisions/0011-player-supplied-rom.md)).
+CI builds the APKs, runs the tests, checks that no game data or game text is in the APKs or the sources,
+and updates the progress block above.
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `gba/` | Game-neutral GBA library: VFS, decoders, renderer, m4a sound driver, input (`gba.*`) |
+| `engine/` | Code shared by the GBA Fire Emblem games: procs, RNG, rendering helpers, scripts, saves, text (`gbafe.*`) |
+| `game/` | FE8-only code: battle map, events, menus, save menu, title, world map (`fe8.*`) |
+| `app/` | Thin Android shell: ROM import, GPU view, touch buttons, audio output |
+| `testing/` | Differential tests against mGBA captures, allocation and benchmark tests |
+| `tools/` | Setup, ROM extraction, progress and list generators, CI checks |
+| `docs/` | Tasks, plans, decisions, manual test page |
+
+`gba.*` knows nothing about Fire Emblem and `gbafe.*` nothing about FE8, so FE6 and FE7 ports can reuse
+them ([decision 0010](docs/decisions/0010-multi-game-reuse.md)). Details: [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Documentation
+
+- [ARCHITECTURE.md](ARCHITECTURE.md): principles and modules.
+- [MODDING.md](MODDING.md): planned mod support (vanilla stays 1:1; mods may replace data and logic).
+- [docs/decisions/](docs/decisions/): design decisions.
+- [docs/plans/ROADMAP.md](docs/plans/ROADMAP.md): milestones and task rules.
+- [docs/TASKS.md](docs/TASKS.md): open tasks. [HANDOFF.md](HANDOFF.md): current state for the next session.
+- [docs/MANUAL_TEST.md](docs/MANUAL_TEST.md): device testing.

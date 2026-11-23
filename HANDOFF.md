@@ -19,7 +19,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 ## In progress
 
 - PC-4: scheduled, until ~11:30Z
-- BA-0: scheduled, until ~11:30Z
+- BUG-charknown: scheduled, until ~11:30Z
 
 ## Current state
 

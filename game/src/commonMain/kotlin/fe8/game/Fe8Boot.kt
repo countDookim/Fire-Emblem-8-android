@@ -155,6 +155,14 @@ import gbafe.render.ScreenFade
 import gbafe.text.Font
 import gbafe.text.MsgHuffman
 import gbafe.text.MsgStrings
+import fe8.game.bm.ChapterTitle
+import fe8.game.mapanim.ApProcs
+import fe8.game.save.BmGameSave
+import fe8.game.save.GameSaveRam
+import fe8.game.savemenu.SaveMenuAssembly
+import fe8.game.worldmap.WorldMapApHost
+import gbafe.render.BgVerticalScroll
+import gbafe.render.SpriteAnimPlayer
 
 /**
  * The boot sequence wired for a device: `StartGame` -> game control -> health & safety screen ->
@@ -286,6 +294,64 @@ public class Fe8Boot(
         )
         flushSram()
         control.setNextGameActionId(GameControl.GAME_ACTION_EVENT_RETURN)
+    }
+
+    /**
+     * The post-chapter save menu (PC-4) with every `wire*` of [SaveMenuPostChapter] applied
+     * ([SaveMenuAssembly]); `WriteGameSave` is [BmGameSave.writeGameSave] on this boot's RAM.
+     * Built on first use; needs the whole ROM (text, messages).
+     */
+    public val postChapterSaveMenu: SaveMenuAssembly.Result by lazy {
+        val scene = talkScene
+        val nodes = WmNodeData(rom)
+        val gameSave = BmGameSave(saveLib, statsUnitLoader, rom)
+        val ram = GameSaveRam(control.playSt, loop.bmSt, units, flags, clock, gmData = gmData)
+        SaveMenuAssembly.assemble(
+            SaveMenuAssembly.Deps(
+                engine = engine,
+                hardware = hw,
+                rom = rom,
+                oam = loop.oam,
+                layers = loop.sprites,
+                scroll = BgVerticalScroll(),
+                apProcs = ApProcs(
+                    engine,
+                    SpriteAnimPlayer(
+                        { rom.u16(it) }, loop.sprites, WorldMapApHost(rom, hw, loop.oam),
+                    ),
+                ),
+                playSt = control.playSt,
+                bmSt = loop.bmSt,
+                gmData = gmData,
+                saveLib = saveLib,
+                archivedFade = ArchivedPaletteFade(PaletteFade(hw, engine), hw, engine),
+                chapterTitle = ChapterTitle(
+                    rom, hw, battleChapters,
+                    getPlayChapterId = { chapter ->
+                        (0 until WM_NODE_COUNT).firstOrNull { node ->
+                            nodes.chapterId(node, control.playSt.chapterModeIndex) == chapter
+                        } ?: -1
+                    },
+                    getNextUnclearedNode = {
+                        WorldMapPath(gmData, WmPathData(rom)).getNextUnclearedNode()
+                    },
+                ),
+                text = scene.text,
+                messages = scene.messages,
+                lcg = rng.lcg,
+                loadObjUiGfx = {
+                    ChapterMapGfx(rom, battleChapters, hw, control.playSt).loadObjUiGfx()
+                },
+                clock = { clock.frames.toInt() },
+                setNextGameActionId = { control.setNextGameActionId(it) },
+                writeGameSave = { slot ->
+                    gameSave.writeGameSave(ram, slot)
+                    flushSram()
+                },
+                newKeys = { keys.newKeys },
+                playSoundEffect = { control.sound.playSoundEffect(it) },
+            ),
+        )
     }
 
     /** The units the battle map start path touches (raw unit bytes). */
@@ -1606,6 +1672,8 @@ public class Fe8Boot(
         if (rom.isWholeRom) control.hooks.startSaveMenu = ProcFunc { newGameSaveMenu() }
         if (rom.isWholeRom) {
             control.hooks.startIntroMonologue = ProcFunc { opSubtitle.startBlocking(it) }
+            control.hooks.makeSaveMenuPostChapter =
+                ProcFunc { SaveMenuAssembly.makeHook(postChapterSaveMenu)(it) }
             control.hooks.worldMapWrapperProvider = { worldMapBoot.wrapperScript }
             control.hooks.endWorldMap = ProcFunc { worldMapBoot.endWm(it) }
         }

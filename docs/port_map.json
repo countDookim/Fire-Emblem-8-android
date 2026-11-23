@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1439,
+    "verified": 1444,
     "implemented_unverified": 115
   },
   "functions": {
@@ -483,6 +483,26 @@
       "tests": [
         "fe8.testing.AnimCreateDifferentialTest#attack window f1497",
         "fe8.testing.AnimCreateDifferentialTest#scripted window f14468"
+      ]
+    },
+    "AnimInterpret": {
+      "decomp_file": "src/animedrv.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/anim/AnimInterpreter.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AnimInterpretDifferentialTest#waiting loop f1499 to f1536"
+      ]
+    },
+    "AnimUpdateAll": {
+      "decomp_file": "src/animedrv.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/anim/AnimInterpreter.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AnimInterpretDifferentialTest#waiting loop f1499 to f1536"
       ]
     },
     "ApplyMenuCursorVScroll": {
@@ -10273,6 +10293,17 @@
         "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
       ]
     },
+    "RegisterEkrDragonStatusType": {
+      "decomp_file": "src/banim-ekrdragon-myrrh.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleInit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleInitDifferentialTest#attack window without quote f1497",
+        "fe8.testing.EkrBattleInitDifferentialTest#scripted window with quote f14468"
+      ]
+    },
     "RegisterEventActivation": {
       "decomp_file": "src/eventinfo.c",
       "system": "events",
@@ -11169,6 +11200,17 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt",
       "status": "implemented",
       "tests": []
+    },
+    "ShouldCallBattleQuote": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleInit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleInitDifferentialTest#attack window without quote f1497",
+        "fe8.testing.EkrBattleInitDifferentialTest#scripted window with quote f14468"
+      ]
     },
     "ShouldCallEndEvent": {
       "decomp_file": "src/eventinfo.c",
@@ -13695,6 +13737,17 @@
         "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 1 dies as the capture f2018 to f2034",
         "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 2 dies as the capture f2723 to f2739",
         "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
+      ]
+    },
+    "ekrBattle_Init": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleInit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleInitDifferentialTest#attack window without quote f1497",
+        "fe8.testing.EkrBattleInitDifferentialTest#scripted window with quote f14468"
       ]
     },
     "m4aMPlayImmInit": {

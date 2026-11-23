@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1435,
+    "verified": 1439,
     "implemented_unverified": 115
   },
   "functions": {
@@ -5467,7 +5467,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -6690,6 +6690,17 @@
         "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
       ]
     },
+    "InitBattleAnimFrame": {
+      "decomp_file": "src/banim-ekrmain.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimInit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleAnimInitDifferentialTest#attack window f1497",
+        "fe8.testing.BattleAnimInitDifferentialTest#scripted window f14468"
+      ]
+    },
     "InitBattleForecastBattleStats": {
       "decomp_file": "src/bksel.c",
       "system": "menus",
@@ -6771,6 +6782,28 @@
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
+    "InitLeftAnim": {
+      "decomp_file": "src/banim-ekrmain.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimInit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleAnimInitDifferentialTest#attack window f1497",
+        "fe8.testing.BattleAnimInitDifferentialTest#scripted window f14468"
+      ]
+    },
+    "InitMainAnims": {
+      "decomp_file": "src/banim-ekrmain.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimInit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleAnimInitDifferentialTest#attack window f1497",
+        "fe8.testing.BattleAnimInitDifferentialTest#scripted window f14468"
+      ]
+    },
     "InitManimLevelUpWindow": {
       "decomp_file": "src/mapanim_lvup.c",
       "system": "map_anim",
@@ -6827,6 +6860,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "InitRightAnim": {
+      "decomp_file": "src/banim-ekrmain.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimInit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleAnimInitDifferentialTest#attack window f1497",
+        "fe8.testing.BattleAnimInitDifferentialTest#scripted window f14468"
       ]
     },
     "InitSaveMenuChoice": {

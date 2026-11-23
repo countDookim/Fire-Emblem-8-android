@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 748 across 105 decomp files (missing reason: 0).
+Total entries: 749 across 106 decomp files (missing reason: 0).
 
 ## src/bmunit.c (37)
 
@@ -1143,6 +1143,12 @@ Total entries: 748 across 105 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `IsBattleDeamonActive` | `game/src/commonMain/kotlin/fe8/game/bm/BattleDeamonFlag.kt` | gBattleDeamonActive is 0 in every captured window; the true branch needs M6-G battle animations |
+
+## src/banim-ekrdragon-utils.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `InitEkrDragonStatus` | `game/src/commonMain/kotlin/fe8/game/bm/EkrBattleInit.kt` | the captured windows only run the no-op path; the draco zombie and demon king arms that hide the left anim need a dragon capture |
 
 ## src/bmcamadjust.c (1)
 

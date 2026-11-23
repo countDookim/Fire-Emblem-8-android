@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -21,10 +21,15 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- BA-p2c: scheduled, until ~23:40Z
-- BA-p3a: scheduled, until ~23:40Z
 
 ## Current state
+
+- 2026-11-24 ~23:35Z scheduled (Sonnet agents): **BA-p2b, BA-i3, BA-p2c, BA-p3a done**. `fe8.game.bm.BanimInit`
+  (InitMainAnims CLOSE arm, InitBattleAnimFrame, InitLeft/RightAnim; FAR/FARFAR `TODO()`; BanimLeftDefaultPos sign
+  unverified, CLOSE value 0), `EkrBattleInit` (ekrBattle_Init etc.; quote lookup/map kind are stand-ins; hit-side swap
+  and 2nd/3rd quote lookups not distinguished by captures), `gbafe.anim.AnimInterpreter` (AnimInterpret + AnimUpdateAll;
+  display/sort hooks; BattleAIS_ExecCommands drain is a test stand-in). BA-i3 result + rows BA-p3b..e in M6C-J-breakdown.
+  Decomp needed `sparse-checkout add /src /include` again. Next: BA-p3b. Dokka needs `-Pfe8.docs=true`.
 
 - 2026-11-23 ~23:00Z owner PC Claude (2 Sonnet agents): **D-19, D-21, D-22, D-18 fixed; device check pending
   (0.1.856)**. D-19: `setDefaultColorEffects` (SetBlendNone) was a no-op, the enemy phase's alpha blend hid the

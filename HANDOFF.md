@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-23 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -18,9 +18,15 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- BA-p2a: scheduled, until ~17:40Z (wip/ba-p2a)
 
 ## Current state
+
+- 2026-11-23 ~17:25Z scheduled (Sonnet agents): **D-17 partial** (c7658cf): `MapLevelUpFrame` never requested
+  BG0/BG1 + palette sync (`PutManimLevelUpFrame`), so the level-up box/palette reached VRAM only if another proc
+  synced; fixed + capture test; device check pending. **AUD-SYNC done**: no other sync gap (M6-notes; new
+  `SyncAssert`). **BUG-suspinval closed, not a bug**: info 3/4 magic32/pad/checksum are per-run stack residue;
+  test asserts the rest. **BA-i2 done** (`BattleHitParseInventoryTest`; rows BA-p2b/c, BA-cap2). **BA-p2a done**:
+  `gbafe.anim.AnimPool` `AnimCreate`/`AnimInsert` Ported. Full jvmTest green (before BA-p2a; its test + Dokka ok).
 
 - 2026-11-23 ~11:20Z scheduled (Sonnet agents): **PC-4 partial**: new `SaveMenuAssembly` applies every
   `SaveMenuPostChapter.wire*`; `Fe8Boot.postChapterSaveMenu` sets `makeSaveMenuPostChapter` (whole ROM).

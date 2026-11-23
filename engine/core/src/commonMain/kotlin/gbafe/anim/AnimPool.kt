@@ -125,6 +125,7 @@ public class AnimPool {
         }
     }
 
+    /** Pool limits and [Anim.state] bits. */
     public companion object {
         /** `ANIM_MAX_COUNT`. */
         public const val ANIM_MAX_COUNT: Int = 50

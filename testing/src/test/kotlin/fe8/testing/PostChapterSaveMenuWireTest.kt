@@ -192,8 +192,10 @@ class PostChapterSaveMenuWireTest {
         // - 0x778..0x77F: monster RN state (gmMonsterRnState stand-in, zero here), 0x84B:
         //   uninitialised byte of WriteSupplyItems, 0xD8C..0xDAF: wmStuff (stand-in, zero here);
         //   so the block checksum32 and the header checksum (0x60) differ too.
-        // - Block infos 3 and 4 (invalidated suspend save): the port zeroes bytes of the info
-        //   that the capture keeps (e.g. 0x94: 00 vs 11).
+        // - Block infos 3 and 4 (invalidated suspend save): magic32 (0x080D0011, a stale return
+        //   address), the pad byte 7 (03) and the checksum32 of the size-0 block (one stale
+        //   halfword of gGenericBuffer, 0x14141414) are uninitialised C stack/buffer residue
+        //   that differs per capture run, so only the written fields are compared.
         val out = ByteArray(L.SRAM_SIZE).also { sram.copyOut(it) }
         val want = run.sram("s09802")
         val dest = L.GAME0_OFFSET
@@ -203,6 +205,16 @@ class PostChapterSaveMenuWireTest {
         val info = L.blockInfoOffset(0)
         val badInfo = (0 until L.INFO_CHECKSUM32).filter { out[info + it] != want[info + it] }
         assertTrue(badInfo.isEmpty(), "block info 0 diff at $badInfo")
+        // InvalidateSuspendSave (slot 1/2 infos): magic16, kind, offset and size are written by
+        // WriteSaveBlockInfo; checksum32 low half equals high half (sum == xor of one halfword).
+        for (i in intArrayOf(L.SAVE_ID_SUSPEND, L.SAVE_ID_SUSPEND_ALT)) {
+            val o = L.blockInfoOffset(i)
+            val badSusp = (L.INFO_MAGIC16 until L.INFO_CHECKSUM32)
+                .filter { it != 7 && out[o + it] != want[o + it] }
+            assertTrue(badSusp.isEmpty(), "suspend info $i diff at $badSusp")
+            assertEquals(out[o + L.INFO_CHECKSUM32], out[o + L.INFO_CHECKSUM32 + 2])
+            assertEquals(out[o + L.INFO_CHECKSUM32 + 1], out[o + L.INFO_CHECKSUM32 + 3])
+        }
         // charKnownFlags of the global info (header 0x40..0x5F): an empty blue slot marks nothing.
         val known = (L.HEADER_CHAR_KNOWN_FLAGS until L.HEADER_CHECKSUM)
             .filter { out[it] != want[it] }

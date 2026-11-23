@@ -192,8 +192,6 @@ class PostChapterSaveMenuWireTest {
         // - 0x778..0x77F: monster RN state (gmMonsterRnState stand-in, zero here), 0x84B:
         //   uninitialised byte of WriteSupplyItems, 0xD8C..0xDAF: wmStuff (stand-in, zero here);
         //   so the block checksum32 and the header checksum (0x60) differ too.
-        // - Header 0x40 bit 0: the port marks charId 0 known for an empty blue unit slot, the
-        //   capture does not (capture 0xFE, port 0xFF).
         // - Block infos 3 and 4 (invalidated suspend save): the port zeroes bytes of the info
         //   that the capture keeps (e.g. 0x94: 00 vs 11).
         val out = ByteArray(L.SRAM_SIZE).also { sram.copyOut(it) }
@@ -205,6 +203,10 @@ class PostChapterSaveMenuWireTest {
         val info = L.blockInfoOffset(0)
         val badInfo = (0 until L.INFO_CHECKSUM32).filter { out[info + it] != want[info + it] }
         assertTrue(badInfo.isEmpty(), "block info 0 diff at $badInfo")
+        // charKnownFlags of the global info (header 0x40..0x5F): an empty blue slot marks nothing.
+        val known = (L.HEADER_CHAR_KNOWN_FLAGS until L.HEADER_CHECKSUM)
+            .filter { out[it] != want[it] }
+        assertTrue(known.isEmpty(), "charKnownFlags diff at " + known.joinToString { "0x%X".format(it) })
     }
 
     private companion object {

@@ -450,10 +450,12 @@ public class BmGameSave(
         lib.readGlobalSaveInfo(globalInfoBuf)
         for (i in 0 until UNIT_SAVE_AMOUNT_BLUE) {
             // UNIT_CHAR_ID, then SGM_SetCharacterKnown(charId, &info): set bit charId of
-            // charKnownFlags. Ids above 256 are ignored; an empty slot counts as id 0.
+            // charKnownFlags. Ids above 256 are ignored. For an empty slot the C reads
+            // NULL->number (BIOS open bus at address 4, not modelled); the port marks nothing,
+            // which matches PC-cap1 s09802 (header 0x40 bit 0 stays clear).
             val character = StructCodec.u32(ram.units.bytes, i * UnitTable.UNIT_SIZE + U_CHARACTER)
-            val charId = if (character == 0) 0 else rom.u8(character + 4)
-            if (charId <= 256) {
+            val charId = if (character == 0) -1 else rom.u8(character + 4)
+            if (charId in 0..256) {
                 val at = L.HEADER_CHAR_KNOWN_FLAGS + (charId shr 3)
                 globalInfoBuf[at] = (globalInfoBuf[at].toInt() or (1 shl (charId and 7))).toByte()
             }

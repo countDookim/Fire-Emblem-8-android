@@ -18,8 +18,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- AUD-SYNC: scheduled, until ~17:35Z
-- BA-i2: scheduled, until ~17:35Z
+- BA-p2a: scheduled, until ~17:40Z (wip/ba-p2a)
 
 ## Current state
 

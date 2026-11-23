@@ -2,12 +2,25 @@ package gbafe.anim
 
 /**
  * One `struct Anim` of the battle-animation driver (anime.h), 0x48 bytes on the GBA. Only the
- * fields `AnimCreate` and `AnimInsert` write or read are modelled so far; pointers into ROM or
- * RAM are plain GBA addresses and the list links are references into the same [AnimPool].
+ * fields the ported anim code (`AnimCreate`, `AnimInsert`, `InitMainAnims`) uses are modelled so
+ * far; pointers into ROM or RAM are plain GBA addresses and the list links are references into
+ * the same [AnimPool].
  */
 public class Anim {
     /** `state` (offset 0x00): 0 is a free slot, [AnimPool.STATE_ENABLED] a live one. */
     public var state: Int = 0
+
+    /** `xPosition` (0x02), signed 16 bit. */
+    public var xPosition: Int = 0
+
+    /** `yPosition` (0x04), signed 16 bit. */
+    public var yPosition: Int = 0
+
+    /** `nextRoundId` (0x0E). */
+    public var nextRoundId: Int = 0
+
+    /** `currentRoundType` (0x12). */
+    public var currentRoundType: Int = 0
 
     /** `timer` (0x06). */
     public var timer: Int = 0

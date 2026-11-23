@@ -1789,3 +1789,48 @@ Proposed rows:
 | BA-p2b | PORT | `InitMainAnims`, `InitBattleAnimFrame`, `InitLeftAnim`, `InitRightAnim` (CLOSE arm only) | `gAnims[0..3]` and `gEkrXPos*/YPos*Real/Base`, `gEfxHpLutOff` equal the dumps at f1497 and f14468; first-frame `state2` compare; mutation checked | BA-p2a | todo |
 | BA-p2c | PORT | `ekrBattle_Init` (+ `RegisterEkrDragonStatusType`, `InitEkrDragonStatus`, `ShouldCallBattleQuote`) | `gEkrBgPosition`, `gCtrlC01Blocking`, proc timer/is_quote/unk58 at f1496 and f14467 equal the dumps; the scripted quote branch (Talk f14480) vs the attack's | BA-p2b | todo |
 | BA-cap2 | CAP | Parse variants: crit, far/runesword, devil, triangle, REFRESH, PROMOTION battle-animation windows | Hit array and `gAnimRoundData`/`gEfxHpLut` dumps at the parse step per variant | BA-i2 | todo |
+
+### BA-i3 result
+
+`BattleAnimCommandInventoryTest` (no function-entry trace: events inferred from `Anim::pScrCurrent` movement between
+per-step EWRAM dumps, words decoded at runtime from the same dump or the ROM). Window: `ram_trace_prologue_attack`,
+anims set f1497, waiting loop f1499..f1536, round 1 (right pair, `gAnims[2,3]`, Eirika/Soldier first hit) f1537..f1630
+(`efxHPBar` f1577..1611 inside it); the left pair (`gAnims[0,1]`) takes the hit and starts its own round at f1622.
+Struct offsets match `include/anime.h` (state2 0x0C, state3 0x10, round type 0x12, queue size 0x14, queue 0x15,
+`pScrCurrent` 0x20). Anims 0/2 run RAM scripts (`gBanimScr*` buffers), anims 1/3 ROM default scripts first.
+
+| Frames | Observed | Handler |
+|---|---|---|
+| f1497..1498 | pool entries ENABLED, state2 `0x400 + idx*0x100` | `AnimCreate` / `InitLeftAnim`/`InitRightAnim` (BA-i2) |
+| f1499..1536 | anims 0/2: FRAME, `C01` loop (2-step period; `pScrCurrent = pScrStart`); anims 1/3: STOP word, state2 STOP bit | `AnimUpdateAll` -> `AnimInterpret` (FRAME, STOP, COMMAND arms); `BattleAIS_ExecCommands` `ANIM_CMD_WAIT_01` pre-battle arm |
+| f1537 | all four state3 = C01_BLOCKING_IN_BATTLE; right pair round type 0 (HIT_CLOSE), left pair 6; scripts switched (jump) | `ekrBattleTriggerNewRoundStart` (NEW_ROUND_START + STOP) then `BattleAIS_ExecCommands` NEW_ROUND_START arm: `GetAnimNextRoundType`, `SwitchAISFrameDataFromBARoundType`, `AnimScrAdvance` |
+| f1538..1539 | `C03` (wait attack start), `C07` (attack start, plain arm: no SURE_SHOT/GREAT_SHIELD/PIERCE) | `ExecCommands` `ANIM_CMD_WAIT_03`, `0x07` |
+| f1545, 1573, 1578, 1626 | `C43`, `C24`, `C1f`, `C34` | `EfxPlaySEwithCmdCtrl` (sound group) |
+| f1574 | `C04`: state3 -> 0x0d (TAKE_BACK_ENABLE, HIT_EFFECT_APPLIED) | `ANIM_CMD_WAIT_04`; the miss branch (`CheckRoundMiss`) not taken |
+| f1577 | `C1a` same step `efxHPBar`, `EfxHitQuake`, `efxNormalEffect`, `efxFlashUnit` start | `0x1A`: `StartBattleAnimHitEffectsDefault`, `NewEfxNormalEffect` (non-silencer arm) |
+| f1588..1610, f1611 | `C01` on 0 (hold), 2, 3; released at f1611, state3 cleared | `ANIM_CMD_WAIT_01` in-battle arm, `CheckEkrHitDone` |
+| f1621..1622 | `C06` on 2/3 queues NEXT_ROUND_START on the left pair; left scripts switch to round 0 | `0x06`, NEXT_ROUND_START arm |
+| f1630 | `C0d` on 2/3: round type 0 -> 6 (script switch to TAKING_HIT_CLOSE standing) | `0x0D`, `ANIM_ROUND_HIT_CLOSE` arm |
+
+Instruction kinds reached: FRAME and COMMAND only (plus STOP/loop reset); no MOVE, WAIT, END, forced sprite or pointer
+instruction. Command ids: `01 03 04 06 07 0d 1a 1f 24 34 43` (`0d` seen as queue byte plus script switch; `42` appears later, left pair f1655, outside the asserted window). The queue
+always drains inside the step (`commandQueueSize` 0 at every dump); wait ids (01, 03, 04, 07 here) hold `pScrCurrent`.
+
+Not reached in this round: `C02`/`C18` (dodge), `C05` and spells, `C0x08..0c` crit/pierce, `C13`, `C14`/`C15` quake
+commands, `C2d`/`C2e`.. skill effects, `C47`/`C4e`, layer commands `0x71`/`0x72`, `AnimInterpret` END/MOVE/WAIT/PTR
+arms, `Anim_8005334`, the miss/`0x0D` MISS/FAR arms, `NewEkrChienCHR`. Gaps: wait-time (hold) frames carry no queue
+history after a drain (same id twice in a row looks like one event); `AnimDisplayPrivate` output needs OAM dumps (the
+dumps' `oam.bin` exist only every 10th step); the sound commands only have the EWRAM-visible state, not PSG output.
+
+Existing Kotlin: `gbafe.anim` has `Anim`/`AnimPool` (`AnimCreate`, `AnimInsert`); `AnimInterpret`, `AnimUpdateAll`,
+`BattleAIS_ExecCommands`, `AnimScrAdvance` and `SwitchAISFrameDataFromBARoundType` have no Kotlin user.
+
+Proposed rows:
+
+| ID | Kind | Task | Acceptance | Deps | Status |
+|---|---|---|---|---|---|
+| BA-p3a | PORT | `AnimInterpret` (FRAME, STOP, COMMAND incl. wait-id `pScrCurrent--`, LOOP/END/WAIT/MOVE as non-captured arms) + `AnimUpdateAll` timer loop | f1499..f1536 anims 0..3 `pScrCurrent`/`timer`/`state2`/queue equal the dumps per step, driven from f1498; mutated FRAME or COMMAND arm fails | BA-i3 | todo |
+| BA-p3b | PORT | `BattleAIS_ExecCommands` skeleton: queue drain, `end_exec_loop` masks, FRAME arm with `GetAISLayerId`, `C03`/`C04`/`C07`/`C01` (pre-battle and in-battle arms) | state3/state2/`pScrCurrent` of the four anims f1537..f1611 equal the dumps | BA-p3a | todo |
+| BA-p3c | PORT | `C1a`/`C06`/`C0d` arms + `GetAnimNextRoundType`, `SwitchAISFrameDataFromBARoundType`, `AnimScrAdvance` | f1537, f1621..1622 and f1630 script pointers, round types and nextRoundId equal the dumps | BA-p3b | todo |
+| BA-p3d | PORT | `ekrBattleTriggerNewRoundStart` + NEW_ROUND_START / NEXT_ROUND_START arms | f1537 state3 and round types, `gBanimDoneFlag` reset, proc timer 0x1E gate | BA-p3b | todo |
+| BA-p3e | WIRE | `EfxPlaySEwithCmdCtrl` sound ids `1f 24 34 42 43` behind the audio interface | needs a PSG/audio capture (BA-cap1); until then only the queue ids are asserted | BA-cap1 | todo |

@@ -23,6 +23,12 @@ public class M4aDriver(
     /** The sequencer that runs [chain]; also starts songs (`songNumStart`). */
     public val sequencer: M4aSequencer = M4aSequencer(bus, info)
 
+    init {
+        // `soundInfo->CgbOscOff = CgbOscOff` (m4aSoundInit): `TrackStop` silences a stopped
+        // PSG note through it, otherwise the last register state keeps sounding.
+        info.cgbOscOff = { ch -> M4aCgb.oscOff(psg, ch) }
+    }
+
     /** Frames run by [main]; sets the phase of the PSG's 512 Hz sequencer (`startAtFrame`). */
     private var frames = 0
 

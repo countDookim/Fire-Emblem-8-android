@@ -101,6 +101,8 @@ Open from issue #6 (0.1.793), no fix yet; note when they happen if you see them 
   win a Prologue fight; the exp tick must stop exactly when the bar stops. Tick timbre not yet fixed.
 - **D-17 menu background:** menus always open, but sometimes their background/textures are missing
   or appear late. Seen on the level-up stat panel (0.1.793); note which other menus and what came before.
+  Builds after c7658cf: the level-up panel frame (BG1 box) and its palette must appear on the panel's
+  first frame every time (fix: missing sync request). Other menus not audited yet (AUD-SYNC).
 - **Still to test (EP-18/EP-26):** a miss (MISS sprite) and a critical hit; in the 0.1.793 quick play
   every attack hit. Hits, damage, exp and a level-up looked right at a glance (no emulator comparison,
   growths unchecked).

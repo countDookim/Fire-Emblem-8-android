@@ -10,12 +10,14 @@ import gba.core.VerifiesPort
 import gba.extract.Symbols
 import gba.testkit.RamSymbols
 import gba.testkit.ReferenceData
+import gbafe.render.BgHardware
 import gbafe.text.MsgHuffman
 import gbafe.text.MsgStrings
 import gbafe.text.TextSystem
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
@@ -131,11 +133,17 @@ class MapLevelUpStatsDifferentialTest {
         val io = run.region("f06520", "io")
         val bg1Control = u16(io, 0x0A)
         val tileBase = ((bg1Control shr 2) and 3) * 0x4000
+        val hardware = BgHardware()
         val frame = MapLevelUpFrame(
             rom, units, arrayOf(battle), text, messages, bg0, bg1, palette, vram, tileBase,
+            hardware,
         )
         val stats = MapLevelUpStats(rom, units, arrayOf(battle), text, bg0)
         frame.putManimLevelUpFrame(0, 1, 1)
+        // BG_EnableSyncByMask(BG0 + BG1) and ApplyPalette's EnablePaletteSync: the original's
+        // BG1 map and palette reach VRAM at the next VBlank (captured below at f6520).
+        assertEquals(3, hardware.modifiedBgs, "BG0+BG1 sync requested")
+        assertTrue(hardware.modifiedPalette, "palette sync requested")
         for (stat in 0..8) stats.putManimLevelUpStat(0, 1, 1, stat, false)
         assertArrayEquals(
             ShortArray(1024) { u16(after, bg0Address + 2 * it).toShort() }, bg0, "BG0",
@@ -148,6 +156,16 @@ class MapLevelUpStatsDifferentialTest {
             palette.copyOfRange(5 * 16, 6 * 16), "palette bank 5",
         )
         val captured = run.region("f06520", "vram")
+        // The original's maps are still empty in VRAM at f6520 and flushed from its buffers by
+        // f6530 (the sync request above is served at a later VBlank).
+        val mapAt = ((bg1Control shr 8) and 0x1F) * 0x800
+        assertTrue(captured.copyOfRange(mapAt, mapAt + 0x800).all { it.toInt() == 0 })
+        val later = run.region("f06530", "vram")
+        val laterBuffer = run.region("f06530", "ewram")
+        assertArrayEquals(
+            laterBuffer.copyOfRange(bg1Address, bg1Address + 0x800),
+            later.copyOfRange(mapAt, mapAt + 0x800), "BG1 map in VRAM at f6530",
+        )
         // Glyph pixels carry the text colors, which the tilemaps do not.
         val glyphBytes = text.activeFont.chrCounter * 64
         assertArrayEquals(

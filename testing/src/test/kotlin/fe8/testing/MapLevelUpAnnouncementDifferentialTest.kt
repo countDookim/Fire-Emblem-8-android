@@ -121,6 +121,7 @@ class MapLevelUpAnnouncementDifferentialTest {
         val frame = MapLevelUpFrame(
             rom, units, arrayOf(battle), text, messages, hardware.tilemaps[0],
             hardware.tilemaps[1], hardware.palette, hardware.vram, hardware.tileDataOffset(1),
+            hardware,
         )
         val stats = MapLevelUpStats(rom, units, arrayOf(battle), text, hardware.tilemaps[0])
         val labels = MapLevelUpGainLabels(engine, apProcs, hardware, rom)

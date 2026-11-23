@@ -487,6 +487,7 @@ internal class PlayerPhaseWiring(
             hw.palette,
             hw.vram,
             hw.tileDataOffset(1),
+            hw,
         )
         val levelUpStats = MapLevelUpStats(rom, units, battles, talk.text, hw.tilemaps[0])
         val levelUpLabels = MapLevelUpGainLabels(engine, apProcs, hw, rom)

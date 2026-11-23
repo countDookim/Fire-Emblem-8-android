@@ -134,3 +134,28 @@ Per-frame RAM f9995..10700; full dumps every 5f to f10070, then every 10f. Frame
 `Proc_BlockEachMarked(5)` (PROC_MARK_TALK) raises lockCnt of Talk (1 → 2), TalkSkipListener and
 TalkWaitForInput (0 → 1) at f10005. FADEDIN was clear at the press, so `sub_800D488` (`sub_80141B0`, TalkOpen
 end) is not run here; a press with the screen already faded would need another run.
+
+## D-17 result: level-up panel BG1/palette late or missing (issue #6, 0.1.793)
+
+**Cause (confidence high for the sync gap, medium that it is the only visible symptom).**
+`MapLevelUpFrame.putManimLevelUpFrame` wrote BG1 tilemap, frame tiles and palette bank 5 into
+buffers but never requested the VBlank sync the C does (`mapanim_lvupfx.c: PutManimLevelUpFrame`:
+`ApplyPalette` -> `EnablePaletteSync`, and `BG_EnableSyncByMask(BG0_SYNC_BIT + BG1_SYNC_BIT)`).
+`MapLevelUpAnnouncement.initMainScreen` only flags BG0 (matching C), so BG1 (the box frame) reached
+VRAM only if some other proc flagged BG1 later (e.g. `MapAnimInfoBox`), else the frame is missing
+or late; palette bank 5 only got flushed through the unrelated `MapLevelUpGainLabels.applyPalette`
+flag. `BgHardware.flushBackgrounds` copies a tilemap only when its `modifiedBgs` bit is set.
+The differential tests compared tilemap/palette buffers (EWRAM), never VRAM/palette RAM or the
+sync flags, so they could not see it. Capture: at f6520 the original's BG0/BG1 maps are still empty
+in VRAM (frame overran, sync served at the next VBlank), by f6530 BG1 VRAM equals its buffer.
+
+**Fix (done, 2 sync requests via optional `hardware` param of `MapLevelUpFrame`, wired in
+`PlayerPhaseWiring`).** Test: `MapLevelUpStatsDifferentialTest` `frame and initial panel...` now
+asserts `modifiedBgs == 3`, `modifiedPalette`, f6520 VRAM map empty, f6530 VRAM BG1 map == buffer.
+Break-check: dropping the BG1 bit fails it; restored, green.
+
+**Other menus (plausible, not audited).** The same pattern (ports taking raw `tilemaps[n]` /
+`palette` arrays instead of `BgHardware`, so no sync request) exists wherever a port gets arrays;
+`OpAnim.kt` also takes `palette: ShortArray`. Audit rule: for every port that writes a BG buffer or
+`hardware.palette`, the C's `EnablePaletteSync` / `BG_EnableSyncByMask` must appear in Kotlin;
+differential tests should assert `modifiedBgs`/`modifiedPalette` or the VRAM/PRAM dump after a flush.

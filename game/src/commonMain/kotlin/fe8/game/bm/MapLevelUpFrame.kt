@@ -1,6 +1,7 @@
 package fe8.game.bm
 
 import fe8.game.RomView
+import gbafe.render.BgHardware
 import gbafe.text.MsgStrings
 import gbafe.text.Text
 import gbafe.text.TextSystem
@@ -10,7 +11,8 @@ import gbafe.text.TextSystem
  * stat labels on BG0.
  *
  * [vram] is the video memory image and [bg1TileBase] the byte offset in it of BG1's tile data
- * (`GetBackgroundTileDataOffset(1)`); [palette] is the 512-entry palette buffer.
+ * (`GetBackgroundTileDataOffset(1)`); [palette] is the 512-entry palette buffer. [hardware], when
+ * given, receives the palette and BG0/BG1 sync requests (`EnablePaletteSync`, `BG_EnableSyncByMask`).
  */
 public class MapLevelUpFrame(
     private val rom: RomView,
@@ -23,6 +25,7 @@ public class MapLevelUpFrame(
     private val palette: ShortArray,
     private val vram: ByteArray,
     private val bg1TileBase: Int,
+    private val hardware: BgHardware? = null,
 ) {
     private val tmpText = Text()
 
@@ -55,6 +58,7 @@ public class MapLevelUpFrame(
         for (i in 0 until PALETTE_COLORS) {
             palette[BGPAL_MANIM_INFO * PALETTE_COLORS + i] = rom.u16(PAL_FRAME + 2 * i).toShort()
         }
+        hardware?.enablePaletteSync() // ApplyPalette
 
         val unit = units.unitOffset(battles[actorId].bytes[0x0B].toInt())
         val classData = StructCodec.u32(units.bytes, unit + 4)
@@ -73,6 +77,7 @@ public class MapLevelUpFrame(
             )
             label += 12
         }
+        hardware?.enableBgSyncByMask(BG0_SYNC_BIT or BG1_SYNC_BIT)
     }
 
     // Private copy of src/bmlib.c PutString; checked only through the frame test.
@@ -95,5 +100,7 @@ public class MapLevelUpFrame(
         const val TILE_BUFFER_SIZE = 0x2000
         const val COLOR_WHITE = 0
         const val COLOR_GOLD = 3
+        const val BG0_SYNC_BIT = 1
+        const val BG1_SYNC_BIT = 2
     }
 }

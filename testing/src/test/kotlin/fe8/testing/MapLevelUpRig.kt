@@ -55,7 +55,7 @@ internal class MapLevelUpRig(
         val battles = arrayOf(battle)
         val frame = MapLevelUpFrame(
             rom, units, battles, text, messages, hardware.tilemaps[0], hardware.tilemaps[1],
-            hardware.palette, hardware.vram, hardware.tileDataOffset(1),
+            hardware.palette, hardware.vram, hardware.tileDataOffset(1), hardware,
         )
         val stats = MapLevelUpStats(rom, units, battles, text, hardware.tilemaps[0])
         labels = MapLevelUpGainLabels(engine, apProcs, hardware, rom)

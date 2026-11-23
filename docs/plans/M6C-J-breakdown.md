@@ -993,6 +993,36 @@ sound (banim-efxsound.c 24), death (banim-efxdeath.c 15), exp and level-up (bani
 32, banim-ekrpopup.c 25), ending (banim-ekrbattleending.c 9). A per-step LCD/palette/OAM capture (as
 `ram_trace_prologue_wm_lcd`) is likely needed: BA-cap1.
 
+### BA-0 result
+
+`BattleAnimationWindowInventoryTest` (procs watch spans plus EWRAM dumps; steps are 1-based). Last-alive steps:
+
+| | `ram_trace_prologue_attack` (Eirika/Soldier) | `ram_trace_prologue_battle` (scripted Seth/Valter) |
+|---|---|---|
+| Map -> battle start | `ProcScr_ekrBattleStarting` f1464..1495 (window start) | `ProcScr_ScriptBattleDeamon` f14430, `ekrBattleStarting` f14431..14466 |
+| Furniture appears | `ekrGauge`/`ekrDispUP` f1480, window/base/kakudai f1482 | f14448 / f14450..14451 |
+| Rounds begin | `gProc_ekrBattle` f1496..1988; `efxWeaponIcon`/`efxHPBarColorChange` f1505..1984 | `ekrBattle` f14467..15034; icon procs f14648..15030 |
+| Rounds | 3 hits: `efxHPBar` f1577..1611, f1659..1692, f1784..1818 | round 1 miss (`EfxAvoid` f14730..14763, `efxDamageMojiEffect`, `ekrsubAnimeEmulator`); round 2 hit `efxHPBar` f14890..14926 |
+| HP | `gEkrGaugeHp` low half 0x16->0xf (f1579..1592), high half 0x10->7 (f1661..1677), low 0xf->8 (f1786..1799); `gBanimDoneFlag` f1819 | `gEkrGaugeHp` high half 0x1e->0xd (f14892..14924); `gBanimDoneFlag` f14995 |
+| Battle -> map | `ekrBattleEnding` f1989, `gEkrBattleEndFlag` f1989, `sProc_DelayedBMapDispResume` f2010 | `ekrBattleEnding` + `gEkrBattleEndFlag` f15035 (trace runs to f15059) |
+
+`gBattleActor`/`gBattleTarget` curHP hold the precomputed final HP for the whole window (7/8 and 13/34), so the
+per-round value comes only from `gEkrGaugeHp`. The scripted window also runs `ProcScr_BattleEventEngine`
+(`gProcScr_Talk` quote, f14479..14630) inside `ekrBattle`; no `efx*Death`/`lvup`/exp proc runs in either window.
+
+Proc groups to rows: BA-i1 `ekrBattleStarting`, `ekrUnitKakudai`, `ekrBaseAppear`, `EkrBaseKaiten`,
+`ekrWindowAppear`, `ekrBattleDeamon`, `ScriptBattleDeamon`; BA-i2/BA-i3 `ekrBattle`, `ekrsubAnimeEmulator`,
+`ekrChienCHR`; BA-i4 `efxHPBar`, `efxStatusUnit`; BA-i5 `ekrGauge`, `ekrDispUP`, `ekrNamewinAppear`,
+`efxWeaponIcon`, `efxHPBarColorChange`; BA-i6 `EfxHitQuake`, `efxQuake`, `efxFlashUnit`, `efxFlashHPBar`,
+`efxFlashBG`, `efxNormalEffect(BG)`, `efxDamageMojiEffect(OBJ)`, `EfxAvoid` (sound: no proc; needs the PSG/audio
+data); BA-i8 `ekrBattleEnding`, `DelayedBMapDispResume`. BA-i7: no proc observed, so the exp bar is not in these
+windows (BA-cap1 or a new CAP must supply it).
+
+Gaps for BA-cap1: no per-step LCD/palette/OAM/VRAM (full dumps only every 10th step, `r` dumps are EWRAM + IWRAM
+only); no function-entry trace, so function lists and branches are still unknown; the anim script commands of
+`ekrsubAnimeEmulator` (`ekrcmd`) are not logged; no audio/PSG writes; the hit array contents beyond
+`gBattleHitIterator` and the OAM/BG/transition buffers (map -> battle fade) are not isolated.
+
 ## M6-H chapters 1–4 systems, as first needed
 
 C14-0 is a scout: play chapters 1 to 4 (fixtures `chapter1.sav`, `chapter2.sav`; procs watch only) and list which

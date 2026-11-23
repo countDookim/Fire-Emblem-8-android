@@ -18,8 +18,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- BUG-suspinval: scheduled, until ~17:30Z
-- D-17: scheduled, until ~17:30Z
+- AUD-SYNC: scheduled, until ~17:35Z
+- BA-i2: scheduled, until ~17:35Z
 
 ## Current state
 

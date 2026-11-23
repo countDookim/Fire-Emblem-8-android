@@ -8,8 +8,8 @@ Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
 Nothing blocks development. Owner tests of 0.1.852 (issue #7, 11-23): the whole Prologue turn-1 walkthrough
 (PP-17, closes M6-B), enemy phase, crit and miss, cutscene skips, APP-icon2, D-16 and the D-17 level-up panel background
-are OK. D-18, D-19, D-21, D-22 fixed and owner-confirmed on 0.1.856 (11-24). D-20 open (maybe partly fixed by
-the D-22 font reset, not retested); rest expected gaps (Device status).
+are OK. D-18, D-19, D-21, D-22 fixed and owner-confirmed on 0.1.856 (11-24). D-20 colours fixed too (owner 11-24); no game over
+and AI stop after lord death are expected (PC-7/PC-8). Rest expected gaps (Device status).
 Extensive modding scope, separate vanilla tests and replaceable camera/controls/AI are accepted (ADR 0016).
 [M7 decisions](docs/plans/M7-modding.md): release staging (D2), API details (D5), layout/debug/storage/packaging
 (D4/D6/D8/D9) and executable runtime (D10) remain open; M6 and design inventories are not blocked.
@@ -316,7 +316,7 @@ Close an issue only after reference verification and owner confirmation; preserv
 | D-19 battle box BG | **Resolved:** owner confirmed on 0.1.856 (11-24); Fix 38cf8ba. Was: open (owner, 0.1.852, issue #7): enemy-initiated battle (bandit on Eirika): map battle HP info box drawn without its background. Build includes the D-17 fix; check `MapAnimInfoBox` gradient/BG sync on the enemy-phase path. **Still on retest (11-23).** |
 | D-21 level-up numbers | **Resolved:** owner confirmed on 0.1.856 (11-24); Fix 38cf8ba (test 2b3d72a). Was: open (owner, 0.1.852, issue #7 retest): the level-up panel's background is now right, but its stat numbers use a wrong palette. Suspect: the D-17 fix's `EnablePaletteSync` in `MapLevelUpFrame` vs the number glyph palette load order (compare MC-cap3 f6760.. palette RAM). |
 | D-22 boss name palette | **Resolved:** owner confirmed on 0.1.856 (11-24); Fix 38cf8ba. Was: open (owner, 0.1.852, issue #7 retest): the boss's name is drawn with a wrong palette in the map battle HP box (owner 11-23). Check the name text palette in `MapAnimInfoBox` for the boss; possibly related to D-19 (same box) or D-21. |
-| D-20 after lord death | **Open (owner, 0.1.852, issue #7, screenshot there):** Eirika dies: death quote, unit removed, but no game over (expected: PC-7/PC-8); then enemy AI stops and menus/text use wrong palettes. |
+| D-20 after lord death | **Resolved:** owner on 0.1.856 (11-24): menu/text colours after Eirika's death are right (D-22 font reset, 38cf8ba). No game over and the enemy AI stopping afterwards are expected until PC-7/PC-8. |
 | #7 expected gaps | **Not bugs (0.1.852):** title class reel (D-15, M6-G); Item command (Known gaps list); no game over on lord death (PC-7/PC-8). |
 | D-05 interactions | Expected missing gameplay; re-test when player actions are ported. |
 

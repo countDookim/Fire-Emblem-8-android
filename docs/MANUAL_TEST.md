@@ -10,7 +10,7 @@ needs your ROM, imported on first start.
 | | Build | Date | Report |
 |---|---|---|---|
 | Latest APK | 0.1.856 (`50943a9`) | 2026-11-23 | — |
-| Last owner test | 0.1.856 (`50943a9`) | 2026-11-24 | D-18, D-19, D-21, D-22 fixed (owner) |
+| Last owner test | 0.1.856 (`50943a9`) | 2026-11-24 | D-18 to D-22 fixed (owner) |
 | Last full pass | 0.1.622 (`22cfc9d`) | 2026-11-12 | HANDOFF "Device status" |
 
 Items are removed from this page once the owner confirms them; the history is in git and in
@@ -18,16 +18,11 @@ Items are removed from this page once the owner confirms them; the history is in
 
 ## 1. Test now
 
-Only one check is left, in 0.1.856 (`50943a9`) and later:
-
-- **D-20 after Eirika dies:** the D-21/D-22 fix also resets the text after a death quote, so the wrong
-  menu and text colours may be gone. There is still no game over, and the enemy AI may still stop; note
-  what you see.
+Nothing new: everything up to 0.1.856 has been tested. New items appear here with the build that has them.
 
 ## 2. Open bugs (no fix yet)
 
-- **D-20 after Eirika dies:** there is no game over yet (known gap), but on 0.1.852 the enemy AI stopped
-  afterwards and menus and text used wrong palettes. See the check above.
+None reported.
 
 ## 3. Known gaps (not bugs)
 
@@ -45,7 +40,7 @@ Retest these only when a change to them is announced.
   - The boss never moves (EP-11).
   - After the last enemy, the ending dialogue plays and the map stays: no save menu or Chapter 1 yet
     (PC-3 to PC-6).
-  - Eirika dying gives no game over (PC-7, PC-8).
+  - Eirika dying gives no game over, and the enemies stop acting afterwards (PC-7, PC-8).
 - **Map events and rules:** no staff range, traps, after-move or tutorial events, dialogue during the
   enemy phase, or records (M6-C, M6-E, M6-H). The enemy and green phase banners are missing (D12-2).
 - **Opening and title:**
@@ -72,6 +67,6 @@ Retest these only when a change to them is announced.
 - **Map:** the player phase banner, the hover cursor, the Rapier popup, exp and level-up sounds with no
   lingering beep.
 - **Bug fixes (0.1.856):** after a kill the attacker stays on his tile (D-18); the HP box has its
-  background when an enemy attacks (D-19); level-up numbers (D-21) and the boss's name (D-22) have the
-  normal text colours.
+  background when an enemy attacks (D-19); level-up numbers (D-21), the boss's name (D-22) and the menus after
+  Eirika's death (D-20) have the normal colours.
 - **App icon:** no home-screen shortcut, default launcher icon, Eirika's portrait in recents.

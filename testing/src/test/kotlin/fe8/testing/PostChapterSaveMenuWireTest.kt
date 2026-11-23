@@ -5,6 +5,13 @@ import fe8.game.bm.BmSt
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterTitle
 import fe8.game.bm.PlaySt
+import fe8.game.bm.UnitLoader
+import fe8.game.bm.UnitTable
+import fe8.game.flags.Fe8EventFlags
+import fe8.game.save.BmGameSave
+import fe8.game.save.Fe8SramLayout as L
+import fe8.game.save.GameSaveRam
+import gbafe.core.time.GameClock
 import fe8.game.mapanim.ApProcs
 import fe8.game.save.BmSaveLib
 import fe8.game.savemenu.PostSaveMenu
@@ -73,9 +80,30 @@ class PostChapterSaveMenuWireTest {
             override fun writeVram32(addr: Int, value: Int) = Unit
             override fun clearVram(dest: Int, byteCount: Int) = Unit
         }
-        val saveLib = BmSaveLib(CartSram().also { it.copyIn(run.sram("s09799")) }).also {
+        val sram = CartSram().also { it.copyIn(run.sram("s09799")) }
+        val saveLib = BmSaveLib(sram).also {
             it.sramInit()
         }
+        // The real WriteGameSave of Fe8Boot, on the RAM of PC-cap1 r09798 (before the second A).
+        val ew = run.region("r09798", "ewram")
+        val iw = run.region("r09798", "iwram")
+        val playSt = PlaySt().also { it.decode(ew, GPLAYST - EWRAM) }
+        val units = UnitTable(rom)
+        ew.copyInto(units.bytes, 0, UNITS - EWRAM, UNITS - EWRAM + UnitTable.TOTAL_SIZE)
+        val flags = Fe8EventFlags.create()
+        flags.copyIn(iw.copyOfRange(GFLAGS - IWRAM, GFLAGS - IWRAM + flags.size))
+        // The write stamps time_saved from the clock; the capture's value is in s09800's playSt.
+        val clock = GameClock().also { it.set(10669L) }
+        val convoy = ew.copyOfRange(GCONVOY - EWRAM, GCONVOY - EWRAM + 200)
+        val ram = GameSaveRam(playSt, BmSt(), units, flags, clock, convoy)
+        ew.copyInto(saveLib.pidStatsData, 0, GPIDSTATS - EWRAM, GPIDSTATS - EWRAM + saveLib.pidStatsData.size)
+        ew.copyInto(
+            saveLib.chapterStatsData, 0, GCHAPSTATS - EWRAM,
+            GCHAPSTATS - EWRAM + saveLib.chapterStatsData.size,
+        )
+        saveLib.setBonusContentClaimFlags(u32(ew, GBONUS - EWRAM))
+        val loader = UnitLoader(units, rom, { 0 }, rng, { false })
+        val gameSave = BmGameSave(saveLib, loader, rom)
         val written = ArrayList<Int>()
         val sounds = ArrayList<Int>()
         var keys = 0
@@ -112,7 +140,10 @@ class PostChapterSaveMenuWireTest {
                 loadObjUiGfx = {},
                 clock = { 0 },
                 setNextGameActionId = {},
-                writeGameSave = { slot -> written += slot },
+                writeGameSave = { slot ->
+                    written += slot
+                    gameSave.writeGameSave(ram, slot)
+                },
                 newKeys = { keys },
                 playSoundEffect = { sounds += it },
             ),
@@ -155,10 +186,38 @@ class PostChapterSaveMenuWireTest {
         assertEquals(listOf(0x60), sounds)
         assertEquals(0, s.cursorConfig)
         assertEquals(PostSaveMenu.MAIN_MENU_OPTION_INVALID, s.mainSelBitfile)
+
+        // The real write's SRAM against the capture (s09802: the write is complete).
+        // Known, reported differences (not forced):
+        // - 0x778..0x77F: monster RN state (gmMonsterRnState stand-in, zero here), 0x84B:
+        //   uninitialised byte of WriteSupplyItems, 0xD8C..0xDAF: wmStuff (stand-in, zero here);
+        //   so the block checksum32 and the header checksum (0x60) differ too.
+        // - Header 0x40 bit 0: the port marks charId 0 known for an empty blue unit slot, the
+        //   capture does not (capture 0xFE, port 0xFF).
+        // - Block infos 3 and 4 (invalidated suspend save): the port zeroes bytes of the info
+        //   that the capture keeps (e.g. 0x94: 00 vs 11).
+        val out = ByteArray(L.SRAM_SIZE).also { sram.copyOut(it) }
+        val want = run.sram("s09802")
+        val dest = L.GAME0_OFFSET
+        val masked = (0x778..0x77F) + 0x84B + (0xD8C until 0xDB0)
+        val bad = (0 until L.GAME_SIZE).filter { it !in masked && out[dest + it] != want[dest + it] }
+        assertTrue(bad.isEmpty(), "game block diff at " + bad.joinToString { "0x%X".format(it) })
+        val info = L.blockInfoOffset(0)
+        val badInfo = (0 until L.INFO_CHECKSUM32).filter { out[info + it] != want[info + it] }
+        assertTrue(badInfo.isEmpty(), "block info 0 diff at $badInfo")
     }
 
     private companion object {
         const val RUN = "ram_trace_prologue_end"
+        const val EWRAM = 0x02000000
+        const val IWRAM = 0x03000000
+        const val GPLAYST = 0x0202BCF0
+        const val UNITS = 0x0202BE4C
+        const val GCONVOY = 0x0203A81C
+        const val GPIDSTATS = 0x0203E894
+        const val GCHAPSTATS = 0x0203ECF4
+        const val GBONUS = 0x0203EDB4
+        const val GFLAGS = 0x03005250
 
         fun u32(b: ByteArray, o: Int): Int =
             (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8) or

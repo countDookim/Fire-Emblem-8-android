@@ -31,7 +31,7 @@ Retest these only when a change to them is announced.
 - **Combat:** no battle animations (M6-G); no NO DAMAGE text (EP-24b), crit flash or screen shake (EP-23b),
   weapon-broke or item-drop popups (M6-G, M6-H). Crit damage and misses themselves work.
 - **Commands and screens:**
-  - The Item command only beeps.
+  - The Item command only beeps (item menus: M6-F, M6-H).
   - The map menu's Unit, Status, Guide, Options and Suspend do nothing, and neither do R, L and Start on
     the map.
   - There is no help box, inventory or status screen (M6-E, M6-F, M6-H).
@@ -44,7 +44,7 @@ Retest these only when a change to them is announced.
 - **Map events and rules:** no staff range, traps, after-move or tutorial events, dialogue during the
   enemy phase, or records (M6-C, M6-E, M6-H). The enemy and green phase banners are missing (D12-2).
 - **Opening and title:**
-  - Idling on the title replays the opening instead of the class showcase (D-15, M6-G).
+  - Idling on the title replays the opening instead of the class showcase (BA-reel-inv, after M6-G).
   - The chapter intro's closing sound-effect fade is missing.
   - World-map node icons are missing.
   - New Game always uses Normal difficulty.

@@ -83,13 +83,19 @@ with Easy included. Until then Easy plays without tutorials (stand-in). Earlier 
 Pace check, not a promise: about 42 verified functions a day over the first 18 days; about 6,970
 remain in scope. The pace depends on captures.
 
-## Open user-report issues
+## User-report issues
 
-- **#4 starting the game:** fixed in `1b207b8`/`7b1dcfd`; the owner has since played to the Prologue
-  map. Needs the owner's confirmation to close.
-- **#5 Prologue cutscene:** item 1 (audio stutter) resolved as D-07; item 2 (Seth/Valter animation)
-  → M6-G; item 3 (riders at the map edge) confirmed solved earlier; item 4 (Rapier popup) → D-09
-  device check pending; item 5 (player phase) → M6-B to M6-D.
+All closed (#4 on 11-11; #5, #6, #7 on 2026-11-24 after the owner confirmed D-13..D-22 on 0.1.852/0.1.856).
+What they reported and is still missing, and where it is tracked:
+
+| Reported in | Missing | Task |
+|---|---|---|
+| #5 item 2, #6 | Battle animations (Seth vs Valter first) | M6-G, `BA-w` |
+| #7 item 1 | Title-idle class showcase (the opening replays instead) | `BA-reel-inv` (after `BA-w`) |
+| #5 item 5, #6, #7 item 6 | Item command and the other unit/map menu commands | M6-F (`IS-*`), M6-H (`C14-item-cap`/`-inv`, trade, ...) |
+| #6 | The boss never moves | `EP-11` |
+| #6 | After the last enemy: no save menu, no Chapter 1 | `PC-3a`, `PC-4`, `PC-5`, `PC-6` |
+| #7 item 7 | Eirika's death: no game over, enemies stop acting | `PC-7i` → `PC-7a/b`, `PC-8a/b`, `PC-8` |
 
 ## Modding audit (M7-0, 2026-11-11)
 

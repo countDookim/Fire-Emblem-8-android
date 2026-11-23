@@ -213,6 +213,7 @@ Scenario scopes and stop conditions: [M6 task scopes](plans/M6-task-scopes.md).
 | BA-level-cap | CAP | One melee level-up with full battle animations | Exp crossing, growth result, animation/stat-panel procs and graphics through exit | — | todo |
 | BA-level-inv | INV | Full-animation exp-to-level panel; ekrlvup/efxlvup, only observed paths | Separate announcement, stat labels and cleanup PORT rows; reuse growth calculations | BA-level-cap | todo |
 | BA-w | WIRE | M6-G: scripted Seth/Valter and one player melee fight animate | Captured entry, round, death/exp and exit frames match; allocation check; owner device test | PC-easy-w, BA-i1, BA-i2, BA-i3, BA-i4, BA-i5, BA-i6, BA-i7, BA-i8, BA-death-inv, BA-level-inv | blocked: inventory must add PORT deps |
+| BA-reel-inv | INV | Title-idle class showcase (issue #7 item 1; D-15 stand-in replays the opening): inventory `ram_trace_title_idle_reel` beyond the melee core | Observed functions/windows and ≤8-function PORT rows; reuse of BA-w pieces named | BA-w | todo |
 
 ### M6-H early chapter systems
 

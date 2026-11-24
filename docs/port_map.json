@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1444,
-    "implemented_unverified": 117
+    "implemented_unverified": 118
   },
   "functions": {
     "APProc_Create": {
@@ -4292,6 +4292,14 @@
       "tests": [
         "fe8.testing.GameControlDifferentialTest#save menu return reaches the intro monologue like the game"
       ]
+    },
+    "GameCtrl_CheckNewGameAndBranch": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
+      "status": "implemented",
+      "tests": []
     },
     "GameEarlyStartDelay": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",

@@ -38,4 +38,6 @@ internal val M4A_UNCOVERED_RUNS: Set<String> = setOf(
     "ram_trace_prologue_levelup", "ram_trace_battle_item_helpers", "ram_trace_ai_danger_calls",
     // Same resume/input prefix and RAM as the uncovered clear run; audio stays unverified.
     "ram_trace_prologue_end",
+    // PC-cap2: same resume save and clear-run inputs up to f3700; diverges at f5456 (channel 4).
+    "ram_trace_prologue_gameover",
 )

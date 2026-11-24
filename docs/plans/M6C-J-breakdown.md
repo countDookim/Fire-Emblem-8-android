@@ -1929,3 +1929,48 @@ Proposed rows:
 | BA-p5b | PORT | `ekrBattle_80508F0`, `ekrBattle_8050940` (`gain[R]` arm), `ekrBattleWaitExpBarIdle`, `ekrBattlePostExpBarIdle`, `ekrBattle_8050AB8` (window/draw/sound calls behind hooks) | f1862..1940 callback identity, `timer`, `end` per step equal the dumps; exp-bar draw not asserted (not dumped) | BA-p5a | todo |
 | BA-p5c | PORT | `ekrBattleLvupHanlder` (`c < 100` arm), `ekrNewEkrPopup`, `ekrBattle_WaitForPopup` (ended arm), `ekrBattle_PostPopup`, `ekrBattle_TriggerDragonStatusFinished` (default arms), `ekrBattle_PostDragonStatusEffect` (debug-mode 0 arm) | f1941..1989 callback, `timer`, `side`, `counter`, `gEkrBattleEndFlag` equal the dumps; weapon-icon/HP-bar-color procs ended at f1985, namewin proc started f1989 (hooks) | BA-p5b | todo |
 | BA-cap4 | CAP | Post-battle windows to exercise the arms above: exp gain on the left unit, level-up (`c >= 100`, `ekrBattle_ExecEkrLvup`/`WaitEkrLvupIdle`), zero exp (popup arm of `WaitForPostBattleAct`), dragon status arm (DEMON_KING/DRACO_ZOMBIE/MYRRH, `WaitEkrDragonEndIdle`) | Capture + inventory per arm; overlaps BA-level-inv/BA-i7 | BA-i4b | todo |
+
+### BA-i8 result
+
+`BattleEndingInventoryTest` (same capture and method as BA-i4b: `ram_trace_prologue_attack`, no function-entry trace,
+dump = state after the step), f1989..2038. `ProcScr_ekrBattleEnding` is a script proc of eight `PROC_REPEAT`s (script
+cursor n + 1 after the n-th repeat command read; NAME is command 0). A repeat command is read and its callback called in
+the same step; after `Proc_Break` the callback pointer reads 0 and the cursor still names the command that broke.
+`gBanimBG` 0, `gBanimLinkArenaFlag` 0, `gEkrBattleEndFlag` 1, `gEkrBmLocation` (8, 6, 8, 5) throughout. The window
+ends where the map procs are back and stable (f2038; the proc set is unchanged to f2070, end of the capture).
+
+| Function | Frames (calls) | Branch taken | Not exercised |
+|---|---|---|---|
+| `NewEkrbattleending` | f1989 (1) | `ProcScr_ekrBattleEnding` appears, `timer` 0, callback `_80560F0` set (same step as `PostDragonStatusEffect`; `ekrBattle` gone) | none |
+| `ekrBattleEnding_80560F0` | f1990 (1) | `gBanimBG == 0`: `Proc_Break`, timer stays 0 | dragon-status arms, fade path (`Interpolate`, `EfxPalBlackInOut`, 9 calls) |
+| `ekrBattleEnding_8056170` | f1991 (1) | `gBanimBG == 0` break | `UnpackChapterMapGraphics`/fade/`RenderBmMap` path, dragon arms |
+| `ekrBattleEnding_80561C8` | f1992 (1) | `gBanimBG == 0` break | `EfxChapterMapFadeOUT` loop (9 calls), dragon arms |
+| `ekrBattleEnding_8056228` | f1993 (1) | `timer = 0`, `x1 = x2 = 136`, `y1 = y2 = 96` from `gEkrBmLocation`; `AnimClearAll`, `NewEkrUnitKakudai`, `NewEkrBaseKaiten`, `NewEkrWindowAppear`, `NewEkrBaseAppear` (4 procs appear, `gEkrWindowAppearExist` 0 -> 1) | none |
+| `ekrBattleEnding_8056288` | f1994..2009 (13 calls; timer 1 shown f1994..1997, then +1 per step to 13) | `++timer > 0xC` false x12; 13th call (f2009): `EndEkrGauge` (`ProcScr_ekrGauge`, `EkrBaseKaiten`, `ekrWindowAppear`, `ekrBaseAppear` gone), BG init and window registers (not dumped) | none |
+| `ekrBattleEnding_8056310` | f2010 (1) | `timer = 0`, `terminator = 15`; `BMapDispResume_FromBattleDelayed` starts `ProcScr_Mu` and `sProc_DelayedBMapDispResume`; arena flag != 1 -> `UnpackChapterMapPalette`; link-arena flag 0 -> no fog | arena (`GetBattleAnimArenaFlag == 1`) and link-arena arms |
+| `sProc_DelayedBMapDispResume` | f2010, f2011 present, gone f2012 | `PROC_SLEEP(0)` then `BMapDispResume` (not dumped) | `BMapDispResume` internals (suspend-point arms) |
+| `ekrBattleEnding_8056390` | f2012..2026 (15 calls), timer 1..14, 0 on the 15th | `timer != terminator` increments; box `Interpolate` from (136, 96) to the screen; BG2 tilemap cleared; at `timer == terminator`: `timer = 0`, window box reset, palette sync; `ProcScr_ekrUnitKakudai` gone f2012 | none |
+| `ekrBattleEnding_8056484` | f2027 (1) | `EndEkrBattleDeamon` (`gProc_ekrBattleDeamon` gone), `RefreshBMapDisplay_FromBattle` (VRAM/IO only) | none |
+| (script end) | f2028 | `PROC_END`: `ProcScr_ekrBattleEnding` gone; `sProcScr_CombatAction` gone f2029 | n/a |
+
+Other proc changes in the window (map side): `ProcScr_efxStatusUnit` (one of two) ends f1995, `gProc_ekrDispUP` f2001,
+`ProcScr_ekrNamewinAppear` f2002 (`gEkrNamewinAppearExist` 1 -> 0), `ProcScr_StdEventEngine` runs f2030..2032,
+`ProcScr_Mu` ends f2034, `gProcScr_SideWindowMaker` f2037, then the terrain/unit/goal displays and
+`ProcScr_GreenTextColor` start f2038. Final set: `gProcScr_GameControl`, `sProc_BMVSync`, `gProc_BMapMain`,
+`gProc_MapTask`, `gProcScr_PlayerPhase` and those four.
+
+Gaps: everything the ending functions draw (palette fades, BG/window/blend registers, tilemap clears, OAM/unit sprite
+sheet, `BMapDispResume`) is VRAM/IO/palette, not in the EWRAM dumps, so a port verifies only control state (callback,
+cursor, timer, terminator, `x1..y2`, proc set, flags). The three steps where the `8056288` timer does not advance
+(f1995..1997) and the idle step f2011 cannot be attributed without a proc-run entry trace (BA-cap3 style); the port
+must reproduce the timer values per step, so BA-p8a drives the dump steps and treats those steps as no-run. The
+`gBanimBG != 0` fade arms of `_80560F0`/`_8056170`/`_80561C8`, dragon-status arms and arena arms have no capture
+(BA-cap4 style CAP).
+
+Proposed rows:
+
+| ID | Kind | Task | Acceptance | Deps | Status |
+|---|---|---|---|---|---|
+| BA-p8a | PORT | `NewEkrbattleending`, `ekrBattleEnding_80560F0`/`_8056170`/`_80561C8` (`gBanimBG == 0` arm), `_8056228`, `_8056288` (draw/proc-start calls behind hooks) | f1989..2009 callback, cursor, `timer`, `x1..y2`, proc-start hook calls equal the dumps; mutated `> 0xC` gate fails | BA-p5c | todo |
+| BA-p8b | PORT | `ekrBattleEnding_8056310` (non-arena, non-link arm), `_8056390`, `_8056484`, `sProc_DelayedBMapDispResume` order (restore calls behind hooks) | f2010..2028 callback, cursor, `timer`, `terminator`, `gProc_ekrBattleDeamon` end, delayed proc lifetime equal the dumps | BA-p8a | todo |
+

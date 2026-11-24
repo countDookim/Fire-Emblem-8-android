@@ -204,18 +204,19 @@ Scenario scopes and stop conditions: [M6 task scopes](plans/M6-task-scopes.md).
 | BA-i1 | INV | Entry transition only: map to battle backgrounds; banim-ekrbattlestarting/intro | Observed functions/branches, exact state comparisons and ≤8-function PORT rows | BA-0, BA-cap1 | todo |
 | BA-cap3 | CAP | Proc-run entry trace of `ekrBattle`/`efxHPBar`, incl. unadvanced steps f1581..1582/f1789; death-hit and `CheckRound2` window | Entry log per step; death/far windows | — | todo: explains BA-p3b f1581 resync |
 | BA-p5c | PORT | `LvupHanlder` (<100), popup trio, `TriggerDragonStatusFinished`, `PostDragonStatusEffect` | f1942..1990 cb, timer, side, counter, gEkrBattleEndFlag (dump = state after step) | — | todo |
+| BA-p8a | PORT | `NewEkrbattleending`, ending `_80560F0`/`_8056170`/`_80561C8` (BanimBG 0), `_8056228`, `_8056288` | f1989..2009 cb, cursor, timer, x1..y2 equal dumps | BA-p5c | todo |
+| BA-p8b | PORT | ending `_8056310`, `_8056390`, `_8056484`, delayed BMapDispResume proc order | f2010..2028 cb, timer, terminator, proc lifetimes equal dumps | BA-p8a | todo |
 | BA-cap4 | CAP | Post-battle: left-unit exp, level-up, zero exp, dragon-status arms | Captures exist for those arms | — | todo |
 | BA-p3e | WIRE | `EfxPlaySEwithCmdCtrl` ids 1f/24/34/42/43 behind the audio interface | Needs PSG/audio capture | BA-cap1 | todo |
 | BA-cap2 | CAP | Hit-parse variants: crit, far/Runesword, devil, triangle, REFRESH, PROMOTION | Hit array, `gAnimRoundData`/`gEfxHpLut` at the parse step per variant | BA-i2 | todo |
 | BA-i5 | INV | Name/weapon/terrain panels and gauges: ekrdispup/ekrgauge/ekrutils | Observed functions/branches, exact state comparisons and ≤8-function PORT rows | BA-0, BA-cap1 | todo |
 | BA-i6 | INV | Hit flash, shake, sounds for that round: efxhit/flash/sound | Observed functions/branches, exact state comparisons and ≤8-function PORT rows | BA-i4, BA-cap1 | todo |
 | BA-i7 | INV | Exp presentation without level-up; identify popup checks actually entered | Observed functions/branches, exact state comparisons and ≤8-function PORT rows | BA-0, BA-cap1 | todo: no exp proc in BA-0 windows; needs capture |
-| BA-i8 | INV | Battle-to-map transition and restore only: ekrbattleending | Observed functions/branches, exact state comparisons and ≤8-function PORT rows | BA-0, BA-cap1 | todo |
 | BA-death-cap | CAP | One melee kill with full battle animations; no level-up required | Death proc, OAM/palette and HP/round state through return to map | — | todo |
 | BA-death-inv | INV | Death effect only; efxdeath and actual melee death callers | Observed function rows and exact death/cleanup comparisons | BA-death-cap | todo |
 | BA-level-cap | CAP | One melee level-up with full battle animations | Exp crossing, growth result, animation/stat-panel procs and graphics through exit | — | todo |
 | BA-level-inv | INV | Full-animation exp-to-level panel; ekrlvup/efxlvup, only observed paths | Separate announcement, stat labels and cleanup PORT rows; reuse growth calculations | BA-level-cap | todo |
-| BA-w | WIRE | M6-G: scripted Seth/Valter and one player melee fight animate | Captured entry, round, death/exp and exit frames match; allocation check; owner device test | PC-easy-w, BA-i1, BA-i2, BA-i3, BA-i4, BA-i5, BA-i6, BA-i7, BA-i8, BA-death-inv, BA-level-inv | blocked: inventory must add PORT deps |
+| BA-w | WIRE | M6-G: scripted Seth/Valter and one player melee fight animate | Captured entry, round, death/exp and exit frames match; allocation check; owner device test | PC-easy-w, BA-i1, BA-i2, BA-i3, BA-i4, BA-i5, BA-i6, BA-i7, BA-p8a, BA-p8b, BA-death-inv, BA-level-inv | blocked: inventory must add PORT deps |
 | BA-reel-inv | INV | Title-idle class showcase (issue #7 item 1; D-15 stand-in replays the opening): inventory `ram_trace_title_idle_reel` beyond the melee core | Observed functions/windows and ≤8-function PORT rows; reuse of BA-w pieces named | BA-w | todo |
 
 ### M6-H early chapter systems
@@ -368,6 +369,7 @@ Readability remains owner-paused until ~2026-11-17 (HANDOFF).
 
 ## Done
 
+- **Claude 2026-11-24:** BA-i8 (`BattleEndingInventoryTest` f1989..2038; rows BA-p8a/b; fade/arena/dragon arms need CAP).
 - **Claude 2026-11-24:** PC-7a (`GameOverStart.startGameOver` = `sub_80837B0` and `EventEngine.callGameOverEvent` = `CallGameOverEvent` Ported, `GameOverStartDifferentialTest` over `f5832 -> f5833` with 8 break-checks; caller is `CpPerform` > `RunPotentialWaitEvents` > `RunWaitEvents` with `EVFLAG_GAMEOVER` set at f5583; unwired: `EventInfoHooks.startGameOver` stays a no-op in `Fe8Boot` until PC-7b/PC-8).
 - **Claude 2026-11-24:** PC-cap2 (published, `assets-8a52aac`), PC-7i (`GameOverInventoryTest`; rows PC-7a/b, PC-8a/b/h, CAPs PC-cap2b/c; songs confirmed by ROM song table: `0x3F` quote, `0x3E` game over from `f5881`, `0x43` title `f6297`).
 - **Claude 2026-11-24 (16Z):** BA-p5b (80508F0, 8050940 gain[R], WaitExpBarIdle, PostExpBarIdle, 8050AB8 Ported; EkrBattleExpBarDifferentialTest f1863..1941; draws/songs/WIN0 via Hooks). BA-p5a (WaitForPostBattleAct ExecExpGain arm, ExecExpGain control state Ported; EkrBattleExpGainDifferentialTest f1830..1862; BA-i4b frame numbers off by one: dump shows cb after the step). BA-p4c (ekrBattleMain quote-free, PrepareDragonIntro, ExecDragonIntro/PostEkrDragonIntro no-dragon, SetFlashingEffect, ExecTriangleAtk inactive Ported; EkrBattleMainChainDifferentialTest f1496..1506). BA-p4d (80503EC, StartPromotion none, InRoundIdle CLOSE, OnBattleEnd, 8050600 Ported; EkrBattleRoundIdleDifferentialTest f1506..1831; arena/promotion/far arms TODO). BA-i4b (PostBattleIdleInventoryTest; "BA-i4b result"; rows BA-p5a..c, BA-cap4).

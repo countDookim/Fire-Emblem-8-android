@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 252 across 56 Kotlin files.
+Total entries: 253 across 57 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -33,6 +33,7 @@ Total entries: 252 across 56 Kotlin files.
 | EP-7 | 2 |
 | IS-2 | 1 |
 | PC-4f | 1 |
+| PC-8 | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-4 | 1 |
@@ -350,6 +351,12 @@ Total entries: 252 across 56 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `getChapterIndexOnWmNode` | Stand-in (PC-4f) until ported. |
+
+## PC-8 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/event/GameOverCaller.kt` | `GameOverCaller` | It waits, fades the music and the screen out, ends the MUs, shows the game over screen and then returns to the title (not wired into the game loop: that is PC-8). @param engine the proc engine the... |
 
 ## PP-10 (1)
 

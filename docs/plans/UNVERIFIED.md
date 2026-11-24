@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 749 across 106 decomp files (missing reason: 0).
+Total entries: 751 across 107 decomp files (missing reason: 0).
 
 ## src/bmunit.c (38)
 
@@ -1054,6 +1054,13 @@ Total entries: 749 across 106 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `AiIsUnitEnemy` | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | it is only called on the captured target of each attacker, and no captured value shows its result; an allied unit (false) is not seen |
 | `AiIsUnitEnemyAndNotInScrList` | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | no capture has an ignore list in script commands |
+
+## src/eventcall.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GameOver_FadeOutCurrentBgm` | `game/src/commonMain/kotlin/fe8/game/event/GameOverCaller.kt` | PC-cap2 only runs the condition false, `disableBgm = 1` since `sub_80837B0`; the fade call is not taken |
+| `SkilGameOverForToturialExtraMap` | `game/src/commonMain/kotlin/fe8/game/event/GameOverCaller.kt` | PC-cap2 is neither a tutorial nor an extra map; the goto is not taken |
 
 ## src/eventscr3.c (2)
 

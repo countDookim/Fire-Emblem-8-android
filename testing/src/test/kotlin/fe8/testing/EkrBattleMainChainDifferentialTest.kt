@@ -68,6 +68,15 @@ class EkrBattleMainChainDifferentialTest {
             override val banimLinkArenaFlag = u32(start, LINK_ARENA_FLAG)
             override val triangleUnitPresent = u32(start, TRIANGLE_UNITS) != 0
             override val battleConfigRefresh = u16(start, BATTLE_STATS) and CONFIG_REFRESH != 0
+            override val distanceType = 0
+            override val bButtonHeld = false
+            override val battleAnimArenaFlag = false
+            override val hpBarCount = 0
+            override val deadEventExist = 0
+            override val namewinAppearUnexist = true
+            override val dragonDead = false
+            override val banimExpGain = IntArray(2)
+            override var ctrlC01Blocking = 0
         }
         val effects = ArrayList<String>()
         val hooks = object : EkrBattleRound.Hooks {

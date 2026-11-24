@@ -48,6 +48,33 @@ public class EkrBattleRound(
 
         /** `gBattleStats.config & BATTLE_CONFIG_REFRESH`. */
         public val battleConfigRefresh: Boolean
+
+        /** `gEkrDistanceType`. */
+        public val distanceType: Int
+
+        /** `gKeyStatusPtr->heldKeys & B_BUTTON` (stand-in: the input is not ported). */
+        public val bButtonHeld: Boolean
+
+        /** `GetBattleAnimArenaFlag() != 0` (stand-in). */
+        public val battleAnimArenaFlag: Boolean
+
+        /** `gEkrHpBarCount`. */
+        public val hpBarCount: Int
+
+        /** `gEkrDeadEventExist`. */
+        public val deadEventExist: Int
+
+        /** `CheckEkrNamewinAppearUnexist()` (stand-in). */
+        public val namewinAppearUnexist: Boolean
+
+        /** `CheckEkrDragonDead(gAnims[0])` (stand-in). */
+        public val dragonDead: Boolean
+
+        /** `gBanimExpGain[2]`. */
+        public val banimExpGain: IntArray
+
+        /** `gCtrlC01Blocking`; `ekrBattle_80503EC` writes it (shared with the executor). */
+        public var ctrlC01Blocking: Int
     }
 
     /** Effects `ekrBattleSetFlashingEffect` starts; their procs are not ported. */
@@ -88,9 +115,27 @@ public class EkrBattleRound(
         /** `ekrBattleTriggerNewRoundStart`. */
         TRIGGER_NEW_ROUND_START,
 
-        /** `ekrBattle_80503EC` (not ported here; the idle chain after it is BA-p4d). */
+        /** `ekrBattle_80503EC`. */
         ROUND_START_80503EC,
+
+        /** `ekrBattle_StartPromotion`. */
+        START_PROMOTION,
+
+        /** `ekrBattleInRoundIdle`. */
+        IN_ROUND_IDLE,
+
+        /** `ekrBattleOnBattleEnd`. */
+        ON_BATTLE_END,
+
+        /** `ekrBattle_8050600`. */
+        BATTLE_END_8050600,
+
+        /** `ekrBattle_WaitForPostBattleAct` (not ported here). */
+        WAIT_FOR_POST_BATTLE_ACT,
     }
+
+    /** `ProcEkrBattle.speedup` (0x29). */
+    public var procSpeedup: Boolean = false
 
     /** `ProcEkrBattle.timer` (0x2C). */
     public var procTimer: Int = 0
@@ -123,7 +168,12 @@ public class EkrBattleRound(
             IdleCb.SET_FLASHING_EFFECT -> setFlashingEffect()
             IdleCb.EXEC_TRIANGLE_ATK -> execTriangleAtk()
             IdleCb.TRIGGER_NEW_ROUND_START -> triggerNewRoundStart()
-            IdleCb.ROUND_START_80503EC -> TODO("ekrBattle_80503EC: BA-p4d")
+            IdleCb.ROUND_START_80503EC -> roundStart80503EC()
+            IdleCb.START_PROMOTION -> startPromotion()
+            IdleCb.IN_ROUND_IDLE -> inRoundIdle()
+            IdleCb.ON_BATTLE_END -> onBattleEnd()
+            IdleCb.BATTLE_END_8050600 -> battleEnd8050600()
+            IdleCb.WAIT_FOR_POST_BATTLE_ACT -> TODO("ekrBattle_WaitForPostBattleAct: BA-i4b")
         }
     }
 
@@ -245,6 +295,86 @@ public class EkrBattleRound(
         idleCb = IdleCb.ROUND_START_80503EC
     }
 
+    /** Ported from src/banim-ekrbattle.c: ekrBattle_80503EC */
+    public fun roundStart80503EC() {
+        env().ctrlC01Blocking = 0
+        idleCb = IdleCb.START_PROMOTION
+    }
+
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrBattle_StartPromotion
+     *
+     * Verified for the non-promotion arm; the promotion arm (`NewEkrClassChg`) throws.
+     */
+    public fun startPromotion() {
+        if (env().distanceType == DISTANCE_PROMOTION) {
+            TODO("ekrBattle_StartPromotion: promotion arm not ported")
+        } else {
+            procSpeedup = false
+            idleCb = IdleCb.IN_ROUND_IDLE
+        }
+    }
+
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrBattleInRoundIdle
+     *
+     * Verified for `EKR_DISTANCE_CLOSE` without arena: the wait path and the `done == 2` exit
+     * to `ekrBattleOnBattleEnd`. Transcribed only: the `FAR`/`FARFAR` cases (same code),
+     * `MONOCOMBAT` and `PROMOTION`, and the `B_BUTTON` speedup (the key stand-in is never
+     * held in the capture). The arena arm throws.
+     */
+    public fun inRoundIdle() {
+        val env = env()
+        var ret = false
+        if (env.bButtonHeld) procSpeedup = true
+
+        when (env.distanceType) {
+            DISTANCE_CLOSE, DISTANCE_FAR, DISTANCE_FARFAR -> {
+                if (doneFlag[0] + doneFlag[1] == 2) {
+                    if (!env.battleAnimArenaFlag) {
+                        ret = true
+                    } else {
+                        TODO("ekrBattleInRoundIdle: arena arm not ported")
+                    }
+                }
+            }
+            DISTANCE_MONOCOMBAT -> if (doneFlag[0] + doneFlag[1] == 1) ret = true
+            DISTANCE_PROMOTION -> ret = true
+        }
+
+        if (ret) idleCb = IdleCb.ON_BATTLE_END
+    }
+
+    /** Ported from src/banim-ekrbattle.c: ekrBattleOnBattleEnd */
+    public fun onBattleEnd() {
+        procSpeedup = false
+        idleCb = IdleCb.BATTLE_END_8050600
+    }
+
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrBattle_8050600
+     *
+     * Verified for the arm that falls through to `ekrBattle_WaitForPostBattleAct` with no
+     * far attack (dragon not dead, `pos == gEkrInitPosReal` or no speedup); the three wait
+     * returns are Transcribed. The far-attack arm (`NewEfxFarAttackWithDistance`) throws.
+     */
+    public fun battleEnd8050600() {
+        val env = env()
+        if (env.hpBarCount != 0) return
+        if (env.deadEventExist != 0) return
+        if (!env.namewinAppearUnexist) return
+
+        procTimer = 0
+        idleCb = IdleCb.WAIT_FOR_POST_BATTLE_ACT
+
+        if (env.dragonDead) return
+
+        val pos = if (env.banimExpGain[POS_L] != 0) POS_L else POS_R
+        if (pos != env.initPosReal) procSpeedup = true
+
+        if (procSpeedup) TODO("ekrBattle_8050600: far attack arm not ported")
+    }
+
     private fun startRound(front: Anim, back: Anim) {
         for (anim in arrayOf(front, back)) {
             anim.state3 = BIT3_NEW_ROUND_START
@@ -254,6 +384,11 @@ public class EkrBattleRound(
 
     private companion object {
         const val BIT3_NEW_ROUND_START = 1 shl 15
+        const val DISTANCE_CLOSE = 0
+        const val DISTANCE_FAR = 1
+        const val DISTANCE_FARFAR = 2
+        const val DISTANCE_MONOCOMBAT = 3
+        const val DISTANCE_PROMOTION = 4
         const val POS_L = 0
         const val POS_R = 1
         const val STATE2_POS_RIGHT = 1 shl 9

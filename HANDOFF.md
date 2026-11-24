@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-24 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-24 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -24,11 +24,15 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- BA-p5c: scheduled, until ~17:30Z
-- BA-i8: scheduled, until ~17:30Z
 
 
 ## Current state
+
+- 2026-11-24 ~17:40Z scheduled (Sonnet agents): **BA-p5c, BA-i8 done**. `EkrBattleRound.runIdle` now runs to the end of
+  `ekrBattle` (`ekrBattleLvupHanlder` c<100, popup trio, `TriggerDragonStatusFinished` default, `PostDragonStatusEffect`
+  -> `nullsub_69`); `EkrBattleLvupPopupDifferentialTest` f1941..1989; fan/ExecEkrLvup/dragon arms TODO (BA-cap4).
+  BA-i8: `BattleEndingInventoryTest` f1989..2038, "BA-i8 result", rows BA-p8a/b. Decomp is a sparse clone: read other
+  files with `git -C .assets/decomp show HEAD:src/<file>.c`. Next: BA-p8a, BA-p8b.
 
 - 2026-11-24 ~16:40Z scheduled (Sonnet agents): **BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b done**. `fe8.game.bm.EkrBattleRound`
   now runs the `ekrBattle` idle chain (`runIdle`) from `ekrBattleMain` through round idle, `OnBattleEnd`, `8050600`,

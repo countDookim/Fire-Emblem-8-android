@@ -1888,3 +1888,44 @@ Proposed rows:
 | BA-p4d | PORT | `ekrBattleTriggerNewRoundStart` tail, `ekrBattle_80503EC`, `ekrBattle_StartPromotion` (non-promotion), `ekrBattleInRoundIdle` (CLOSE, non-arena: wait and `== 2 -> ekrBattleOnBattleEnd` arms), `ekrBattleOnBattleEnd`, `ekrBattle_8050600` | idle identity per step f1506..f1831, `gBanimDoneFlag` driven from the dump flags f1819/f1828, `gCtrlC01Blocking`, proc timer equal the dumps | BA-p4c, BA-p3d | todo |
 | BA-i4b | INV | Post-battle idle chain `ekrBattle_WaitForPostBattleAct` .. `PostDragonStatusEffect` (f1831..1989): branches without exp/level-up procs | per-function branch table from the dumps (exp gain 0, no lvup, popup) | BA-i4 | todo |
 | BA-cap3 | CAP | Proc-run trace (function entries of `ekrBattle`/`efxHPBar` callbacks) incl. the unadvanced steps f1582/f1789, plus a death-hit and a GREAT_SHIELD/`CheckRound2` hit window | Entry log per step; death/far-attack windows for `EfxHpBar_DeclineToDeath` death arms | BA-i4 | todo |
+
+### BA-i4b result
+
+`PostBattleIdleInventoryTest` (same capture and method as BA-i4; no function-entry trace, so each dump step lists the
+`proc_idleCb` that runs in that step: steps listed = calls). The window did have an exp gain (right unit +10, left 0,
+previous exp (-1, 0), no level-up; `gBanimExpGain`/`gBanimExpPrevious` are `s16[2]`), so the exp-bar functions run;
+the "no exp / level-up *procs*" arms are the `ekrNewEkrPopup` jumps. `gBanimLinkArenaFlag` 0, `gEkrDebugModeMaybe` 0,
+`gEkrInitPosReal` 1 and `gEkrInitialHitSide` 1 throughout. No `ekrLvup*` or popup proc exists in the window.
+
+| Function | Frames (calls) | Branch taken | Not exercised |
+|---|---|---|---|
+| `ekrBattleOnBattleEnd` | f1829 (1) | `speedup = 0`, cb `_8050600` | none |
+| `ekrBattle_8050600` | f1830 (1) | `gEkrHpBarCount`/`gEkrDeadEventExist` 0 and namewin gone: passes in one call; `timer = 0`; `CheckEkrDragonDead` false; `pos` = R (gain L 0) equals `gEkrInitPosReal`, so `speedup` stays 0, no `NewEfxFarAttackWithDistance` (inferred: no proc, `speedup` 0) | the three early returns, dragon-dead return, `pos != gEkrInitPosReal` arm and far attack |
+| `ekrBattle_WaitForPostBattleAct` | f1831..1860 (30), timer 0..29 | `++timer < 0x1E` return x29; 30th call: arena flag != 1 and `gain[L] != -gain[R]` -> `ekrBattleExecExpGain` | the `ekrNewEkrPopup` arm (link arena or zero-sum gain) |
+| `ekrBattleExecExpGain` | f1861 (1) | draws the exp bar (VRAM/BG/window side effects, not dumped), default priority arm (`GetBanimDragonStatusType` not DRACO_ZOMBIE/DEMON_KING), `gain[L] == 0` -> uses `prev[R]`; `timer = 0` | DRACO_ZOMBIE/DEMON_KING priority arm, `gain[L] != 0` arm |
+| `ekrBattle_80508F0` | f1862..1874 (13), timer 0..12 | `++timer > 12` false x12 (window animates), true on the 13th: `timer = 0` | none |
+| `ekrBattle_8050940` | f1875..1885 (11), timer 0..10 | 11th call `++timer > 10`: `gain[L] == 0`, `gain[R] != 0` arm: `timer = prev[R]` (0), `end = prev[R] + gain[R]` (10); two sound starts | `gain[L] != 0` arm; neither-gain fall-through |
+| `ekrBattleWaitExpBarIdle` | f1886..1896 (11), timer 0..10, end 10 | redraws the number bar each call; `++timer > end` true on 11th: `timer = 0` | none (exp 100 wrap `DivRem` arm untested: values < 100) |
+| `ekrBattlePostExpBarIdle` | f1897..1927 (31), timer 0..30 | `timer == 0` song stop on the first call; `++timer > 30` true on the 31st | none |
+| `ekrBattle_8050AB8` | f1928..1940 (13), timer 0..12 | window shrink x12, 13th call `timer = 0` | none |
+| `ekrBattleLvupHanlder` | f1941..1981 (41), timer 0..40 | `++timer == 0x18` at the 24th call: `c = prev[R] + gain[R]` = 10 < 100, no `NewEkrLvlupFan`; 41st call `timer = 41 > 0x28`: BG clear, default priority arm, `c < 100` -> `ekrNewEkrPopup` | `c >= 100` (fan, `ekrBattle_ExecEkrLvup`, `WaitEkrLvupIdle`), `gain[L] != 0` arm, dragon priority arm |
+| `ekrNewEkrPopup` | f1982 (1) | `NewEkrPopup`; `gEkrPopupEnded` 0 before, 1 at f1983; no popup proc seen | popup content/animation (BA-i7) |
+| `ekrBattle_WaitForPopup` | f1983 (1) | `CheckEkrPopupEnded` true on the first call: `DeleteAnimsOnPopup` | the wait-return arm |
+| `ekrBattle_PostPopup` | f1984 (1) | `EndProcEfxWeaponIcon`, `EndEfxHPBarColorChange` (both procs gone at f1985), `side = gEkrInitialHitSide` (1), `counter = 0` | none |
+| `ekrBattle_TriggerDragonStatusFinished` | f1985..1987 (3) | call 1: side 1 -> gAnims[2], default arm, `side = 0`, `counter = 1`; call 2: side 0 -> gAnims[0], default arm, `side = 1`, `counter = 2`; call 3: `counter == 2` -> `PostDragonStatusEffect` | DEMON_KING/DRACO_ZOMBIE/MYRRH arms, `SetEkrDragonExit`, `ekrBattle_WaitEkrDragonEndIdle` |
+| `ekrBattle_PostDragonStatusEffect` | f1988 (1) | `gEkrBattleEndFlag` 0 -> 1, debug mode 0: `NewEkrNamewinAppear(2, 7, 0)` (`gEkrNamewinAppearExist` 0 -> 1, `ProcScr_ekrNamewinAppear` appears f1989), `EkrRestoreBGM`, cb `nullsub_69` | `gEkrDebugModeMaybe != 0` arm |
+| `nullsub_69` | not observed | `ekrBattle` is gone at f1989 (`ProcScr_ekrBattleEnding` appears the same step; who ends the proc is BA-i8) | n/a |
+
+Gaps: the draw side effects of `ekrBattleExecExpGain`, `ekrBattleWaitExpBarIdle`, the window calls and the sounds are in
+VRAM/IO/audio, not in the EWRAM dumps, so a port can only be verified on the control state (callback, timer, `end`,
+`side`, `counter`, the globals above, the proc set); `ekrBattle_8050600` internals (`CheckEkrDragonDead`, `speedup`)
+are inferred from state; the exp-bar draw and popup content belong to BA-i7, `ProcScr_ekrBattleEnding` to BA-i8.
+
+Proposed rows:
+
+| ID | Kind | Task | Acceptance | Deps | Status |
+|---|---|---|---|---|---|
+| BA-p5a | PORT | `ekrBattle_WaitForPostBattleAct` (`OnBattleEnd`/`8050600` done in BA-p4d) (ExecExpGain arm), `ekrBattleExecExpGain` control state only (default priority arm, `gain[L] == 0`; draw calls Transcribed behind a hook) | f1829..1861 `proc_idleCb` identity, `timer`, `speedup` equal the dumps (driven from f1829 with the dump globals); mutated gate (`< 0x1E`) fails | BA-p4d | todo |
+| BA-p5b | PORT | `ekrBattle_80508F0`, `ekrBattle_8050940` (`gain[R]` arm), `ekrBattleWaitExpBarIdle`, `ekrBattlePostExpBarIdle`, `ekrBattle_8050AB8` (window/draw/sound calls behind hooks) | f1862..1940 callback identity, `timer`, `end` per step equal the dumps; exp-bar draw not asserted (not dumped) | BA-p5a | todo |
+| BA-p5c | PORT | `ekrBattleLvupHanlder` (`c < 100` arm), `ekrNewEkrPopup`, `ekrBattle_WaitForPopup` (ended arm), `ekrBattle_PostPopup`, `ekrBattle_TriggerDragonStatusFinished` (default arms), `ekrBattle_PostDragonStatusEffect` (debug-mode 0 arm) | f1941..1989 callback, `timer`, `side`, `counter`, `gEkrBattleEndFlag` equal the dumps; weapon-icon/HP-bar-color procs ended at f1985, namewin proc started f1989 (hooks) | BA-p5b | todo |
+| BA-cap4 | CAP | Post-battle windows to exercise the arms above: exp gain on the left unit, level-up (`c >= 100`, `ekrBattle_ExecEkrLvup`/`WaitEkrLvupIdle`), zero exp (popup arm of `WaitForPostBattleAct`), dragon status arm (DEMON_KING/DRACO_ZOMBIE/MYRRH, `WaitEkrDragonEndIdle`) | Capture + inventory per arm; overlaps BA-level-inv/BA-i7 | BA-i4b | todo |

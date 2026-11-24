@@ -60,7 +60,15 @@ class GameOverScreenDifferentialTest {
         val engine = ProcEngine()
         val hardware = BgHardware()
         val colorFade = ColorFade(hardware.palette)
+        val clock = run.watch("clock")
+        val keys = run.watch("keys")
+        val pal = run.watch("pal")
+
+        /** The port's step being run; the clock and keys of the capture follow it by one dump. */
+        var now = FIRST
+        var steps = FIRST
         var suspends = 0
+        var fadeOuts = 0
         var bgms = 0
         var endAllMus = 0
         val screen = GameOverScreen(
@@ -76,6 +84,15 @@ class GameOverScreenDifferentialTest {
 
                 override fun endAllMus() {
                     endAllMus++
+                }
+
+                override fun gameClock(): Int = clock.u32(now + CLOCK_SHIFT, 0)
+
+                override fun newKeys(): Int = keys.u16(now + KEYS_SHIFT, 8)
+
+                override fun fadeOutBgm(speed: Int) {
+                    assertEquals(4, speed, "Sound_FadeOutBGM speed")
+                    fadeOuts++
                 }
             },
         )
@@ -116,9 +133,12 @@ class GameOverScreenDifferentialTest {
 
         /** One pass: the proc trees, then the VBlank sync. */
         fun step() {
+            now = steps++
             for (tree in 0 until 8) engine.run(engine.root(tree))
             hardware.flushBackgrounds()
         }
+
+        fun dumpOrNull(f: Int) = dumps[f]
 
         fun dump(f: Int) = ProcArrayDump.ofWatch(procs, f, procNames)
     }
@@ -164,6 +184,73 @@ class GameOverScreenDifferentialTest {
         assertEquals(1, sim.suspends, "BMapDispSuspend once")
         assertEquals(1, sim.bgms, "StartBgm once")
         assertEquals(1, sim.endAllMus, "EndAllMus once")
+    }
+
+    @Test
+    @VerifiesPort(
+        "GameOverScreen_LoopFadeIn", "GameOverScreen_BeginIdle", "GameOverScreen_LoopIdle",
+        "GameOverScreen_BeginFadeOut", "GameOverScreen_LoopFadeOut", "GameOverScreen_End",
+    )
+    fun `fades idle and teardown match PC-cap2 counters palette fade state and procs`() {
+        val sim = begin() ?: return
+        var fadeSteps = 0
+        var palettesCompared = 0
+        var fadeStateCompared = 0
+        var lastCounter1 = Int.MIN_VALUE
+        var endedAt = -1
+        for (f in FIRST..LAST_TEARDOWN) {
+            sim.step()
+            val at = "f$f"
+            val d = sim.dump(f + 1)
+            val want = d.find("ProcScr_GameOverScreen")
+            val ours = sim.engine.find(sim.screen.script)
+            assertEquals(want != null, ours != null, "$at screen proc presence (dump ${f + 1})")
+            assertEquals(
+                d.find("ProcScr_GameOverScreen_RandomScroll") != null,
+                sim.engine.find(sim.screen.scrollScript) != null, "$at scroll proc presence",
+            )
+            if (want != null) {
+                val state = ours!!.state as GameOverScreen.State
+                assertEquals(s16(want.u16(0x4C)), state.counter1, "$at counter1")
+                if (state.counter2 != 0) {
+                    assertEquals(s16(want.u16(0x4E)), state.counter2, "$at counter2")
+                }
+                if (state.counter1 != lastCounter1) fadeSteps++
+                lastCounter1 = state.counter1
+            } else if (endedAt < 0) {
+                endedAt = f + 1
+            }
+            // The palette RAM follows the buffer one dump later.
+            val palRam = sim.pal.step(f + 2)
+            for (i in 0 until 512) {
+                assertEquals(u16(palRam, 2 * i), sim.hardware.paletteRam[i].toInt() and 0xFFFF,
+                    "$at palette RAM[$i]")
+            }
+            palettesCompared++
+            val lcd = sim.hardware.lcd
+            assertEquals(sim.io.u16(f + 2, IO_DISPCNT), lcd.dispcnt, "$at DISPCNT")
+            assertEquals(sim.io.u16(f + 2, IO_BLDY), lcd.blendY, "$at BLDY")
+            sim.dumpOrNull(f + 1)?.let { key ->
+                val e = sim.run.region(key, "ewram")
+                for (i in 0 until 512) {
+                    assertEquals(u16(e, PALETTE - EWRAM + 2 * i),
+                        sim.hardware.palette[i].toInt() and 0xFFFF, "$at palette buffer[$i]")
+                }
+                for (i in 0 until 32) {
+                    assertEquals(e[FADE_STEP - EWRAM + i], sim.colorFade.step[i], "$at fade step $i")
+                }
+                for (i in 0 until 0x600) {
+                    assertEquals(e[FADE_COMPONENTS - EWRAM + i], sim.colorFade.components[i],
+                        "$at fade component $i")
+                }
+                fadeStateCompared++
+            }
+        }
+        assertEquals(6294, endedAt, "the screen proc is gone at the dump of f6294")
+        assertEquals(1, sim.fadeOuts, "Sound_FadeOutBGM once")
+        assertTrue(fadeSteps >= 22 + 33, "counter1 changes: $fadeSteps")
+        assertTrue(palettesCompared > 300 && fadeStateCompared > 50,
+            "compared $palettesCompared palettes, $fadeStateCompared fade states")
     }
 
     @Test
@@ -284,6 +371,11 @@ class GameOverScreenDifferentialTest {
         const val SEED = 5952
         const val FIRST = 5953
         const val LAST = 6292
+        const val LAST_TEARDOWN = 6295
+        const val CLOCK_SHIFT = 1
+        const val KEYS_SHIFT = 1
+        const val IO_DISPCNT = 0
+        const val IO_BLDY = 0x54
         const val EWRAM = 0x02000000
         const val IWRAM = 0x03000000
         const val LCD_BUFFER = 0x03003080

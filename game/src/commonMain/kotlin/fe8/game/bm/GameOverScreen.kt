@@ -5,9 +5,9 @@ import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
-import gbafe.proc.ProcScripts.block
 import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
+import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.setEndCb
 import gbafe.proc.ProcScripts.startChild
@@ -19,7 +19,8 @@ import gbafe.render.HBlankHandler
 /**
  * The game over screen of `src/gameoverbgfx.c`: its set-up (`GameOverScreen_Init`), the fog
  * background scroll (`ProcScr_GameOverScreen_RandomScroll`) and its start. The fades, the idle
- * wait and the teardown (PC-8b) and `GameOverScreenHBlank` (PC-8h) are behind [Hooks]. Not wired
+ * wait and the teardown (PC-8b) are here too; `GameOverScreenHBlank` (PC-8h) is behind
+ * [Hooks]. Not wired
  * into the game loop (PC-8).
  *
  * @param engine the proc engine the screen runs on.
@@ -49,11 +50,14 @@ public class GameOverScreen(
         /** `GameOverScreenHBlank` (PC-8h); a no-op by default. */
         public val hblankHandler: HBlankHandler get() = NO_HBLANK
 
-        /** `GameOverScreen_LoopFadeIn` (PC-8b): the repeat callback; never breaks by default. */
-        public fun loopFadeIn(proc: Proc) {}
+        /** `GetGameClock`: the frame count the fade-in is paced on; 0 by default. */
+        public fun gameClock(): Int = 0
 
-        /** `GameOverScreen_End` (PC-8b): the end callback. */
-        public fun end(proc: Proc) {}
+        /** `gKeyStatusPtr->newKeys`: the buttons pressed this frame; none by default. */
+        public fun newKeys(): Int = 0
+
+        /** `Sound_FadeOutBGM(speed)`. */
+        public fun fadeOutBgm(speed: Int) {}
     }
 
     /** `struct ProcGameOverScreen` past `PROC_HEADER`. */
@@ -109,22 +113,27 @@ public class GameOverScreen(
     )
 
     /**
-     * `ProcScr_GameOverScreen`: ends through [Hooks.end], sets the screen up, ends the MUs,
-     * starts the scroll and runs [Hooks.loopFadeIn].
+     * `ProcScr_GameOverScreen`: ends through [end], sets the screen up, ends the MUs, starts the
+     * scroll, fades in, idles until a button or the timeout (then jumps to label 0x63), fades
+     * out and ends.
      *
-     * Transcribed from src/gameoverbgfx.c: ProcScr_GameOverScreen (not verified: only the
-     * commands up to `GameOverScreen_LoopFadeIn` are written; the rest, from
-     * `GameOverScreen_BeginIdle` to the end, is PC-8b and stands in as a block)
+     * Partially ported from src/gameoverbgfx.c: ProcScr_GameOverScreen (verified: the whole
+     * path of `ram_trace_prologue_gameover`, with the A button at the end of the idle; not
+     * verified: the idle timeout, which jumps to the same label)
      */
     public val script: ProcScript = ProcScript(
         "ProcScr_GameOverScreen",
         listOf(
-            setEndCb(ProcFunc { hooks.end(it) }),
+            setEndCb(ProcFunc { end() }),
             call(ProcFunc { init(it.state as State) }),
             call(ProcFunc { hooks.endAllMus() }),
             startChild { scrollScript },
-            repeat(ProcFunc { hooks.loopFadeIn(it) }),
-            block(),
+            repeat(ProcFunc { loopFadeIn(it) }),
+            call(ProcFunc { beginIdle(it.state as State) }),
+            repeat(ProcFunc { loopIdle(it) }),
+            label(0x63),
+            call(ProcFunc { beginFadeOut() }),
+            repeat(ProcFunc { loopFadeOut(it) }),
             end(),
         ),
         ::State,
@@ -232,8 +241,106 @@ public class GameOverScreen(
         hardware.enablePaletteSync()
     }
 
+    /**
+     * Every 8th clock frame ticks the fade and counts `counter1` down; breaks when it is below 0.
+     *
+     * Ported from src/gameoverbgfx.c: GameOverScreen_LoopFadeIn
+     */
+    public fun loopFadeIn(proc: Proc) {
+        val state = proc.state as State
+        if (hooks.gameClock() % 8 == 0) {
+            colorFade.tick()
+            hardware.enablePaletteSync()
+
+            state.counter1 = (state.counter1 - 1).toShort().toInt()
+
+            if (state.counter1 < 0) engine.breakProc(proc)
+        }
+    }
+
+    /**
+     * Starts the idle wait: 1500 frames.
+     *
+     * Ported from src/gameoverbgfx.c: GameOverScreen_BeginIdle
+     */
+    public fun beginIdle(state: State) {
+        state.counter2 = 1500
+    }
+
+    /**
+     * Counts `counter2` down; at the timeout, or when A, B or START is newly pressed, jumps to
+     * the fade-out (label 0x63).
+     *
+     * Transcribed from src/gameoverbgfx.c: GameOverScreen_LoopIdle (not verified: the capture
+     * ends the idle with A, the timeout branch is not captured, PC-cap2c)
+     */
+    public fun loopIdle(proc: Proc) {
+        val state = proc.state as State
+        state.counter2 = (state.counter2 - 1).toShort().toInt()
+
+        if (state.counter2 < 0) engine.goto(proc, LABEL_FADE_OUT)
+
+        if ((A_BUTTON or B_BUTTON or START_BUTTON) and hooks.newKeys() != 0) {
+            engine.goto(proc, LABEL_FADE_OUT)
+        }
+    }
+
+    /**
+     * Starts the fade to black of both palette banks and fades the BGM out at speed 4.
+     *
+     * Ported from src/gameoverbgfx.c: GameOverScreen_BeginFadeOut
+     */
+    public fun beginFadeOut() {
+        colorFade.maybeResetSomePal()
+        colorFade.maybeSmoothChangeSomePal(BGPAL_GAMEOVER_TEXT * 16, BGPAL_GAMEOVER_TEXT, 1, -1)
+        colorFade.maybeSmoothChangeSomePal(BGPAL_GAMEOVER_4 * 16, BGPAL_GAMEOVER_4, 1, -1)
+        hooks.fadeOutBgm(4)
+    }
+
+    /**
+     * Ticks the fade every frame and counts `counter1` up; breaks at 0x20.
+     *
+     * Ported from src/gameoverbgfx.c: GameOverScreen_LoopFadeOut
+     */
+    public fun loopFadeOut(proc: Proc) {
+        val state = proc.state as State
+        colorFade.tick()
+        hardware.enablePaletteSync()
+
+        state.counter1 = (state.counter1 + 1).toShort().toInt()
+
+        if (state.counter1 == 0x20) engine.breakProc(proc)
+    }
+
+    /**
+     * Removes both HBlank handlers, disables every BG and OBJ and blacks the backdrop.
+     *
+     * Ported from src/gameoverbgfx.c: GameOverScreen_End
+     */
+    public fun end() {
+        hardware.hblank.setPrimary(null)
+        hardware.hblank.setSecondary(null)
+
+        hardware.lcd.setDispEnable(0, 0, 0, 0, 0)
+
+        hardware.palette[0] = 0
+        hardware.enablePaletteSync()
+    }
+
     /** Constants of the game over screen. */
     public companion object {
+        /** `PROC_LABEL(0x63)`: the start of the fade-out. */
+        public const val LABEL_FADE_OUT: Int = 0x63
+
+        /** `A_BUTTON`. */
+        public const val A_BUTTON: Int = 0x0001
+
+        /** `B_BUTTON`. */
+        public const val B_BUTTON: Int = 0x0002
+
+        /** `START_BUTTON`. */
+        public const val START_BUTTON: Int = 0x0008
+
         /** `BGCHR_GAMEOVER_TEXT`. */
         public const val BGCHR_GAMEOVER_TEXT: Int = 0x80
 

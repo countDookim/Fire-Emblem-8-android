@@ -21,6 +21,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- BA-p3b: scheduled, until ~05:30Z
+- BA-i4: scheduled, until ~05:30Z
 
 ## Current state
 

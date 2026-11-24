@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-24 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-24 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -24,10 +24,17 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-BA-p5b: scheduled, until ~16:45Z
 
 
 ## Current state
+
+- 2026-11-24 ~16:40Z scheduled (Sonnet agents): **BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b done**. `fe8.game.bm.EkrBattleRound`
+  now runs the `ekrBattle` idle chain (`runIdle`) from `ekrBattleMain` through round idle, `OnBattleEnd`, `8050600`,
+  `WaitForPostBattleAct`, `ExecExpGain` and the exp-bar chain to `ekrBattleLvupHanlder` (TODO, BA-p5c); differential
+  tests EkrBattleMainChain f1496..1506, RoundIdle f1506..1831, ExpGain f1830..1862, ExpBar f1863..1941. Quote,
+  dragon, far, arena, promotion, triangle arms throw TODO; draws/songs/effects are `Hooks` (no production impl).
+  BA-i4b: `PostBattleIdleInventoryTest`, "BA-i4b result" (its frames are 1 early: dumps show state after the
+  step), rows BA-p5c, BA-cap4. Full jvmTest green (before p5a/b; their tests + Dokka ok). Next: BA-p5c.
 
 - 2026-11-24 ~11:30Z scheduled (Sonnet agents): **BA-p3d, BA-p4a, BA-p4b done**. `fe8.game.bm.EkrBattleRound`
   (`ekrBattleTriggerNewRoundStart` Ported; stops at idle -> `ekrBattle_80503EC`, BA-p4d), NEW/NEXT_ROUND_START arms

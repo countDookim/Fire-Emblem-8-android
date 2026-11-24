@@ -24,8 +24,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-BA-p4d: scheduled, until ~16:50Z
-BA-i4b: scheduled, until ~16:45Z
+BA-p5a: scheduled, until ~16:40Z
 
 
 ## Current state

@@ -366,8 +366,12 @@ public class BMapMain(
     }
 
     /**
-     * Transcribed from src/bm.c: CallBeginningEvents (not verified: no test checks it against a
-     *   trace yet)
+     * Partially ported from src/bm.c: CallBeginningEvents
+     *
+     * Verified: the non-skirmish branch at `f10297 -> f10298` of PC-cap1
+     * (Chapter1BeginningTailDifferentialTest): the engine starts at the chapter's
+     * `beginningSceneEvents` with exec type 1 and `BMapMain` stops after it. The skirmish branch
+     * is Transcribed (not verified: no capture has a skirmish map).
      *
      * Calls the beginning scene events of the chapter (the common skirmish beginning on a
      * skirmish map) through [Hooks.callEvent] with exec type 1 and [proc] as the parent proc.
@@ -478,8 +482,9 @@ public class BMapMain(
     }
 
     /**
-     * Transcribed from src/bm.c: UndeployEveryone (not verified: no trace separates it from a
-     *   no-op)
+     * Transcribed from src/bm.c: UndeployEveryone (not verified: at `f25422 -> f25423` of PC-cap1
+     *   the flag it clears is cleared again by [unsetEventId84] and no unit has
+     *   `US_NOT_DEPLOYED`, so a break of either survives; only both together fail)
      *
      * Clears flag 0x84 and, unless `unk4A_1` (a `PlaySt` bit of unknown meaning) is set, clears
      * `US_NOT_DEPLOYED` of every valid unit with id 1..0x3F (player units).
@@ -509,8 +514,8 @@ public class BMapMain(
     }
 
     /**
-     * Transcribed from src/bm.c: SetEventId_0x84 (not verified: no trace separates it from a
-     *   no-op); `SetFlag(0x84)`). Sets flag 0x84 (no decomp name); it stays set
+     * Transcribed from src/bm.c: SetEventId_0x84 (not verified: flag 0x84 is already set at
+     *   `f10293` of PC-cap1, so no capture separates it from a no-op); `SetFlag(0x84)`). Sets flag 0x84 (no decomp name); it stays set
      * while the beginning events run.
      */
     public fun setEventId84() {
@@ -518,8 +523,8 @@ public class BMapMain(
     }
 
     /**
-     * Transcribed from src/bm.c: UnsetEventId_0x84 (not verified: no trace separates it from a
-     *   no-op); `ClearFlag(0x84)`). Clears flag 0x84 (no decomp name) after the beginning events.
+     * Transcribed from src/bm.c: UnsetEventId_0x84 (not verified: [undeployEveryone] clears the
+     *   flag first in the same frame at `f25423` of PC-cap1); `ClearFlag(0x84)`). Clears flag 0x84 (no decomp name) after the beginning events.
      */
     public fun unsetEventId84() {
         flags.clearFlag(0x84)

@@ -1679,6 +1679,16 @@ PORT rows: `PC-6e-a` (verify Transcribed script-core opcodes: `Event03`, `Event0
 `EndCgText`, `sub_808BB74`, `ResetBkselPalette`, `ResumeMenu`, `ChangeUnitSpritePalette` and the skip-listener
 / `EventDisplayCursor` proc bodies).
 
+Corrections from PC-6e-b (2026-11-24, `Chapter1BeginningTailDifferentialTest`):
+- `CallNextQueuedEvent` does not start the Turn 1 event: the call queue is empty `f25416..25430`. The
+  Turn 1 engine at `f25423` comes from `BmMain_ChangePhase` -> `RunPhaseSwitchEvents`. Its proc dump
+  there shows the new `pEventStart` (`0x089EFA28`) but the old engine's `idk`/`cur`/`evStateBits`/`execType`
+  (unexplained).
+- `BMapMain` stays at cursor 12 during the event because `GameLoop` skips tree 2 while `gBmSt.lock` != 0.
+- `f25421` is a mid-step sample (`mainLoopEnded` 0, engine listed, lock 1); `f25422` is that step's end.
+- `UpdatePrevDeployStates` (`fe8.game.bm.UnitDeployState`) is not wired in `Fe8Boot` yet
+  (`BMapMain.hooks.updatePrevDeployStates` no-op): PC-6 WIRE.
+
 
 ## PC-6i-load inventory (2026-11-22)
 

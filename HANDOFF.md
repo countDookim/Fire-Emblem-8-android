@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-24 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-24 22:40Z (owner PC: PC-7b, PC-6e-a, PC-8a, PC-6e-b); earlier 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -24,11 +24,12 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-6e-c: owner PC, until ~02:30Z
-- PC-8b: owner PC, until ~01:30Z
+- PC-8b: stopped 22:20Z, unfinished on `wip/PC-8b` (written, never run; labels provisional; fix CLOCK_SHIFT/KEYS_SHIFT, update caller test, break-check)
 
 
 ## Current state
+
+- 2026-11-24 ~22:40Z owner PC Claude (Sonnet agents): **M6-E: PC-7b, PC-6e-a, PC-8a, PC-6e-b done.** PC-7b `fe8.game.event.GameOverCaller` (ProcScr_BmGameOver etc. Ported). PC-8a `fe8.game.bm.GameOverScreen` + `ScreenFogEffect` (init/fog/scroll Ported; palette helpers shared in `gbafe.render.ColorFade`); PC-cap2 f5953 is a mid-pass dump, later dumps = port step + 1. PC-6e-a: Event17 Ported, Event03/19/34 Partially ported, Event06 Transcribed. PC-6e-b: `UnitDeployState`, CallBeginningEvents, EventEngine_OnEnd Partially ported; inventory corrections in M6C-J-breakdown. Game over still NOT wired (PC-8). PC-8b unfinished on `wip/PC-8b`; PC-6e-c not started (findings in its TASKS row). **Test hygiene:** test forks have 512 MB heap; a static capture cache GC-thrashed the suite 30 min; differential tests need PER_CLASS + `@AfterAll` release and `@Timeout`. Full jvmTest 1241 green, Dokka ok.
 
 - 2026-11-24 ~17:40Z scheduled (Sonnet agents): **BA-p5c, BA-i8 done**. `EkrBattleRound.runIdle` now runs to the end of
   `ekrBattle` (`ekrBattleLvupHanlder` c<100, popup trio, `TriggerDragonStatusFinished` default, `PostDragonStatusEffect`

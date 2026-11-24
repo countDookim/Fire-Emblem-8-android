@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 748 across 108 decomp files (missing reason: 0).
+Total entries: 746 across 108 decomp files (missing reason: 0).
 
 ## src/bmunit.c (38)
 
@@ -518,17 +518,16 @@ Total entries: 748 across 108 decomp files (missing reason: 0).
 | `MapRoute_TransitionLoop` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
 | `MapRoute_TransitionEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
 
-## src/bm.c (13)
+## src/bm.c (12)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `CallBeginningEvents` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
 | `BmMain_ResumePlayerPhase` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
 | `BmMain_StartIntroFx` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `PrologueEndingWireTest` sees the Chapter 1 intro start through it at f9872 of `ram_trace_prologue_end`, but the chapter 0x38 and chapter 6 + flag 0x88 branches are exercised by no capture |
-| `UndeployEveryone` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
+| `UndeployEveryone` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | at `f25422 -> f25423` of PC-cap1 the flag it clears is cleared again by [unsetEventId84] and no unit has `US_NOT_DEPLOYED`, so a break of either survives; only both together fail |
 | `GotoChapterWithoutSave` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `SetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
-| `UnsetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
+| `SetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | flag 0x84 is already set at `f10293` of PC-cap1, so no capture separates it from a no-op |
+| `UnsetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | [undeployEveryone] clears the flag first in the same frame at `f25423` of PC-cap1 |
 | `sub_8015D84` | `game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt` | no reference run starts it |
 | `CameraMove_8015EDC` | `game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt` | no reference run starts it |
 | `StoreAdjustedCameraPositions` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
@@ -552,23 +551,6 @@ Total entries: 748 across 108 decomp files (missing reason: 0).
 | `StartMidFadeToBlack` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | never called by a traced path |
 | `StartMidFadeFromBlack` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | never called by a traced path |
 | `Copy2dChr` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | no test checks it against a trace yet |
-
-## src/event.c (12)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `_FreezeMenu` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no menu proc exists when the boss turn event starts at f2964 or the clear event at f4894 of `ram_trace_prologue_clear` |
-| `EventEngine_CreateBattle` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
-| `EventEngineExists` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
-| `BattleEventEngineExists` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
-| `DeleteEventEngines` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
-| `EnqueueEventCall` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
-| `CallNextQueuedEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
-| `CallEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the enqueue branch when a standard engine is already running is not exercised in any capture; the empty-queue branch calling [create] is exercised at f4893 -> f4894 of `ram_trace_prologue_end` |
-| `EventEngine_OnEnd` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue; the `EV_STATE_CHANGEGM` branch runs in `PrologueEndingWireTest` through `Fe8Boot`, which checks the teardown frame, not the hook order |
-| `EventEngine_CanStartSkip` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the captured events never press START, so the result is not observable; the engine only acts on it together with START |
-| `SetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | the only reference value is 0, so a no-op survives |
-| `GetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | no test checks it against a trace yet |
 
 ## src/face.c (12)
 
@@ -618,6 +600,22 @@ Total entries: 748 across 108 decomp files (missing reason: 0).
 | `AiGetInRangeCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | target weapon range 1 covers candidate distance 1 so the component returns 0, and only one candidate tile (5, 5) reaches the target |
 | `AiGetTerrainCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | only one candidate tile (5, 5) reaches the target, so terrain score differences between tiles are never tested against captured output |
 | `AiGetFriendZoneCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | only one candidate tile (5, 5) reaches the target, so friend zone position score differences between tiles are never tested against captured output |
+
+## src/event.c (11)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `_FreezeMenu` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no menu proc exists when the boss turn event starts at f2964 or the clear event at f4894 of `ram_trace_prologue_clear` |
+| `EventEngine_CreateBattle` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
+| `EventEngineExists` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
+| `BattleEventEngineExists` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
+| `DeleteEventEngines` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
+| `EnqueueEventCall` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
+| `CallNextQueuedEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty at every engine end of the prologue and of PC-cap1; the Turn 1 event of `f25423` is started by the phase switch, not by the queue |
+| `CallEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the enqueue branch when a standard engine is already running is not exercised in any capture; the empty-queue branch calling [create] is exercised at f4893 -> f4894 of `ram_trace_prologue_end` |
+| `EventEngine_CanStartSkip` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the captured events never press START, so the result is not observable; the engine only acts on it together with START |
+| `SetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | the only reference value is 0, so a no-op survives |
+| `GetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | no test checks it against a trace yet |
 
 ## src/worldmap_main.c (11)
 

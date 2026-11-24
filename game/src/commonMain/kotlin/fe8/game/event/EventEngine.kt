@@ -246,8 +246,9 @@ public class EventEngine(
     /**
      * Starts the oldest queued event call, if any, once the previous engine has ended.
      *
-     * Transcribed from src/event.c: CallNextQueuedEvent (not verified: the call queue is empty in
-     *   the prologue). Starts the first entry if used, then shifts
+     * Transcribed from src/event.c: CallNextQueuedEvent (not verified: the call queue is empty at
+     *   every engine end of the prologue and of PC-cap1; the Turn 1 event of `f25423` is started
+     *   by the phase switch, not by the queue). Starts the first entry if used, then shifts
      * the queue down one entry and clears the last (its padding bytes are kept).
      */
     public fun callNextQueuedEvent() {
@@ -282,9 +283,14 @@ public class EventEngine(
      * the next queued call unless the proc was a battle engine (`EV_STATE_ABORT`).
      * `EV_EXEC_UNK5` is set by the END command after a cutscene (the decomp calls it unused).
      *
-     * Transcribed from src/event.c: EventEngine_OnEnd (not verified: the call queue is empty in the
-     *   prologue; the `EV_STATE_CHANGEGM` branch runs in `PrologueEndingWireTest` through
-     *   `Fe8Boot`, which checks the teardown frame, not the hook order). Delegated to hooks:
+     * Partially ported from src/event.c: EventEngine_OnEnd
+     *
+     * Verified: the `EV_EXEC_UNK5` branch without `EV_STATE_CHANGEGM` at `f25421` of PC-cap1
+     * (Chapter1BeginningTailDifferentialTest: the engine ends, `resumeGameplay` runs once so
+     * `gBmSt.lock` drops 1 -> 0, the call queue stays empty). The hook order and the other exec
+     * types are Transcribed (not verified: the `EV_STATE_CHANGEGM` branch runs in
+     * `PrologueEndingWireTest` through `Fe8Boot`, which checks the teardown frame, not the hook
+     * order). Delegated to hooks:
      * [EventEngineHooks.resetTextFont], [EventEngineHooks.restoreAfterEvent5],
      * [EventEngineHooks.endMapForChangeGm], [EventEngineHooks.resumeGameplay],
      * [EventEngineHooks.endEventTalk], [EventEngineHooks.changeUnitSpritePalette] and

@@ -1834,3 +1834,57 @@ Proposed rows:
 | BA-p3c | PORT | `C1a`/`C06`/`C0d` arms + `GetAnimNextRoundType`, `SwitchAISFrameDataFromBARoundType`, `AnimScrAdvance` | f1537, f1621..1622 and f1630 script pointers, round types and nextRoundId equal the dumps | BA-p3b | todo |
 | BA-p3d | PORT | `ekrBattleTriggerNewRoundStart` + NEW_ROUND_START / NEXT_ROUND_START arms | f1537 state3 and round types, `gBanimDoneFlag` reset, proc timer 0x1E gate | BA-p3b | todo |
 | BA-p3e | WIRE | `EfxPlaySEwithCmdCtrl` sound ids `1f 24 34 42 43` behind the audio interface | needs a PSG/audio capture (BA-cap1); until then only the queue ids are asserted | BA-cap1 | todo |
+
+### BA-i4 result
+
+`BattleRoundHpInventoryTest` (no function-entry trace: inferred from `gEkrGaugeHp`, `gEfxHpLutOff`, `gEkrHitNow`,
+`gEkrHpBarCount`, `gBanimDoneFlag`, the live `ProcEkrBattle`/`ProcEfxHpBar` fields and the `ekrBattle`
+`proc_idleCb` pointer mapped to a decomp name via the nm file at runtime). Window `ram_trace_prologue_attack`,
+`ekrBattle` f1496..1988; hits: right hits left (22 -> 15), left hits right (16 -> 7), right hits left (15 -> 8).
+`gEkrGaugeHp` = (left, right) halfwords. Every step is dumped; one step (f1582, f1789) shows the bar proc unadvanced.
+
+| Frames | Observed | Handler |
+|---|---|---|
+| f1496..1497 | `proc_idleCb` = `ekrBattle_Init` then 0 (script runs `ekrBattleMain`), timer 0x1E | `ekrBattle_Init`, `ekrBattleMain` (BA-p2c) |
+| f1499..1506 | idle chain: PrepareDragonIntro f1499, ExecDragonIntro f1500, PostEkrDragonIntro f1503, SetFlashingEffect f1504, ExecTriangleAtk f1505, TriggerNewRoundStart f1506; `ekrBattleMain` took the `is_quote == false && unk58 == false` arm at timer 0x1F (no namewin/pre-event) | `ekrBattleMain` -> `ekrBattlePrepareDragonIntro` (no dragon: `ExecDragonIntro` passes) -> `ekrBattlePostEkrDragonIntro` -> `ekrBattleSetFlashingEffect` (no flash) -> `ekrBattleExecTriangleAtk` (no triangle) |
+| f1506..1536 | `ekrBattleTriggerNewRoundStart`, proc timer counts to 0x1F | `++timer <= 0x1E` early return |
+| f1537 | idle `ekrBattle_80503EC` (state3 / STOP set on all four anims, `gBanimDoneFlag` both 0: BA-i3) | `ekrBattleTriggerNewRoundStart` tail (both `gBanimValid` arms) |
+| f1537..1539 | `ekrBattle_80503EC` -> `ekrBattle_StartPromotion` -> `ekrBattleInRoundIdle` (one step each) | `ekrBattle_80503EC`, `ekrBattle_StartPromotion` (not-promotion arm) |
+| f1539..1828 | idle stays `ekrBattleInRoundIdle` through all 3 hits; no second `TriggerNewRoundStart`, no `ArenaContinueBattle`/`ParseBattleHitToBanimCmd` re-run | `ekrBattleInRoundIdle` `EKR_DISTANCE_CLOSE`, `done[0]+done[1] != 2` return path; later rounds start via anim script `C06` (BA-i3) |
+| f1577 / f1659 / f1784 | `efxHPBar` created in the step of `C1a`: `gEkrHpBarCount` 0 -> 1, `gEkrHitNow[side]` = 1, `this`/`cur` = HP before, `next` = HP after, `diff` -1, timer/timer2/finished 0 | `NewEfxHpBar` (non-GREAT_SHIELD, count 0); `GetEfxHp(off*2+pos)` from `gEfxHpLut`, side = the side taking the hit |
+| first decrement f1579 / f1661 / f1786 | every second proc run: `timer` toggles 0/1, `cur` and `gEkrGaugeHp[side]` -1 together; 7, 9 and 7 steps; spacing 2 steps, 3 across the unadvanced step (f1581 -> 1584, f1788 -> 1791); `timer2` +1 per run | `EfxHpBar_DeclineToDeath` (`++timer == 2` arm) |
+| f1592 / f1677 / f1799 | `cur == next`: `finished` = 1, gauge at final value (15, 7, 8), timer2 14 / 18 / 14 | `EfxHpBar_DeclineToDeath` (`cur == next` arm) |
+| f1609 / f1690 / f1816 | timer2 stuck at 0x1E and `finished`: `gEfxHpLutOff[side]` +1, `gEkrHitNow[side]` = 0, proc script advances next step; `next` > 0 so neither death arm (`NewEfxDead`/`NewEfxDeadEvent`) runs | `EfxHpBar_DeclineToDeath` (timer2 gate, `next != 0`), `Proc_Break` |
+| f1610 / f1691 / f1817 | script index 3, `cur` = 1 (`gEfxBgSemaphore` and `gEfxSpellAnimExists` 0, so no wait; `CheckRound2` arms with 16/20 not taken) | `EfxHpBar_MoveCameraOnEnd` (`cur = 1` arm) |
+| f1611 / f1692 / f1818 | script index 4, timer 1 == `cur`: `gEkrHpBarCount` -> 0; proc gone the next step | `EfxHpBar_WaitCameraMove` (`timer == cur` arm; `cur - 4` arm not reached since cur 1) |
+| f1819, f1828 | `gBanimDoneFlag[0]` = 1 (f1819), `[1]` = 1 (f1828); idle -> `ekrBattleOnBattleEnd` f1829 | set by the anim scripts (`ANIM_CMD` end; BA-i3 gap), `ekrBattleInRoundIdle` `== 2` arm with `GetBattleAnimArenaFlag() == 0` -> `ret = 1` |
+| f1829..1988 | idle chain `ekrBattleOnBattleEnd` f1829, `ekrBattle_8050600` f1830 (count 0, no dead event, namewin gone), `ekrBattle_WaitForPostBattleAct` f1831, `ekrBattleExecExpGain` f1861, `_80508F0` f1862, `_8050940` f1875, `ekrBattleWaitExpBarIdle` f1886, `ekrBattlePostExpBarIdle` f1897, `_8050AB8` f1928, `ekrBattleLvupHanlder` f1941, `ekrNewEkrPopup` f1982, `WaitForPopup` f1983, `PostPopup` f1984, `TriggerDragonStatusFinished` f1985, `PostDragonStatusEffect` f1988, ended f1989 | post-battle chain (BA-i7/BA-i8 territory); each is entered once, branch inside not resolved here |
+
+Not reached: `NewEfxHpBar` early return (GREAT_SHIELD or count != 0), `EfxHpBar_DeclineToDeath` death arms, `gEfxHpLutOff`
+past the end, `EfxHpBar_MoveCameraOnEnd` `CheckRound2` arms (16/20) and `NewEfxFarAttackWithDistance`,
+`EfxHpBar_WaitCameraMove` `cur - 4` arm, `NewEfxHpBarResire*`, `NewEfxHpBarLive`, `NewEfxNoDamage*`, `NewEfxStatusCHG`,
+arena arms of `ekrBattleInRoundIdle` (`ArenaSetResult`, speedup, the `val == 2` redo-round path), MONOCOMBAT and
+PROMOTION distance arms, `ekrBattle_HandlePreEventMaybe`/quote arm, `ekrBattleExecDragonIntro` dragon arms,
+`ekrBattleExecTriangleAtk` active arm. The scripted window (`ram_trace_prologue_battle`) adds the quote arm of
+`ekrBattleMain` (`NewEkrWindowAppear`/`NewEkrNamewinAppear`, `ekrBattle_HandlePreEventMaybe`) and the miss round (no
+`efxHPBar`; `EfxAvoid`); its idle chain is not inventoried here.
+
+Gaps: the unadvanced steps (f1582, f1789) are unexplained (frame skip or proc-tree run gate; the cause needs a
+proc-run trace); `gEkrHpBarCount`/`gBanimDoneFlag` writers outside `efxHPBar` are seen only as state; post-battle idle
+functions (f1829..1988) are single-step transitions with unknown inner branches (exp/levelup/popup state not dumped
+beyond EWRAM); `gEkrHPs`-style values are not exposed apart from `gEkrGaugeHp`.
+
+Existing Kotlin: `EkrBattleInit.kt` (`ekrBattle_Init`, `RegisterEkrDragonStatusType`, `ShouldCallBattleQuote`),
+`BanimSetup.kt` (`GetEfxHp`), `BanimPrepare.kt` (hit parse writes `gEfxHpLut`/`gEkrGaugeHp`). No Kotlin for `ProcEkrBattle`
+callbacks after `ekrBattle_Init`, `InBattleMainRoutine`/`MainUpdateEkrBattle`, `ProcEfxHpBar` or `CheckEkrHitDone`.
+
+Proposed rows:
+
+| ID | Kind | Task | Acceptance | Deps | Status |
+|---|---|---|---|---|---|
+| BA-p4a | PORT | `NewEfxHpBar`, `EfxHpBar_DeclineToDeath` (non-death arm; death arms as non-captured), `CheckEkrHitDone`, `CheckEkrHitNow` | f1577..f1609 / f1659..f1690 / f1784..f1816 per-step `gEkrGaugeHp`, `gEfxHpLutOff`, `gEkrHitNow`, `gEkrHpBarCount`, proc `timer/cur/timer2/finished/this/next/diff` equal the dumps (driven from the start step; the unadvanced f1582/f1789 steps are skipped by the driver); mutated step size or timer gate fails | BA-i4, BA-p2b | todo |
+| BA-p4b | PORT | `EfxHpBar_MoveCameraOnEnd` (`cur = 1` arm), `EfxHpBar_WaitCameraMove`, `ProcScr_efxHPBar` script order | f1609..f1612, f1690..f1693, f1816..f1819 script index, `cur`, `timer`, `gEkrHpBarCount` equal the dumps; `CheckRound2` arms left as non-captured | BA-p4a | todo |
+| BA-p4c | PORT | `ekrBattleMain` (quote-free arm), `ekrBattlePrepareDragonIntro`, `ekrBattleExecDragonIntro`/`PostEkrDragonIntro` (no-dragon arms), `ekrBattleSetFlashingEffect`, `ekrBattleExecTriangleAtk` (inactive arms) | `proc_idleCb` identity and `timer` per step f1496..f1506 equal the dumps | BA-p2c | todo |
+| BA-p4d | PORT | `ekrBattleTriggerNewRoundStart` tail, `ekrBattle_80503EC`, `ekrBattle_StartPromotion` (non-promotion), `ekrBattleInRoundIdle` (CLOSE, non-arena: wait and `== 2 -> ekrBattleOnBattleEnd` arms), `ekrBattleOnBattleEnd`, `ekrBattle_8050600` | idle identity per step f1506..f1831, `gBanimDoneFlag` driven from the dump flags f1819/f1828, `gCtrlC01Blocking`, proc timer equal the dumps | BA-p4c, BA-p3d | todo |
+| BA-i4b | INV | Post-battle idle chain `ekrBattle_WaitForPostBattleAct` .. `PostDragonStatusEffect` (f1831..1989): branches without exp/level-up procs | per-function branch table from the dumps (exp gain 0, no lvup, popup) | BA-i4 | todo |
+| BA-cap3 | CAP | Proc-run trace (function entries of `ekrBattle`/`efxHPBar` callbacks) incl. the unadvanced steps f1582/f1789, plus a death-hit and a GREAT_SHIELD/`CheckRound2` hit window | Entry log per step; death/far-attack windows for `EfxHpBar_DeclineToDeath` death arms | BA-i4 | todo |

@@ -111,6 +111,9 @@ EP-cap1/2.
 | PC-10i-battle | INV | Easy tutorial: weapon menu override, forecast and scripted battle only | Menu bits, forced inputs, tutorial flags and battle result; add PORT rows | PC-cap3 | todo |
 | PC-10i-end | INV | Easy tutorial: remaining messages/flags through free play and chapter completion | Map all tutorial script IDs to windows; uncovered scripts get individual CAP rows | PC-cap3 | todo |
 | PC-10 | WIRE | Easy tutorial integration and all discovered tutorial PORT rows | Forced controls and release to free play match original; zero recurring allocations; MANUAL_TEST | PC-9, EP-w, PC-10i-input, PC-10i-battle, PC-10i-end | blocked: inventory must add PORT deps |
+| PC-11cap | CAP | Title menu with a suspend and a slot save: choose Continue, slot 1, load the post-Prologue save | Run published; menu, slot load and loaded state per step | PC-4 | todo |
+| PC-11i | INV | Title main menu (Resume Chapter / Continue / New Game) and the Continue slot load, this capture only | Observed functions, windows and ≤8-function PORT rows added | PC-11cap | todo |
+| PC-11 | WIRE | Real title menu replaces `Fe8Boot.newGameSaveMenu`'s auto-resume (issue #8) | Resume and Continue match PC-11cap; allocations; MANUAL_TEST | PC-11i | blocked: inventory first |
 | PC-w | WIRE | Normal Prologue win/save/Chapter 1 plus game-over replay | Headless replay matches state and display; allocation check; MANUAL_TEST | EP-w, PC-1, PC-2, PC-2a, PC-3a, PC-3b, PC-3c, PC-3d, PC-4, PC-5, PC-6, PC-7a, PC-7b, PC-8, PC-9 | todo |
 | PC-easy-w | WIRE | M6-E close: replay Easy New Game through tutorial and Chapter 1; retain Normal regression | Both modes reach expected Chapter 1 state; saves, allocations and owner device check | PC-w, PC-10 | todo |
 
@@ -361,6 +364,8 @@ Scenario scopes and stop conditions: [M6 task scopes](plans/M6-task-scopes.md).
 | BUG-itemefftgt | PORT | `PlayerPhase.playerPhasePrepareAction` skips `gBattleActor.hasItemEffectTarget = 0` (`PlayerPhase_PrepareAction`, playerphase.c:772) | Clear it; test against a capture that uses an item after a battle | - | todo |
 | BUG-wminit | PORT | `WorldMapBoot.worldMapInit` omits `if (monster_merged) sub_80B9114(proc)` (`WorldMap_Init`, worldmap_main.c:538-541: node icon on the first node with state bit 2) | Port it with a capture after monsters merge on the world map (else add a CAP) | - | todo |
 | BUG-deadmovestat | CAP+PORT | `MoveActiveUnit` (PlayerPhase.kt `moveActiveUnit`) skips `PidStatsAddSquaresMoved` for an actor killed in its action (EP-9: `AiRefreshMap` after a Soldier dies to the counter); the C reads `pCharacterData->number` through NULL (BIOS address 4) and `GetPidStats` may accept that pid, adding the move count and favval 2 to a real character | `gBWLDataArray` before and after f2018 and f2723 (`ram_trace_prologue_enemy_phase`): if an entry changes, port the read (BIOS open-bus value as mGBA returns it) | - | todo |
+| PP-enemy-cap | CAP | Prologue: A on a Soldier, then B (enemy range display) | Run published | — | todo |
+| PP-enemy | PORT | Enemy range on A (issue #8): `MainIdle` non-controllable branch, observed functions only | Range squares, windows and proc state match PP-enemy-cap; break-checked | PP-enemy-cap | todo |
 | D09-3 | PORT | Remaining item-popup branches (gold, full inventory, red/root, unit-name/number) | Each branch against a capture that reaches it, else not written | — | low priority; Rapier popup confirmed on device 11-11 |
 
 Readability remains owner-paused until ~2026-11-17 (HANDOFF).

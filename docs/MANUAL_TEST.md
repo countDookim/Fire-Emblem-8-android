@@ -9,8 +9,8 @@ needs your ROM, imported on first start.
 
 | | Build | Date | Report |
 |---|---|---|---|
-| Latest APK | 0.1.856 (`50943a9`) | 2026-11-23 | — |
-| Last owner test | 0.1.856 (`50943a9`) | 2026-11-24 | D-18 to D-22 fixed (owner) |
+| Latest APK | 0.1.868 (`dd96da1`) | 2026-11-24 | — |
+| Last owner test | 0.1.868 (`dd96da1`) | 2026-11-24 | Issue #8: save menu to Chapter 1 OK |
 | Last full pass | 0.1.622 (`22cfc9d`) | 2026-11-12 | HANDOFF "Device status" |
 
 Items are removed from this page once the owner confirms them; the history is in git and in
@@ -18,22 +18,7 @@ Items are removed from this page once the owner confirms them; the history is in
 
 ## 1. Test now
 
-Prologue ending and save menu (PC-3a, PC-4; Chapter 1 start PC-5):
-
-1. Win the Prologue (defeat the last enemy). The ending dialogue plays, the map goes away and the
-   post-chapter save menu appears (slot boxes, banner, hand cursor).
-2. Press A on slot 1, A again to confirm. The slot box refreshes and the menu fades out (about a
-   quarter of a second).
-3. Next the Chapter 1 intro screen plays (it matches the capture's tilemaps and palette in headless
-   runs; press A to skip it). Then the Chapter 1 opening event starts: fade, the opening dialogue
-   (press A to advance) and units walking in. Headless, it reaches the first player phase.
-   Report what you see, and whether a power-off and Continue then loads the new save.
-4. Known limit, expect a crash: selecting a unit in Chapter 1 and opening its menu stops with
-   "EvCheck05_LOCA is not ported yet" (EP-35b); report only if it differs.
-5. Other limits: the save menu allocates about 270 bytes per frame (no effect on play); slot text
-   such as play time and gold comes from your own run.
-
-(Everything up to 0.1.856 was tested earlier; new items carry their build.)
+Nothing new since 0.1.868. (Everything up to 0.1.868 was tested earlier; new items carry their build.)
 
 ## 2. Open bugs (no fix yet)
 
@@ -50,12 +35,15 @@ Retest these only when a change to them is announced.
   - The map menu's Unit, Status, Guide, Options and Suspend do nothing, and neither do R, L and Start on
     the map.
   - There is no help box, inventory or status screen (M6-E, M6-F, M6-H).
-  - Selecting an enemy shows no range.
+  - Selecting an enemy shows no range (PP-enemy); the info windows closing then is normal.
 - **Prologue flow:**
-  - The boss never moves (EP-11).
-  - After the last enemy, the ending dialogue plays and the map stays: no save menu or Chapter 1 yet
-    (PC-3 to PC-6).
+  - The boss never moves or attacks, even with a unit next to him (EP-11).
   - Eirika dying gives no game over, and the enemies stop acting afterwards (PC-7, PC-8).
+- **Chapter 1 and saves:**
+  - Selecting a unit and opening its menu crashes ("EvCheck05_LOCA is not ported yet", EP-35b).
+  - Power-on always resumes the suspend save (Chapter 1's first player phase after the Prologue): there is
+    no title menu yet to choose Continue and a slot (PC-11).
+  - Battle animations in the Chapter 1 opening are skipped (M6-G).
 - **Map events and rules:** no staff range, traps, after-move or tutorial events, dialogue during the
   enemy phase, or records (M6-C, M6-E, M6-H). The enemy and green phase banners are missing (D12-2).
 - **Opening and title:**
@@ -79,6 +67,8 @@ Retest these only when a change to them is announced.
     the level-up panel.
   - End, the enemy phase (movement and attacks), the turn-2 banner, suspend and resume.
   - The step-by-step walkthrough is in git history (commit 948965e) if a regression needs it.
+- **Prologue end to Chapter 1 (0.1.868):** the save menu after the ending, saving to slot 1, the
+  Chapter 1 title card and opening event, the first player phase.
 - **Map:** the player phase banner, the hover cursor, the Rapier popup, exp and level-up sounds with no
   lingering beep.
 - **Bug fixes (0.1.856):** after a kill the attacker stays on his tile (D-18); the HP box has its

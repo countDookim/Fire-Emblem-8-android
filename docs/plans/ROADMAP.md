@@ -85,7 +85,7 @@ remain in scope. The pace depends on captures.
 
 ## User-report issues
 
-All closed (#4 on 11-11; #5, #6, #7 on 2026-11-24 after the owner confirmed D-13..D-22 on 0.1.852/0.1.856).
+#4 closed 11-11; #5, #6, #7 closed 2026-11-24 after the owner confirmed D-13..D-22 on 0.1.852/0.1.856. #8 (0.1.868 report) open.
 What they reported and is still missing, and where it is tracked:
 
 | Reported in | Missing | Task |
@@ -93,9 +93,12 @@ What they reported and is still missing, and where it is tracked:
 | #5 item 2, #6 | Battle animations (Seth vs Valter first) | M6-G, `BA-w` |
 | #7 item 1 | Title-idle class showcase (the opening replays instead) | `BA-reel-inv` (after `BA-w`) |
 | #5 item 5, #6, #7 item 6 | Item command and the other unit/map menu commands | M6-F (`IS-*`), M6-H (`C14-item-cap`/`-inv`, trade, ...) |
-| #6 | The boss never moves | `EP-11` |
-| #6 | After the last enemy: no save menu, no Chapter 1 | `PC-3a`, `PC-4`, `PC-5`, `PC-6` |
-| #7 item 7 | Eirika's death: no game over, enemies stop acting | `PC-7i` → `PC-7a/b`, `PC-8a/b`, `PC-8` |
+| #6, #8 | The boss never moves or attacks | `EP-11` |
+| #6 | After the last enemy: no save menu, no Chapter 1 (save menu, intro and opening event confirmed on 0.1.868, #8) | `PC-6` |
+| #7 item 7, #8 | Eirika's death: no game over, enemies stop acting | `PC-7i` → `PC-7a/b`, `PC-8a/b`, `PC-8` |
+| #8 | Power-on resumes the Chapter 1 suspend; no title menu to Continue from a slot | `PC-11cap` → `PC-11i` → `PC-11` |
+| #8 | Chapter 1: opening a unit's menu crashes (`EvCheck05_LOCA`) | `EP-35b` |
+| #8 | Selecting an enemy shows no range | `PP-enemy-cap` → `PP-enemy` |
 
 ## Modding audit (M7-0, 2026-11-11)
 

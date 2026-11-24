@@ -5487,7 +5487,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },

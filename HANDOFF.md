@@ -24,7 +24,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-6e-b: owner PC, until ~01:00Z
+- PC-6e-c: owner PC, until ~02:30Z
 - PC-8b: owner PC, until ~01:30Z
 
 

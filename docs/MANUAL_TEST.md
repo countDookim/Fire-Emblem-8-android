@@ -18,18 +18,20 @@ Items are removed from this page once the owner confirms them; the history is in
 
 ## 1. Test now
 
-Prologue ending and save menu (PC-3a, PC-4; Chapter 1 start is PC-5, not verified yet):
+Prologue ending and save menu (PC-3a, PC-4; Chapter 1 start PC-5):
 
 1. Win the Prologue (defeat the last enemy). The ending dialogue plays, the map goes away and the
    post-chapter save menu appears (slot boxes, banner, hand cursor).
 2. Press A on slot 1, A again to confirm. The slot box refreshes and the menu fades out (about a
    quarter of a second).
-3. Expected next: the Chapter 1 intro screen starts (headless runs reach the chapter intro with the
-   battle map procs alive, but its picture and the opening event are not compared with the capture
-   yet). Report what you actually see after the fade: the intro, a black screen, or a hang, and
-   whether a power-off and Continue then loads the new save.
-4. Known limits: the save menu allocates about 270 bytes per frame (no effect on play); slot text such
-   as play time and gold comes from your own run.
+3. Next the Chapter 1 intro screen plays (it matches the capture's tilemaps and palette in headless
+   runs; press A to skip it). Then the Chapter 1 opening event starts: fade, the opening dialogue
+   (press A to advance) and units walking in. Headless, it reaches the first player phase.
+   Report what you see, and whether a power-off and Continue then loads the new save.
+4. Known limit, expect a crash: selecting a unit in Chapter 1 and opening its menu stops with
+   "EvCheck05_LOCA is not ported yet" (EP-35b); report only if it differs.
+5. Other limits: the save menu allocates about 270 bytes per frame (no effect on play); slot text
+   such as play time and gold comes from your own run.
 
 (Everything up to 0.1.856 was tested earlier; new items carry their build.)
 

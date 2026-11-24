@@ -439,6 +439,8 @@ public class Fe8Boot(
                 mu.endAllMus()
                 battleMap.endBMapMain()
             }
+            // `gPlaySt.chapterIndex`, stored in the engine proc of a cutscene or gameplay event.
+            override fun chapterIndex(): Int = control.playSt.chapterIndex
             override fun lockGame() { loop.lockGame() }
             override fun freezeMenu() { playerWiring?.menu?.freezeMenu() }
             // `UnlockGame`, `ResumeMenu`, `ResetBkselPalette` (`ClearCutsceneUnits` is EP-11h
@@ -1546,6 +1548,14 @@ public class Fe8Boot(
         start.hooks.updateMapImgAnimations = { anims.updateMapImgAnimations() }
         start.hooks.updateMapPalAnimations = { anims.updateMapPalAnimations() }
         start.hooks.applyUnitSpritePalettes = { sprites.applyUnitSpritePalettes() }
+        // `ResetMenuOverrides` (`sMenuOverrides`, owned by the player phase menu) and
+        // `ClearTemporaryUnits` (then `RefreshEntityBmMaps`, `RefreshUnitSprites`).
+        start.hooks.resetMenuOverrides = { playerWiring?.menu?.overrides?.clear() }
+        start.hooks.clearTemporaryUnits = {
+            units.clearTemporaryUnits()
+            battleEntityMaps.refreshEntityBmMaps()
+            refresh()
+        }
         start.hooks.resetUnitSprites = { sprites.resetUnitSprites() }
         start.hooks.refreshUnitSprites = refresh
         start.hooks.syncUnitSpriteSheet = { sprites.syncUnitSpriteSheet() }
@@ -1695,6 +1705,7 @@ public class Fe8Boot(
         }
         control.rng = rng
         control.hooks.endAllMus = ProcFunc { mu.endAllMus() }
+        control.hooks.clearTemporaryUnits = ProcFunc { battleMap.hooks.clearTemporaryUnits() }
         control.hooks.winFlagSet = { flags.checkFlag(EVFLAG_WIN) }
         control.hooks.chapterSwitch = ProcFunc { control.chapterSwitch(it) }
         control.hooks.callPostChapterSaveMenu = ProcFunc { control.callPostChapterSaveMenu(it) }

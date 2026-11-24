@@ -9,7 +9,7 @@ CI runs `--check`, which also fails when an entry has no `(not verified: ...)` r
 
 Total entries: 749 across 106 decomp files (missing reason: 0).
 
-## src/bmunit.c (37)
+## src/bmunit.c (38)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -45,6 +45,7 @@ Total entries: 749 across 106 decomp files (missing reason: 0).
 | `ClearUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced loads fill slots that are already zero, so a skipped clear survives |
 | `FixROMUnitStructPtr` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no traced unit has `CA_BIT_23`, so a broken repoint survives |
 | `UnitCheckStatCaps` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `ClearTemporaryUnits` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | the Prologue at f9863 has no phantom, green or red unit left to clear; the blue `US_HIDDEN` part is checked against `f10300` of `ram_trace_prologue_end` by `PrologueEndingWireTest` |
 | `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
 | `UnitHasMagicRank` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no unit in the captures has a magic rank, and no captured decision or output depends on it |
 | `SetAllUnitNotBackSprite` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | it runs in the select window, but no unit has `US_BIT8` set there, so the clearing is unobserved |
@@ -527,7 +528,7 @@ Total entries: 749 across 106 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `CallBeginningEvents` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
 | `BmMain_ResumePlayerPhase` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `BmMain_StartIntroFx` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
+| `BmMain_StartIntroFx` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `PrologueEndingWireTest` sees the Chapter 1 intro start through it at f9872 of `ram_trace_prologue_end`, but the chapter 0x38 and chapter 6 + flag 0x88 branches are exercised by no capture |
 | `UndeployEveryone` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
 | `GotoChapterWithoutSave` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
 | `SetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
@@ -723,19 +724,6 @@ Total entries: 749 across 106 decomp files (missing reason: 0).
 | `GetCharTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
 | `EndGreenText` | `game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt` | only `sProc_MenuMain` calls it after the menu's idle callback breaks, which no capture does |
 
-## src/gamecontrol.c (8)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GameControl_EnableSoundEffects` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | the traced option bits are already clear when it runs |
-| `sub_8009B64` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no trace reaches it |
-| `GameCtrl_CheckNewGameAndBranch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no reference run has save_menu_type 2 or 4 |
-| `GameCtrl_CheckGameCompleteAndBranch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no reference run has the complete state bit |
-| `GameControl_RestoreChapterId` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
-| `sub_8009E28` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | wired by `Fe8Boot`; no dump compares the blend registers at this point |
-| `GameControlHandlePostNormalOrExtraChapter` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
-| `GameControl_ChapterSwitch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `computeChapterRankings` is PC-3c, `winFlagSet` false branch is unexercised at f9443 -> f9444, and `registerChapterTimeAndTurnCount` / `chapterChangeUnitCleanup` stay transcribed |
-
 ## src/cp_utility.c (7)
 
 | Function | Kotlin file | Reason |
@@ -747,6 +735,18 @@ Total entries: 749 across 106 decomp files (missing reason: 0).
 | `AiCouldReachByBirdsEyeDistance` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | for the Prologue's first enemy and the second player unit the formula says true, but the capture's danger map shows no damage of that unit |
 | `AiGetUnitClosestValidPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no reference trace exercises the occupied case |
 | `CharStoreAI` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | every traced definition has zero AI bytes, so a skipped or wrong store survives |
+
+## src/gamecontrol.c (7)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GameControl_EnableSoundEffects` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | the traced option bits are already clear when it runs |
+| `sub_8009B64` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no trace reaches it |
+| `GameCtrl_CheckGameCompleteAndBranch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no reference run has the complete state bit |
+| `GameControl_RestoreChapterId` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
+| `sub_8009E28` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | wired by `Fe8Boot`; no dump compares the blend registers at this point |
+| `GameControlHandlePostNormalOrExtraChapter` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
+| `GameControl_ChapterSwitch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `computeChapterRankings` is PC-3c, `winFlagSet` false branch is unexercised at f9443 -> f9444, and `registerChapterTimeAndTurnCount` / `chapterChangeUnitCleanup` stay transcribed |
 
 ## src/uimenu.c (7)
 

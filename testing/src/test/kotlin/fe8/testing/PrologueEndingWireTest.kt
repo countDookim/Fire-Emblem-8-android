@@ -6,6 +6,7 @@ import fe8.game.RomView
 import fe8.game.event.EventConst
 import fe8.game.save.Fe8SramLayout as L
 import gba.core.sram.SaveStorage
+import gba.core.VerifiesPort
 import gba.testkit.AllocationMeter
 import gba.testkit.ReferenceData
 import gbafe.core.rng.RngService
@@ -381,9 +382,141 @@ class PrologueEndingWireTest {
         return bytes
     }
 
+    private fun shortName(n: String) = n.removePrefix("gProcScr_").removePrefix("ProcScr_")
+
+    private val transientProcs = setOf("Mu", "MuCtrl", "MuStepSe")
+
+    /**
+     * PC-5: after the save menu `GameControl` takes label 6 (`GameCtrl_CheckNewGameAndBranch`,
+     * `save_menu_type` 2) to `StartBattleMap` and the Chapter 1 intro, which the capture's A at
+     * input 10199 skips, then the Chapter 1 beginning event starts at f10298. The capture's intro
+     * lags 3 frames at its start and 5 by its end (the boot has no VBlank lag), so proc
+     * lifetimes are compared relative to the start of `ChapterIntro` within 5 frames and the
+     * display is compared at the capture frame 3 frames ahead of the boot's.
+     */
+    @Test
+    @VerifiesPort("GameCtrl_CheckNewGameAndBranch")
+    fun `the chapter 1 start matches the capture`() {
+        assumeTrue(available(), "reference data / ROM / decomp nm file")
+        val run = ref.run("ram_trace_prologue_end")
+        val (boot, f, gc) = start()
+        playMenu(boot, f, run, gc)
+
+        // Capture: first and last step of each proc, relative to the start of ChapterIntro.
+        val nm = ProcArrayDump.romNames()
+        val capLife = HashMap<String, IntArray>()
+        for (step in 9863..CH1_ENGINE_FRAME) {
+            for (p in ProcArrayDump.ofWatch(run.watch("procs"), step, nm).live) {
+                val name = shortName(p.name ?: continue)
+                if (name in transientProcs) continue
+                val life = capLife.getOrPut(name) { intArrayOf(step, step) }
+                life[1] = step
+            }
+        }
+        val capIntro = capLife.getValue("ChapterIntro")[0]
+
+        val bootLife = HashMap<String, IntArray>()
+        val cursors = HashSet<Int>()
+        val layerFrames = setOf(9900, 10000, 10100, 10200)
+        val seen = HashMap<Int, Layers>()
+        var shift = Int.MIN_VALUE
+        var n = 0
+        var engineAt = -1
+        while (n < 1200 && engineAt < 0) {
+            n++
+            f.keys = if (shift == Int.MIN_VALUE) 0 else run.inputs[n + shift - 1]
+            boot.frame()
+            f.frame++
+            cursors += gc.scrCur
+            val names = boot.engine.procs.mapNotNull { it.script?.name }.map(::shortName)
+            if (shift == Int.MIN_VALUE && "ChapterIntro" in names) shift = capIntro - n
+            for (name in names) {
+                if (name in transientProcs) continue
+                bootLife.getOrPut(name) { intArrayOf(n, n) }[1] = n
+            }
+            if (shift == Int.MIN_VALUE) continue
+            val cap = n + shift + INTRO_LAG
+            if (cap in layerFrames) seen[cap] = layers(boot, run, "f%05d".format(cap))
+            if ("StdEventEngine" in names) engineAt = n
+        }
+        assertTrue(engineAt > 0, "Chapter 1 beginning event engine started")
+
+        // No world map: label 6 (EXEC_BM_EXT) was taken, cursors 52 and 54 as in the capture.
+        assertTrue(52 in cursors && 54 in cursors, "GameControl cursors $cursors")
+        assertTrue(bootLife.keys.none { "WorldMap" in it }, "no world map proc ${bootLife.keys}")
+        assertEquals(1, gc.lockCnt, "BMapMain holds GameControl")
+
+        // Proc tree: the same procs, each starting and ending within 5 frames of the capture
+        // (relative to ChapterIntro; the capture is the one with the lag).
+        assertEquals(capLife.keys.sorted(), bootLife.keys.sorted(), "procs of f9863..f10298")
+        val bootIntro = bootLife.getValue("ChapterIntro")[0]
+        for ((name, cap) in capLife) {
+            val mine = bootLife.getValue(name)
+            for (k in 0..1) {
+                // GameControl lives before the window (the capture's window starts at f9863).
+                if (name == "GameControl" && k == 0) continue
+                val diff = (cap[k] - capIntro) - (mine[k] - bootIntro)
+                assertTrue(diff in 0..5, "$name ${if (k == 0) "start" else "end"} differs by $diff")
+            }
+        }
+
+        // The intro's picture: tilemaps, BGCNT, DISPCNT and the whole palette equal.
+        assertEquals(layerFrames, seen.keys, "intro frames compared")
+        for ((c, l) in seen) {
+            assertTrue(l.dispcnt && l.bgcnt, "f$c DISPCNT/BGCNT")
+            assertEquals(listOf<List<Int>>(emptyList(), emptyList(), emptyList(), emptyList()),
+                l.tilemapRows, "f$c tilemaps")
+            assertEquals(emptyList<Int>(), l.palette, "f$c palette")
+        }
+
+        // f10298: the beginning event engine (script, exec type, chapter, cursor 5).
+        val d = ProcArrayDump.ofWatch(run.watch("procs"), CH1_ENGINE_FRAME, nm)
+        val capEngine = checkNotNull(d.find("ProcScr_StdEventEngine"))
+        val engine = checkNotNull(boot.eventEngine.findStd())
+        val state = engine.state as fe8.game.event.EventEngineProc
+        assertEquals(capEngine.scrCur, engine.scrCur, "engine cursor")
+        assertEquals(capEngine.u32(0x30), state.pEventStart, "pEventStart")
+        assertEquals(capEngine.u32(0x38), state.pEventCurrent, "pEventCurrent")
+        assertEquals(capEngine.u16(0x3C), state.evStateBits, "evStateBits")
+        assertEquals(capEngine.u8(0x41), state.execType, "execType")
+        assertEquals(capEngine.u8(0x43), state.chapterIndex, "engine chapterIndex")
+        assertEquals(EventConst.EV_EXEC_CUTSCENE, state.execType)
+
+        // gPlaySt (StartBattleMap: faction green, turn 0, fog, weather, tutorial and bits).
+        val want = fe8.game.bm.PlaySt().also { it.decode(run.watch("gplayst").step(CH1_ENGINE_FRAME), 0) }
+        val got = boot.control.playSt
+        fun fields(p: fe8.game.bm.PlaySt) = listOf(
+            p.chapterIndex, p.chapterTurnNumber, p.faction, p.chapterStateBits,
+            p.chapterVisionRange, p.chapterWeatherId, p.unk48, p.unk4A1, p.tutorialCounter,
+            p.tutorialExecType, p.chapterTotalSupportGain, p.saveMenuType,
+        )
+        assertEquals(fields(want), fields(got), "gPlaySt")
+
+        // Cleared gChapterFlagBits and the units' state (US_NOT_DEPLOYED cleared, US_HIDDEN set).
+        val iw = run.region("r$CH1_ENGINE_FRAME", "iwram")
+        val ew = run.region("r$CH1_ENGINE_FRAME", "ewram")
+        val capFlags = fe8.game.flags.Fe8EventFlags.create()
+        capFlags.copyIn(iw.copyOfRange(GFLAGS - IWRAM, GFLAGS - IWRAM + capFlags.size))
+        val size = fe8.game.flags.Fe8EventFlags.getChapterFlagBitsSize()
+        val capChapter = ByteArray(size).also { capFlags.copyOutChapter(it) }
+        val bootChapter = ByteArray(size).also { boot.flags.copyOutChapter(it) }
+        assertTrue(capChapter.all { it.toInt() == 0 }, "capture chapter flags clear")
+        assertTrue(capChapter.contentEquals(bootChapter), "chapter flags")
+        val capUnits = fe8.game.bm.UnitTable(RomView.ofRom(ByteArray(0))).also { it.loadFrom(ew) }
+        val blue = (1 until 0x40).filter { capUnits.isValid(it) }
+        assertTrue(blue.isNotEmpty() && blue.all { boot.units.isValid(it) }, "blue units $blue")
+        for (id in blue) {
+            assertEquals(capUnits.state(id), boot.units.state(id), "unit $id state")
+        }
+    }
+
     private companion object {
         const val GAME_CONTROL = 0x085916D4
         const val START = 0x08
+        const val CH1_ENGINE_FRAME = 10298
+        const val INTRO_LAG = 3
+        const val GFLAGS = 0x03005250
+        const val IWRAM = 0x03000000
         const val FADE_IN_CAPTURE_FRAME = 9461
         val STALE_PALETTE = setOf(49, 50, 51, 52, 61, 62, 63, 273, 417)
         const val SAVE_MENU = "gProcScr_SaveMenuPostChapter"

@@ -189,6 +189,29 @@ public class UnitTable(
         StructCodec.put32(bytes, unitOffset(id) + 0x0C, value)
     }
 
+    /**
+     * Hides every valid blue unit (`US_HIDDEN`) and clears the blue phantoms, then clears every
+     * valid red (0x81..0xBF) and green (0x41..0x7F) unit. The C ends with `RefreshEntityBmMaps`
+     * and `RefreshUnitSprites`, which stay with the caller (`Fe8Boot` hook).
+     *
+     * Transcribed from src/bmunit.c: ClearTemporaryUnits (not verified: the Prologue at f9863
+     *   has no phantom, green or red unit left to clear; the blue `US_HIDDEN` part is checked
+     *   against `f10300` of `ram_trace_prologue_end` by `PrologueEndingWireTest`)
+     */
+    public fun clearTemporaryUnits() {
+        for (i in 1 until 0x40) {
+            if (!isValid(i)) continue
+            setState(i, state(i) or US_HIDDEN)
+            if (classId(i) == CLASS_PHANTOM) clearUnit(i)
+        }
+        for (i in 0x81 until 0xC0) {
+            if (isValid(i)) clearUnit(i)
+        }
+        for (i in 0x41 until 0x80) {
+            if (isValid(i)) clearUnit(i)
+        }
+    }
+
     /** `xPos` (s8, 0x10) of unit [id]. */
     public fun xPos(id: Int): Int = s8(bytes, unitOffset(id) + 0x10)
 

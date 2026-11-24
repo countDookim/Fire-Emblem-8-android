@@ -464,8 +464,9 @@ public class BMapMain(
     }
 
     /**
-     * Transcribed from src/bm.c: BmMain_StartIntroFx (not verified: no test checks it against a
-     *   trace yet)
+     * Transcribed from src/bm.c: BmMain_StartIntroFx (not verified: `PrologueEndingWireTest`
+     *   sees the Chapter 1 intro start through it at f9872 of `ram_trace_prologue_end`, but the
+     *   chapter 0x38 and chapter 6 + flag 0x88 branches are exercised by no capture)
      *
      * Starts [Hooks.chapterIntro] blocking [proc] except in `CHAPTER_CASTLE_FRELIA` (0x38) and
      * in `CHAPTER_L_5` (0x06) with flag 0x88 set (flag 0x88 has no name in the decomp).

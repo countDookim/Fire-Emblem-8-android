@@ -520,8 +520,11 @@ public class GameControl(
      * Jumps to `LGAMECTRL_EXEC_BM_EXT` (straight to the battle map, per `gamecontrol.h`) when
      * `gPlaySt.save_menu_type` is 2 or 4.
      *
-     * Transcribed from src/gamecontrol.c: GameCtrl_CheckNewGameAndBranch
-     * (not verified: no reference run has save_menu_type 2 or 4)
+     * Ported from src/gamecontrol.c: GameCtrl_CheckNewGameAndBranch
+     *
+     * Verified: `save_menu_type` 2 after the Prologue (`PrologueEndingWireTest`, `f9863..9870` of
+     * `ram_trace_prologue_end`: no world map, straight to the battle map). Type 4 shares the
+     * condition and is not exercised by any capture.
      */
     public fun checkNewGameAndBranch(proc: Proc) {
         if (playSt.saveMenuType == 2 || playSt.saveMenuType == 4) {

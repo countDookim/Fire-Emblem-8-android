@@ -18,6 +18,7 @@ import gbafe.render.LcdControl
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -221,16 +222,19 @@ class GameOverScreenDifferentialTest {
                 endedAt = f + 1
             }
             // The palette RAM follows the buffer one dump later.
-            val palRam = sim.pal.step(f + 2)
-            for (i in 0 until 512) {
-                assertEquals(u16(palRam, 2 * i), sim.hardware.paletteRam[i].toInt() and 0xFFFF,
-                    "$at palette RAM[$i]")
+            // Past f6293 the capture's palette belongs to the next scene (not this screen's).
+            if (f <= LAST_PALETTE) {
+                val palRam = sim.pal.step(f + 2)
+                for (i in 0 until 512) {
+                    assertEquals(u16(palRam, 2 * i), sim.hardware.paletteRam[i].toInt() and 0xFFFF,
+                        "$at palette RAM[$i]")
+                }
+                palettesCompared++
             }
-            palettesCompared++
             val lcd = sim.hardware.lcd
             assertEquals(sim.io.u16(f + 2, IO_DISPCNT), lcd.dispcnt, "$at DISPCNT")
             assertEquals(sim.io.u16(f + 2, IO_BLDY), lcd.blendY, "$at BLDY")
-            sim.dumpOrNull(f + 1)?.let { key ->
+            sim.dumpOrNull(f + 1)?.takeIf { f <= LAST_PALETTE }?.let { key ->
                 val e = sim.run.region(key, "ewram")
                 for (i in 0 until 512) {
                     assertEquals(u16(e, PALETTE - EWRAM + 2 * i),
@@ -246,6 +250,8 @@ class GameOverScreenDifferentialTest {
                 fadeStateCompared++
             }
         }
+        assertNull(sim.hardware.hblank.primary, "End removes the primary HBlank handler")
+        assertNull(sim.hardware.hblank.secondary, "secondary HBlank handler")
         assertEquals(6294, endedAt, "the screen proc is gone at the dump of f6294")
         assertEquals(1, sim.fadeOuts, "Sound_FadeOutBGM once")
         assertTrue(fadeSteps >= 22 + 33, "counter1 changes: $fadeSteps")
@@ -372,7 +378,12 @@ class GameOverScreenDifferentialTest {
         const val FIRST = 5953
         const val LAST = 6292
         const val LAST_TEARDOWN = 6295
+        const val LAST_PALETTE = 6293
+        // Evidence (mutation runs): 0 fails at f5954 counter1 (21 instead of 20), 2 fails at
+        // f5953 counter1; the capture's clock and keys watches are one dump ahead of the step.
         const val CLOCK_SHIFT = 1
+
+        // 0 ends the idle one step early (f6260 counter1 -1 instead of 0), 2 one step late.
         const val KEYS_SHIFT = 1
         const val IO_DISPCNT = 0
         const val IO_BLDY = 0x54

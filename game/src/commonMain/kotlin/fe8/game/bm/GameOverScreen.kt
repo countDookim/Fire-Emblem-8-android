@@ -6,7 +6,7 @@ import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.call
-import gbafe.proc.ProcScripts.end
+import gbafe.proc.ProcScripts.end as procEnd
 import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.setEndCb
@@ -107,7 +107,7 @@ public class GameOverScreen(
         listOf(
             call(ProcFunc { randomScrollInit(it.state as ScrollState) }),
             repeat(ProcFunc { randomScrollLoop(it.state as ScrollState) }),
-            end(),
+            procEnd(),
         ),
         ::ScrollState,
     )
@@ -134,7 +134,7 @@ public class GameOverScreen(
             label(0x63),
             call(ProcFunc { beginFadeOut() }),
             repeat(ProcFunc { loopFadeOut(it) }),
-            end(),
+            procEnd(),
         ),
         ::State,
     )
@@ -315,7 +315,10 @@ public class GameOverScreen(
     /**
      * Removes both HBlank handlers, disables every BG and OBJ and blacks the backdrop.
      *
-     * Ported from src/gameoverbgfx.c: GameOverScreen_End
+     * Partially ported from src/gameoverbgfx.c: GameOverScreen_End (verified: DISPCNT 0 and the
+     * primary HBlank handler removed; not observable in PC-cap2: the backdrop is already black
+     * from the fade, so `palette[0] = 0` and its palette sync, and the secondary handler, which
+     * the screen never sets, cannot make the capture differ)
      */
     public fun end() {
         hardware.hblank.setPrimary(null)

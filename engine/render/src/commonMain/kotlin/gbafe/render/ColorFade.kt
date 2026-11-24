@@ -106,10 +106,10 @@ public class ColorFade(
 
     /**
      * Adds each palette's step to its components (stored as u8, wrapping) and writes the colours,
-     * each component minus 0x20 clamped to 0..31. Note: `ColorFadeTick` in `asm/arm.s` clamps
-     * the unwrapped sum (`ldrb`, `add`, `strb`, then `subs` on the register that was not
-     * wrapped), this port clamps the wrapped byte; they differ only if a component leaves
-     * 0..255, which the speeds of `src/bmlib.c` (0x04..0x40) do not do.
+     * each component minus 0x20 clamped to 0..31. The clamp is of the unwrapped sum
+     * (`ldrb`, `add`, `strb`, then `subs` on the register that was not wrapped): a component
+     * that falls below 0 is stored wrapped (0xFF) but shows as 0 (PC-cap2: the last tick of the
+     * game over fade-out).
      *
      * Ported from asm/arm.s: ColorFadeTick
      */
@@ -121,9 +121,9 @@ public class ColorFade(
                 val offset = (pal * 16 + j) * 3
                 var rgb = 0
                 for (k in 0..2) {
-                    val comp = ((components[offset + k].toInt() and 0xFF) + stepVal) and 0xFF
-                    components[offset + k] = comp.toByte()
-                    rgb = rgb or ((comp - 0x20).coerceIn(0, 0x1F) shl (5 * k))
+                    val sum = (components[offset + k].toInt() and 0xFF) + stepVal
+                    components[offset + k] = sum.toByte()
+                    rgb = rgb or ((sum - 0x20).coerceIn(0, 0x1F) shl (5 * k))
                 }
                 palette[pal * 16 + j] = rgb.toShort()
             }

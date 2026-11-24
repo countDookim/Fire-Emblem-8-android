@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1468,
+    "verified": 1469,
     "implemented_unverified": 120
   },
   "functions": {
@@ -3430,6 +3430,16 @@
         "fe8.game.event.EventBgmTest#event15BgmVolume duck matches the prologue proc array"
       ]
     },
+    "Event17_Fade": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Chapter1ScriptCoreDifferentialTest#Event17 Fade FADI and FADU match PC-cap1"
+      ]
+    },
     "Event1A_TEXTSTART": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -5511,7 +5521,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "implemented",
       "tests": []
     },

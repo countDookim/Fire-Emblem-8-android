@@ -38,6 +38,17 @@ public class EfxHpBar(
         /** The `proc->next == 0` arm of `EfxHpBar_DeclineToDeath`. */
         public fun onDeath(proc: ProcEfxHpBar): Unit =
             throw UnsupportedOperationException("not ported: EfxHpBar death arms")
+
+        /**
+         * Stand-in: `CheckRound2(GetAnimNextRoundType(GetAnimAnotherSide(proc->anim_this))) == 1`
+         * in `EfxHpBar_MoveCameraOnEnd`. The capture never takes the arm (BA-i4), so the arm
+         * itself (`cur = 16/20`, `NewEfxFarAttackWithDistance`) is not ported.
+         */
+        public fun nextRoundIsRound2(proc: ProcEfxHpBar): Boolean
+
+        /** The `timer == cur - 4` arm of `EfxHpBar_WaitCameraMove` (`BG_EnableSyncByMask`). */
+        public fun onCameraSync(proc: ProcEfxHpBar): Unit =
+            throw UnsupportedOperationException("not ported: EfxHpBar camera sync arm")
     }
 
     /** `struct ProcEfxHpBar` (efxbattle.h): the fields the HP-bar steps use. */
@@ -71,10 +82,23 @@ public class EfxHpBar(
 
         /** `finished` (0x58). */
         public var finished: Boolean = false
+
+        /**
+         * `proc_scrCur` as a command index of `ProcScr_efxHPBar` (0 = name, 1 = decline, 2 =
+         * move camera, 3 = wait camera, 4 = end), counted past the running command the way the
+         * dumps show it: 2 while the decline callback runs, 3 move camera, 4 wait camera.
+         */
+        public var scrCur: Int = 2
+
+        /** `Proc_Break` was called: the script moves on at the start of the next frame. */
+        public var broken: Boolean = false
     }
 
     /** `gEkrHpBarCount`: 1 while an HP-bar proc lives. */
     public var hpBarCount: Int = 0
+
+    /** `gEfxBgSemaphore`. */
+    public var bgSemaphore: Int = 0
 
     /** `gEfxSpellAnimExists`. */
     public var spellAnimExists: Int = 0
@@ -157,6 +181,62 @@ public class EfxHpBar(
         proc.timer2 += 1
         if (proc.timer2 >= 0x1E) proc.timer2 = 0x1E
         return false
+    }
+
+    /**
+     * Ported from banim-efxhpbar.c: EfxHpBar_MoveCameraOnEnd
+     *
+     * Once no background effect and no spell animation run, sets `timer = 0`, `cur = 1` and
+     * returns true (`Proc_Break`); false while it waits. The `CheckRound2` arm (`cur = 16` or
+     * `20`, `NewEfxFarAttackWithDistance`) is Transcribed only: [Env.nextRoundIsRound2] must be
+     * false.
+     */
+    public fun moveCameraOnEnd(proc: ProcEfxHpBar): Boolean {
+        if (bgSemaphore == 0 && spellAnimExists == 0) {
+            proc.timer = 0
+            proc.cur = 1
+            check(!env.nextRoundIsRound2(proc)) { "not ported: EfxHpBar CheckRound2 arm" }
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Ported from banim-efxhpbar.c: EfxHpBar_WaitCameraMove
+     *
+     * Counts `timer` up; at `cur` the bar count drops and it returns true (`Proc_Break`). The
+     * `timer == cur - 4` arm is Transcribed only ([Env.onCameraSync]).
+     */
+    public fun waitCameraMove(proc: ProcEfxHpBar): Boolean {
+        proc.timer += 1
+        if (proc.timer == proc.cur - 4) {
+            env.onCameraSync(proc)
+        } else if (proc.timer == proc.cur) {
+            hpBarCount -= 1
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Ported from banim-efxhpbar.c: ProcScr_efxHPBar
+     *
+     * One frame of the proc script: a pending `Proc_Break` first moves
+     * [ProcEfxHpBar.scrCur] to the next command, then the current `PROC_REPEAT` callback runs.
+     * Returns false when the proc ends (the script reached `PROC_END`).
+     */
+    public fun step(proc: ProcEfxHpBar): Boolean {
+        if (proc.broken) {
+            proc.scrCur += 1
+            proc.broken = false
+        }
+        proc.broken = when (proc.scrCur) {
+            2 -> declineToDeath(proc)
+            3 -> moveCameraOnEnd(proc)
+            4 -> waitCameraMove(proc)
+            else -> return false
+        }
+        return true
     }
 
     private companion object {

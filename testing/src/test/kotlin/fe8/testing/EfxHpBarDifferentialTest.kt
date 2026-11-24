@@ -13,8 +13,9 @@ import org.junit.jupiter.api.Test
 
 /**
  * `NewEfxHpBar`, the non-death arm of `EfxHpBar_DeclineToDeath`, `CheckEkrHitDone` and
- * `CheckEkrHitNow` (banim-efxhpbar.c) against the three HP bars of `ram_trace_prologue_attack`
- * (created f1577 / f1659 / f1784, `Proc_Break` at f1609 / f1690 / f1816).
+ * `CheckEkrHitNow`, `EfxHpBar_MoveCameraOnEnd`, `EfxHpBar_WaitCameraMove` and the script order (banim-efxhpbar.c) against the three HP bars of `ram_trace_prologue_attack`
+ * (created f1577 / f1659 / f1784, `Proc_Break` at f1609 / f1690 / f1816, then
+ * `EfxHpBar_MoveCameraOnEnd` (+1), `EfxHpBar_WaitCameraMove` (+2) and the end (+3, proc gone)).
  *
  * Per bar the state before the creation step is loaded from the previous dump (the pool anims'
  * `state2` / `nextRoundId`, `gEkrGaugeHp`, `gEfxHpLutOff`, `gEkrHitNow`, `gEkrHpBarCount`,
@@ -39,7 +40,8 @@ class EfxHpBarDifferentialTest {
     private class Bar(val start: Int, val brk: Int)
 
     @Test
-    @VerifiesPort("NewEfxHpBar", "EfxHpBar_DeclineToDeath", "CheckEkrHitDone", "CheckEkrHitNow")
+    @VerifiesPort("NewEfxHpBar", "EfxHpBar_DeclineToDeath", "CheckEkrHitDone", "CheckEkrHitNow",
+        "EfxHpBar_MoveCameraOnEnd", "EfxHpBar_WaitCameraMove", "ProcScr_efxHPBar")
     fun `three hp bars of the prologue attack`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val names = ProcArrayDump.romNames()
@@ -66,6 +68,9 @@ class EfxHpBarDifferentialTest {
                     val w = u16(pre, ROUND_DATA + 2 * ((anim.nextRoundId - 1) * 2 + side))
                     return if (w == 0xFFFF) 0 else w and 0xFF00
                 }
+
+                // Stand-in: the capture never takes the CheckRound2 arm (cur stays 1).
+                override fun nextRoundIsRound2(proc: EfxHpBar.ProcEfxHpBar) = false
             }
             val hp = EfxHpBar(env, Array(4) { pool.slots[it] }, gauge) {
                 u16(pre, EFX_HP_LUT + 2 * it)
@@ -76,6 +81,7 @@ class EfxHpBarDifferentialTest {
             }
             hp.hpBarCount = u32(pre, HP_BAR_COUNT)
             hp.spellAnimExists = u32(pre, SPELL_ANIM_EXISTS)
+            hp.bgSemaphore = u32(pre, BG_SEMAPHORE)
             assertTrue(hp.checkEkrHitDone())
             assertEquals(0, hp.checkEkrHitNow(0))
             assertEquals(0, hp.checkEkrHitNow(1))
@@ -97,6 +103,7 @@ class EfxHpBarDifferentialTest {
                 assertEquals(p.u32(0x50), proc.next, "$tag next")
                 assertEquals(p.u32(0x54), proc.timer2, "$tag timer2")
                 assertEquals(p.u32(0x58), if (proc.finished) 1 else 0, "$tag finished")
+                assertEquals(p.scrCur, proc.scrCur, "$tag script index")
                 for (side in 0..1) {
                     assertEquals(s16(ram, GAUGE_HP + 2 * side), gauge[side], "$tag gauge $side")
                     assertEquals(s16(ram, LUT_OFF + 2 * side), hp.hpLutOff[side], "$tag off $side")
@@ -109,7 +116,14 @@ class EfxHpBarDifferentialTest {
             compare(b.start)
             assertFalse(hp.checkEkrHitDone())
 
-            for (step in b.start + 1..b.brk) {
+            for (step in b.start + 1..b.brk + 3) {
+                if (step == b.brk + 3) {
+                    // The step after WaitCameraMove broke: the script reaches PROC_END.
+                    assertEquals(null, bar(at(step)), "f$step proc gone")
+                    assertFalse(hp.step(proc))
+                    assertEquals(0, u32(at(step), HP_BAR_COUNT))
+                    continue
+                }
                 if (step in UNADVANCED) {
                     val a = bar(at(step - 1))!!
                     val c = bar(at(step))!!
@@ -118,8 +132,7 @@ class EfxHpBarDifferentialTest {
                     }
                     continue
                 }
-                val broke = hp.declineToDeath(proc)
-                assertEquals(step == b.brk, broke, "f$step Proc_Break")
+                assertTrue(hp.step(proc))
                 compare(step)
             }
         }
@@ -136,6 +149,7 @@ class EfxHpBarDifferentialTest {
         const val ROUND_DATA = 0x0203E12A
         const val HP_BAR_COUNT = 0x02017728
         const val SPELL_ANIM_EXISTS = 0x0201772C
+        const val BG_SEMAPHORE = 0x0201774C
         const val HIT_NOW = 0x02017780
         val UNADVANCED = setOf(1582, 1789)
     }

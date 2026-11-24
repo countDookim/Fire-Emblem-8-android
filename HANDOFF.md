@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-24 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-24 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -24,9 +24,16 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- BA-p4b: scheduled, until ~11:33Z
 
 ## Current state
+
+- 2026-11-24 ~11:30Z scheduled (Sonnet agents): **BA-p3d, BA-p4a, BA-p4b done**. `fe8.game.bm.EkrBattleRound`
+  (`ekrBattleTriggerNewRoundStart` Ported; stops at idle -> `ekrBattle_80503EC`, BA-p4d), NEW/NEXT_ROUND_START arms
+  of `BattleAIS_ExecCommands` now break-checked (`BattleAisExecCommandsDifferentialTest` f1507..1537, f1622).
+  `fe8.game.bm.EfxHpBar` (`NewEfxHpBar`, `EfxHpBar_DeclineToDeath` non-death, `MoveCameraOnEnd` cur=1,
+  `WaitCameraMove`, `CheckEkrHitDone/Now`, `ProcScr_efxHPBar` order Ported; `EfxHpBarDifferentialTest` 3 bars to
+  proc end; f1582/f1789 runs skipped, BA-cap3). Not wired: `BattleAisHooks.checkEkrHitDone` has no production
+  implementer yet; death/CheckRound2/cur-4 arms Transcribed. Next: BA-p4c, then BA-p4d. Issue #8 already logged.
 
 - 2026-11-24 owner PC Claude (2 Sonnet agents): **M6-E start.** PC-cap2 captured (`ram_trace_prologue_gameover`, ROM `assets-8a52aac`, published locally). PC-3a (fb2f51d): Prologue ending -> save menu wired (EndBMapMain hook etc., `PrologueEndingWireTest`). PC-4 (9887a3e): menu replay = PC-cap1 (SRAM write f9800 with masks, layers aligned; ~272 B/frame alloc open). PC-5 (dd96da1): label 6 -> Ch1 intro -> beginning event = f9863..10298. PC-7i (344b0af): `GameOverInventoryTest`, PC-7/8 rows rewritten, new PC-8h, PC-cap2b/c. PC-7a (1b88057): game-over start Ported, NOT wired until PC-7b/PC-8. M4aNoteTest excludes the gameover run (prologue.sav divergence). **Device:** Ch1 unit menu throws EvCheck05_LOCA (EP-35b) = crash after selecting a unit in Ch1. Full jvmTest green.
 

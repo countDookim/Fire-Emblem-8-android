@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1444,
-    "implemented_unverified": 115
+    "implemented_unverified": 117
   },
   "functions": {
     "APProc_Create": {
@@ -1455,6 +1455,14 @@
         "fe8.testing.MapAnimRoundEffectsDifferentialTest#CallDelayedArg and CallDelayedArg_OnLoop reproduce delayed-call procs f4485 to f4611",
         "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
       ]
+    },
+    "CallGameOverEvent": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "implemented",
+      "tests": []
     },
     "CamMove_OnInit": {
       "decomp_file": "src/bm.c",
@@ -5487,7 +5495,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -14294,6 +14302,14 @@
       "tests": [
         "fe8.testing.MapAnimInfoBoxDifferentialTest#info box follows the capture from draw through shake, HP drain and end"
       ]
+    },
+    "sub_80837B0": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/GameOverStart.kt",
+      "status": "implemented",
+      "tests": []
     },
     "sub_80895B4": {
       "decomp_file": "src/chapter_title.c",

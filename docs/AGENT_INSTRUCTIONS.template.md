@@ -9,6 +9,10 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
    `tools/run_clock.sh check` (started by setup.sh); if it fails, start the next task (on `wip/<task-id>`). For an
    owner-timed run, stop starting new tasks at the cutoff, finish active tasks, then update HANDOFF, commit and push.
    No token/usage reporting (owner, 2026-10-31).
+   Then check for new user reports (owner, 2026-11-24): `gh issue list --state all --limit 10 --json
+   number,title,state,updatedAt`; any issue updated after HANDOFF's `_Updated` time has a new report or comment.
+   Read only those (`gh issue view N --comments`), log each item per rule 12 and HANDOFF "Device status" (new bugs
+   as `D-xx` rows in TASKS, gaps in ROADMAP "User-report issues"), and reply on the issue with where it is tracked.
 2. Setup: `tools/setup.sh > /tmp/setup.log 2>&1 &` for scheduled runs (idempotent; poll the log: cold Gradle can
    pass 2 min), then `source .assets.env`; tests: `./gradlew jvmTest`. Scheduled runs never install the Android SDK.
    Owner-PC sessions put logs and temporary files in `$HOME/.cache/fe8-tmp/<task-id>/` (never directly in `~` or

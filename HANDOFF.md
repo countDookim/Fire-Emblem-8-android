@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-25 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -21,10 +21,16 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- BA-p3c: scheduled, until ~05:45Z
-- BA-p4a: scheduled, until ~05:45Z
 
 ## Current state
+
+- 2026-11-25 ~05:35Z scheduled (Sonnet agents): **BA-p3b, BA-i4, BA-p3c done**. `fe8.game.bm.BattleAisCommands`
+  (`BattleAIS_ExecCommands` drain/C01/C03/C04/C06/C0d/C1a/FRAME/round-start arms, `GetAnimNextRoundType`,
+  `SwitchAISFrameDataFromBARoundType`, `AnimScrAdvance` Ported; 0x07, miss/standing arms Transcribed; effects,
+  sounds, `CheckEkrHitDone`, trigger = `BattleAisHooks` stand-ins; not called from `AnimUpdateAll` yet).
+  `BattleAisExecCommandsDifferentialTest` f1499..1630 resyncs f1581..1582 (dump one pass behind; BA-i4 sees the
+  same unadvanced steps f1582/f1789 -> BA-cap3). `pSpriteData` at f1500 differs from FRAME-arm result, not compared.
+  BA-i4: `BattleRoundHpInventoryTest`, "BA-i4 result", rows BA-p4a..d, BA-i4b, BA-cap3. Next: BA-p3d, BA-p4a.
 
 - 2026-11-24 ~23:35Z scheduled (Sonnet agents): **BA-p2b, BA-i3, BA-p2c, BA-p3a done**. `fe8.game.bm.BanimInit`
   (InitMainAnims CLOSE arm, InitBattleAnimFrame, InitLeft/RightAnim; FAR/FARFAR `TODO()`; BanimLeftDefaultPos sign

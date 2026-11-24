@@ -16,15 +16,15 @@ import java.io.File
 /**
  * `BattleAIS_ExecCommands` (drain loop, `end_exec_loop`, FRAME arm, `ANIM_CMD_WAIT_01` in both
  * arms, `0x03`, `0x04`, `0x07` plain arm, NEW_ROUND_START tail) against
- * `ram_trace_prologue_attack` f1499..f1611: the four anims are loaded from the f1498 dump, then
+ * `ram_trace_prologue_attack` f1499..f1630 (also `0x06`, `0x0D`, `0x1A`, `GetAnimNextRoundType`,
+ * `SwitchAISFrameDataFromBARoundType`, `AnimScrAdvance`): the four anims are loaded from the f1498 dump, then
  * each step runs `AnimUpdateAll` (the ported one) and `BattleAisCommands.execCommands`, and
  * `state`, `state2`, `state3`, `nextRoundId`, `commandQueueSize`, `pScrCurrent` and the done flags
  * are compared with the next dump.
  *
  * Stand-ins (no port, they read the dump of the compared step; BA-p3c/d/e replace them):
  * `ekrBattleTriggerNewRoundStart` (f1537: NEW_ROUND_START set on all four anims),
- * `gCtrlC01Blocking` (its dump value), `SwitchAISFrameDataFromBARoundType` and `AnimScrAdvance`
- * (the fields they write: `pScrCurrent`, `pScrStart`, `currentRoundType`, `timer`, `state2`),
+ * `gCtrlC01Blocking` (its dump value),
  * `RegisterAISSheetGraphics` (no-op), `CheckEkrHitDone` (`gEkrHpBarCount`, `gEfxSpellAnimExists`), the round-type tables and the
  * effect/sound commands (`C1a`, `1f`, `24`, `34`, `43` change none of the compared fields).
  */
@@ -40,8 +40,13 @@ class BattleAisExecCommandsDifferentialTest {
     private fun addr(i: Int) = POOL + STRIDE * i
 
     @Test
-    @VerifiesPort("BattleAIS_ExecCommands")
-    fun `waiting loop and round one f1499 to f1611`() {
+    @VerifiesPort(
+        "BattleAIS_ExecCommands",
+        "GetAnimNextRoundType",
+        "SwitchAISFrameDataFromBARoundType",
+        "AnimScrAdvance",
+    )
+    fun `waiting loop and rounds f1499 to f1630`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val romFile = File(assets, "baserom.gba")
         assumeTrue(romFile.isFile, "ROM not present")
@@ -96,22 +101,32 @@ class BattleAisExecCommandsDifferentialTest {
         val hooks = object : BattleAisHooks {
             override fun battleAnimRoundType(index: Int) = roundType(index)
 
-            override fun animNextRoundType(anim: Anim) =
-                roundType(anim.nextRoundId * 2 + ((anim.state2 shr 9) and 1))
+            override fun defaultModeConfig(index: Int) =
+                rom[MODE_CONFIG - ROM_BASE + index].toInt() and 0xFF
 
-            override fun switchFrameData(anim: Anim, type: Int) {
-                val p = addr(indexOf(anim))
-                anim.currentRoundType = u8(cur, p + 0x12)
-                anim.pScrStart = u32(cur, p + 0x24)
-                anim.pScrCurrent = u32(cur, p + 0x20)
-            }
+            override fun defaultStandingType() =
+                rom[STANDING_TYPES - ROM_BASE + u16(cur, DISTANCE_TYPE)].toInt() and 0xFF
 
-            override fun animScrAdvance(anim: Anim) {
-                val p = addr(indexOf(anim))
-                anim.pScrCurrent = u32(cur, p + 0x20)
-                anim.timer = u16(cur, p + 0x06).toShort().toInt()
-                anim.state2 = u16(cur, p + 0x0C)
-            }
+            override fun defaultAnimScript() = DEFAULT_ANIM
+
+            override fun banimModeOffset(pos: Int, frame: Int) =
+                reader.word(u32(cur, MODES_PTR + 4 * pos) + 4 * frame)
+
+            override fun banimScriptBase(pos: Int) = SCR_LEFT + pos * SCR_STRIDE
+
+            override fun spriteDataPoolBase(pos: Int) = OAML + pos * 0x5800
+
+            override fun scriptWord(address: Int) = reader.word(address)
+
+            override fun sortAnims() = Unit
+
+            override fun dragonBodyAnimeSet54(anim: Anim) = Unit
+
+            override fun newEkrChienChr(anim: Anim) = Unit
+
+            override fun efxHpChangeType(anim: Anim) = 0
+
+            override fun newEfxNormalEffect(anim: Anim) = Unit
 
             override fun checkEkrHitDone() =
                 u32(cur, HP_BAR_COUNT) == 0 && u32(cur, SPELL_ANIM_EXISTS) == 0
@@ -133,13 +148,9 @@ class BattleAisExecCommandsDifferentialTest {
 
             override fun command(anim: Anim, id: Int, state: BattleAisHooks.ExecState) {
                 check(id in NO_FIELD_EFFECT) { "unexpected command $id reached the hook" }
-                // C1a (layer 0 only) runs StartBattleAnimHitEffectsDefault, which marks the
-                // defender's back anim; stand-in until the effect port.
-                if (id == 0x1A && anim.state2 and FRONT_FRAME == 0) {
-                    val other = anims[(1 xor ((anim.state2 shr 9) and 1)) * 2]
-                    other.state3 = other.state3 or HIT_MARK
-                }
             }
+
+            override fun startHitEffectsDefault(anim: Anim, miss: Boolean) = Unit
         }
         val exec = BattleAisCommands(hooks, Array(4) { anims[it] })
 
@@ -179,6 +190,10 @@ class BattleAisExecCommandsDifferentialTest {
                 assertEquals(u8(ram, p + 0x0E), a.nextRoundId, "$tag nextRoundId")
                 assertEquals(u8(ram, p + 0x12), a.currentRoundType, "$tag round type")
                 assertEquals(u8(ram, p + 0x14), a.commandQueueSize, "$tag queue size")
+                assertEquals(u32(ram, p + 0x24), a.pScrStart, "$tag pScrStart")
+                assertEquals(u16(ram, p + 0x0A), a.drawLayerPriority, "$tag priority")
+                assertEquals(u32(ram, p + 0x28), a.pImgSheet, "$tag sheet")
+                assertEquals(u32(ram, p + 0x30), a.pSpriteDataPool, "$tag sprite pool")
             }
             for (side in 0..1) {
                 assertEquals(u8(ram, DONE_FLAG + side), exec.banimDoneFlag[side], "f$step done $side")
@@ -199,16 +214,24 @@ class BattleAisExecCommandsDifferentialTest {
         const val HP_BAR_COUNT = 0x02017728
         const val SPELL_ANIM_EXISTS = 0x0201772C
         const val ROUND_DATA = 0x0203E12A
+        const val MODE_CONFIG = 0x080DAEF0
+        const val STANDING_TYPES = 0x080DAF18
+        const val DEFAULT_ANIM = 0x085B9D5C
+        const val DISTANCE_TYPE = 0x0203E120
+        const val MODES_PTR = 0x0200005C
+        const val SCR_LEFT = 0x0200F1C8
+        const val SCR_STRIDE = 0x2A00
+        const val OAML = 0x020041C8
         const val FRONT_FRAME = 1 shl 8
         const val HIT_MARK = 0x9
         const val BLOCKEND = 1 shl 6
         const val NEW_ROUND_START = 1 shl 15
         const val START = 1498
         const val ROUND_START_STEP = 1537
-        const val END = 1611
+        const val END = 1630
         val SKEW_STEPS = 1581..1582
 
         /** Commands the hook sees in the window; they write none of the compared fields. */
-        val NO_FIELD_EFFECT = setOf(0x1A, 0x1F, 0x24, 0x34, 0x43)
+        val NO_FIELD_EFFECT = setOf(0x1F, 0x24, 0x34, 0x43)
     }
 }

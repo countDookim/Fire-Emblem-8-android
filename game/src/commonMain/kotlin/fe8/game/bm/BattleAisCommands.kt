@@ -16,15 +16,44 @@ public interface BattleAisHooks {
     /** `GetBattleAnimRoundType(index)`: the round type word of `gAnimRoundData`, -1 if none. */
     public fun battleAnimRoundType(index: Int): Int = unported("GetBattleAnimRoundType")
 
-    /** `GetAnimNextRoundType(anim)`. */
-    public fun animNextRoundType(anim: Anim): Int = unported("GetAnimNextRoundType")
+    /** `BanimDefaultModeConfig[index]` (ROM table, 4 bytes per round type). */
+    public fun defaultModeConfig(index: Int): Int = unported("BanimDefaultModeConfig")
 
-    /** `SwitchAISFrameDataFromBARoundType(anim, type)`. */
-    public fun switchFrameData(anim: Anim, type: Int): Unit =
-        unported("SwitchAISFrameDataFromBARoundType")
+    /** `BanimDefaultStandingTypes[gEkrDistanceType]`. */
+    public fun defaultStandingType(): Int = unported("BanimDefaultStandingTypes")
 
-    /** `AnimScrAdvance(anim)`. */
-    public fun animScrAdvance(anim: Anim): Unit = unported("AnimScrAdvance")
+    /** Address of `BanimScr_DefaultAnim`. */
+    public fun defaultAnimScript(): Int = unported("BanimScr_DefaultAnim")
+
+    /** `gpBanimModesLeft[frame]` (pos 0) or `gpBanimModesRight[frame]`: offset of a mode. */
+    public fun banimModeOffset(pos: Int, frame: Int): Int = unported("gpBanimModes")
+
+    /** Address of `gBanimScrLeft` (pos 0) or `gBanimScrRight` (pos 1). */
+    public fun banimScriptBase(pos: Int): Int = unported("gBanimScr")
+
+    /** `gBanimOaml + pos * 0x5800 / 4`, as a GBA address. */
+    public fun spriteDataPoolBase(pos: Int): Int = unported("gBanimOaml")
+
+    /** The 32 bit word at a GBA address (ROM or RAM). */
+    public fun scriptWord(address: Int): Int = unported("script memory")
+
+    /** `AnimSort()`. */
+    public fun sortAnims(): Unit = unported("AnimSort")
+
+    /** `EkrDragonBodyAnimeSet54(anim)`. */
+    public fun dragonBodyAnimeSet54(anim: Anim): Unit = unported("EkrDragonBodyAnimeSet54")
+
+    /** `NewEkrChienCHR(anim)`. */
+    public fun newEkrChienChr(anim: Anim): Unit = unported("NewEkrChienCHR")
+
+    /** `GetEfxHpChangeType(anim)` (`EFX_HPT_*`). */
+    public fun efxHpChangeType(anim: Anim): Int = unported("GetEfxHpChangeType")
+
+    /** `NewEfxChillEffect(anim)`. */
+    public fun newEfxChillEffect(anim: Anim): Unit = unported("NewEfxChillEffect")
+
+    /** `NewEfxNormalEffect(anim)`. */
+    public fun newEfxNormalEffect(anim: Anim): Unit = unported("NewEfxNormalEffect")
 
     /** `RegisterAISSheetGraphics(anim)`. */
     public fun registerSheetGraphics(anim: Anim): Unit = unported("RegisterAISSheetGraphics")
@@ -61,7 +90,7 @@ public interface BattleAisHooks {
     public fun newEfxSkillCommonBg(anim: Anim, kind: Int): Unit = unported("NewEfxSkillCommonBG")
 
     /**
-     * Every command id the loop does not port (`C02`, `C05`, `C06`, `C08..C0D`, `C13`, the
+     * Every command id the loop does not port (`C02`, `C05`, `C08..C0C`, `C13`, the
      * sound and effect ids, ...), called with the id at the top of the queue. It may change
      * [state] (the `type` local and the `goto end_exec_loop` request); the loop pops the id
      * afterwards unless [ExecState.endLoop] is set.
@@ -131,6 +160,9 @@ public class BattleAisCommands(
      * survives), its SURE_SHOT, GREAT_SHIELD and PIERCE sub-arms, the `ANIM_CMD_WAIT_04` miss
      * branch, the FRAME arm sheet registration, the STOP gate before the round-start arms, the
      * NEXT_ROUND_START arm, the `gBanimDoneFlag` arm and the 0x08FF low `state2` bits.
+     * `0x06` (NEXT_ROUND_START request), `0x1A` (defender marks) and the `0x0D` arm that starts
+     * the own next round (f1630) are break-checked; the `0x0D` standing arms, the `type` local of
+     * `0x06`/`0x0D` and the `NewEkrChienCHR` call are transcribed only.
      */
     public fun execCommands() {
         for (i in 0 until 4) {
@@ -148,7 +180,10 @@ public class BattleAisCommands(
                         CMD_WAIT_01 -> wait01(anim)
                         CMD_WAIT_03 -> wait03(anim)
                         CMD_WAIT_04 -> wait04(anim)
+                        CMD_NEXT_ROUND_TRIGGER -> nextRoundTrigger(anim)
                         CMD_ATTACK_START -> attackStart(anim)
+                        CMD_OWN_NEXT_ROUND -> ownNextRound(anim)
+                        CMD_NORMAL_HIT_EFFECT -> normalHitEffect(anim)
                         else -> hooks.command(anim, id, state)
                     }
                     if (state.endLoop) break@exec
@@ -280,15 +315,15 @@ public class BattleAisCommands(
         val pos = position(anim)
         for (k in 0..1) {
             val a = anims[pos * 2 + k]!!
-            hooks.switchFrameData(a, type)
+            switchAisFrameData(a, type)
             a.state3 = (a.state3 and clear.inv()) or BIT3_C01_BLOCKING_IN_BATTLE
             a.nextRoundId += 1
         }
-        for (k in 0..1) hooks.animScrAdvance(anims[pos * 2 + k]!!)
+        for (k in 0..1) animScrAdvance(anims[pos * 2 + k]!!)
     }
 
     private fun nextRoundStart(anim: Anim) {
-        val type = hooks.animNextRoundType(anim)
+        val type = animNextRoundType(anim)
         if (type != -1) {
             startRound(anim, type, BIT3_NEXT_ROUND_START)
         } else {
@@ -301,8 +336,162 @@ public class BattleAisCommands(
     }
 
     private fun newRoundStart(anim: Anim) {
-        val type = hooks.animNextRoundType(anim)
+        val type = animNextRoundType(anim)
         if (type != -1) startRound(anim, type, BIT3_NEW_ROUND_START)
+    }
+
+    /** `0x06`: the attacker tells the opponent's anims to start their next round. */
+    private fun nextRoundTrigger(anim: Anim) {
+        val other = otherSide(anim) ?: return
+        val type = hooks.battleAnimRoundType(other.nextRoundId * 2 + (1 xor position(other)))
+        state.type = type
+        if (type != ROUND_INVALID) other.state3 = other.state3 or BIT3_NEXT_ROUND_START
+    }
+
+    /** `0x0D`: the anim starts its own next round (or returns to the standing frames). */
+    private fun ownNextRound(anim: Anim) {
+        var type = animNextRoundType(anim)
+        state.type = type
+        val pos = position(anim)
+        val anim1 = anims[pos * 2]!!
+        val anim2 = anims[pos * 2 + 1]!!
+        var standing = false
+        when (anim.currentRoundType) {
+            ROUND_HIT_CLOSE, ROUND_CRIT_CLOSE, ROUND_NONCRIT_FAR, ROUND_CRIT_FAR,
+            ROUND_MISS_CLOSE,
+            -> {
+                if (type != ROUND_INVALID) {
+                    anim1.nextRoundId += 1
+                    anim2.nextRoundId += 1
+                    switchAisFrameData(anim1, type)
+                    switchAisFrameData(anim2, type)
+                    anim1.state3 = anim1.state3 or BIT3_C01_BLOCKING_IN_BATTLE
+                    anim2.state3 = anim2.state3 or BIT3_C01_BLOCKING_IN_BATTLE
+                    type = hooks.defaultStandingType()
+                    state.type = type
+                    val front = hooks.defaultModeConfig(type * 4)
+                    val mode = hooks.banimScriptBase(pos) + hooks.banimModeOffset(pos, front)
+                    anim1.pImgSheet = hooks.scriptWord(mode + 4)
+                    anim1.pSpriteData = anim1.pSpriteDataPool + hooks.scriptWord(mode + 8)
+                    anim2.pSpriteData = anim2.pSpriteDataPool + 0x57F0
+                    if (forceUnitChg[pos] == 0 && imgSheet[position(anim1)] != anim1.pImgSheet) {
+                        hooks.newEkrChienChr(anim1)
+                        imgSheet[position(anim1)] = anim1.pImgSheet
+                    }
+                    animScrAdvance(anim1)
+                    animScrAdvance(anim2)
+                    state.endLoop = true
+                    return
+                }
+                standing = true
+            }
+            ROUND_TAKING_MISS_CLOSE, ROUND_TAKING_MISS_FAR -> standing = true
+            ROUND_TAKING_HIT_CLOSE, ROUND_STANDING, ROUND_TAKING_HIT_FAR ->
+                switchAndAdvance(anim1, anim2, type)
+            else -> Unit
+        }
+        if (standing) {
+            type = hooks.defaultStandingType()
+            state.type = type
+            switchAndAdvance(anim1, anim2, type)
+        }
+    }
+
+    private fun switchAndAdvance(anim1: Anim, anim2: Anim, type: Int) {
+        switchAisFrameData(anim1, type)
+        switchAisFrameData(anim2, type)
+        animScrAdvance(anim1)
+        animScrAdvance(anim2)
+        state.endLoop = true
+    }
+
+    /** `0x1A`: the normal hit effect on the opponent, on the back layer only. */
+    private fun normalHitEffect(anim: Anim) {
+        if (layerId(anim) != 0) return
+        val other = otherSide(anim)
+        if (other != null) {
+            other.state3 = other.state3 or BIT3_TAKE_BACK_ENABLE or BIT3_HIT_EFFECT_APPLIED
+            val type = hooks.battleAnimRoundType(
+                (anim.nextRoundId - 1) * 2 + (1 xor position(anim)),
+            )
+            state.type = type
+            hooks.startHitEffectsDefault(other, isMiss(type))
+        }
+        if (hooks.efxHpChangeType(other!!) != EFX_HPT_NOT_CHANGE) {
+            if (hooks.roundFlag(anim) and ROUND_SILENCER != 0) {
+                hooks.newEfxChillEffect(other)
+            } else {
+                hooks.newEfxNormalEffect(anim)
+            }
+        }
+    }
+
+    /**
+     * Ported from banim-ekrmain.c: GetAnimNextRoundType
+     *
+     * The round type of the next round of [anim]'s side (-1 when there is none).
+     */
+    public fun animNextRoundType(anim: Anim): Int =
+        hooks.battleAnimRoundType(anim.nextRoundId * 2 + position(anim))
+
+    /**
+     * Ported from banim-ekrmain.c: SwitchAISFrameDataFromBARoundType
+     *
+     * Points [anim] at the script of the mode of round type [type] (front or back layer), or at
+     * the default anim when the mode is 0xFF. Break-checked: script pointers, layer choice,
+     * priority, `state2` mask, `currentRoundType`, queue reset and sprite pool. Mutations that
+     * survive (no capture compared field changes): `oam2Base`, the `timer` reset (the next
+     * `AnimInterpret` overwrites it), the 0xFF arm `state3 = 0`.
+     */
+    public fun switchAisFrameData(anim: Anim, type: Int) {
+        val front = layerId(anim) != 0
+        val frame = hooks.defaultModeConfig(4 * type + if (front) 2 else 0)
+        val priority = hooks.defaultModeConfig(4 * type + if (front) 3 else 1)
+        val pos = position(anim)
+        if (frame != 0xFF) {
+            val script = hooks.banimScriptBase(pos) + hooks.banimModeOffset(pos, frame)
+            anim.pScrStart = script
+            anim.pScrCurrent = script
+        } else {
+            anim.pScrStart = hooks.defaultAnimScript()
+            anim.pScrCurrent = hooks.defaultAnimScript()
+            anim.state3 = 0
+        }
+        anim.drawLayerPriority = priority
+        anim.oam2Base = (anim.oam2Base and 0xC00.inv()) or 0x800
+        anim.timer = 0
+        anim.state2 = anim.state2 and (FRONT_FRAME or POS_RIGHT or 0x0400)
+        anim.currentRoundType = type
+        anim.commandQueueSize = 0
+        anim.pSpriteDataPool = hooks.spriteDataPoolBase(pos)
+        hooks.sortAnims()
+        hooks.dragonBodyAnimeSet54(anim)
+    }
+
+    /**
+     * Ported from banim-ekrmain.c: AnimScrAdvance
+     *
+     * For a standing round type, skips the leading frames of the script up to the first STOP or
+     * COMMAND instruction and backs up one frame record. Break-checked: the round type gate, the
+     * frame step and the back-up. The default-anim guard is transcribed only (survives).
+     */
+    public fun animScrAdvance(anim: Anim) {
+        if (anim.currentRoundType != ROUND_TAKING_HIT_CLOSE &&
+            anim.currentRoundType != ROUND_STANDING &&
+            anim.currentRoundType != ROUND_TAKING_HIT_FAR
+        ) {
+            return
+        }
+        if (anim.pScrCurrent == hooks.defaultAnimScript()) return
+        while (true) {
+            val inst = (hooks.scriptWord(anim.pScrCurrent) ushr 24) and 0x3F
+            if (inst == INS_STOP || inst == INS_COMMAND) {
+                anim.pScrCurrent -= 12
+                break
+            }
+            check(inst == INS_FRAME) { "AnimScrAdvance would not terminate on instruction $inst" }
+            anim.pScrCurrent += 12
+        }
     }
 
     private companion object {
@@ -315,7 +504,24 @@ public class BattleAisCommands(
         const val CMD_WAIT_01 = 0x01
         const val CMD_WAIT_03 = 0x03
         const val CMD_WAIT_04 = 0x04
+        const val CMD_NEXT_ROUND_TRIGGER = 0x06
         const val CMD_ATTACK_START = 0x07
+        const val CMD_OWN_NEXT_ROUND = 0x0D
+        const val CMD_NORMAL_HIT_EFFECT = 0x1A
+        const val INS_STOP = 0
+        const val INS_COMMAND = 5
+        const val INS_FRAME = 6
+        const val ROUND_INVALID = -1
+        const val ROUND_HIT_CLOSE = 0
+        const val ROUND_CRIT_CLOSE = 1
+        const val ROUND_NONCRIT_FAR = 2
+        const val ROUND_CRIT_FAR = 3
+        const val ROUND_TAKING_HIT_CLOSE = 6
+        const val ROUND_STANDING = 7
+        const val ROUND_TAKING_HIT_FAR = 8
+        const val ROUND_MISS_CLOSE = 9
+        const val ROUND_SILENCER = 0x1000
+        const val EFX_HPT_NOT_CHANGE = 2
 
         const val BIT3_TAKE_BACK_ENABLE = 1 shl 0
         const val BIT3_NEXT_ROUND_START = 1 shl 1

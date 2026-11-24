@@ -24,7 +24,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-8b: stopped 22:20Z, unfinished on `wip/PC-8b` (written, never run; labels provisional; fix CLOCK_SHIFT/KEYS_SHIFT, update caller test, break-check)
+- PC-8b: scheduled, until ~23:30Z (continuing `wip/PC-8b`)
+- BA-p8a: scheduled, until ~23:30Z
 
 
 ## Current state

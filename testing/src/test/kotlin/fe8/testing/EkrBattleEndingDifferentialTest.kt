@@ -29,6 +29,7 @@ class EkrBattleEndingDifferentialTest {
         val cb: String?,
         val cur: Int,
         val timer: Int,
+        val term: Int,
         val box: List<Int>,
         val procs: Set<String>,
     )
@@ -64,14 +65,14 @@ class EkrBattleEndingDifferentialTest {
             val e = capture.region(byStep.getValue(n), "ewram")
             val all = ProcArrayDump.ofEwram(e, names)
             val p = all.find("ProcScr_ekrBattleEnding")
-            checkNotNull(p) { "ending proc missing at f$n" }
-            val fn = p.u32(0x0C)
+            val fn = p?.u32(0x0C) ?: 0
             out[n] = Step(
                 e,
                 if (fn == 0) null else funcs[fn],
-                p.scrCur,
-                p.u16(0x2C),
-                listOf(0x32, 0x34, 0x3A, 0x3C).map { p.u16(it) },
+                p?.scrCur ?: -1,
+                p?.u16(0x2C) ?: -1,
+                p?.u16(0x2E) ?: -1,
+                if (p == null) emptyList() else listOf(0x32, 0x34, 0x3A, 0x3C).map { p.u16(it) },
                 all.live.map { it.name ?: "?" }.toSet(),
             )
         }
@@ -84,8 +85,9 @@ class EkrBattleEndingDifferentialTest {
         "NewEkrbattleending",
         "ekrBattleEnding_8056228",
         "ekrBattleEnding_8056288",
+        "ekrBattleEnding_8056484",
     )
-    fun `ending start, box setup and wait f1989 to f2009`() {
+    fun `ending start, box setup and wait f1989 to f2028`() {
         val s = load()
         val first = s.getValue(START).ram
         var banimBg = u16(first, BANIM_BG)
@@ -114,6 +116,62 @@ class EkrBattleEndingDifferentialTest {
 
             override fun newEkrBaseAppear(arg: Int, duration: Int) {
                 calls += "baseAppear($arg,$duration)"
+            }
+
+            override fun resetUnitSprites() {
+                calls += "resetUnitSprites"
+            }
+
+            override fun bmapDispResumeFromBattleDelayed() {
+                calls += "bmapResume"
+            }
+
+            override fun refreshUnitSprites() {
+                calls += "refreshUnitSprites"
+            }
+
+            override fun forceSyncUnitSpriteSheet() {
+                calls += "forceSync"
+            }
+
+            override fun applyUnitSpritePalettes() {
+                calls += "applyPalettes"
+            }
+
+            override fun setBlendConfig(effect: Int, a: Int, b: Int, y: Int) {
+                calls += "blendConfig($effect,$a,$b,$y)"
+            }
+
+            override fun setBlendTargetA(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int) {
+                calls += "blendTargetA($bg0,$bg1,$bg2,$bg3,$obj)"
+            }
+
+            override fun setWinEnableBlend(win0: Int, wout: Int) {
+                calls += "winEnableBlend($win0,$wout)"
+            }
+
+            override fun unpackChapterMapPalette() {
+                calls += "unpackMapPalette"
+            }
+
+            override fun loadLinkArenaFogPlaceholder() {
+                calls += "linkArenaFog"
+            }
+
+            override fun clearBg2Tilemap() {
+                calls += "clearBg2"
+            }
+
+            override fun enablePaletteSync() {
+                calls += "paletteSync"
+            }
+
+            override fun endEkrBattleDeamon() {
+                calls += "endDeamon"
+            }
+
+            override fun refreshBMapDisplayFromBattle() {
+                calls += "refreshBMapDisplay"
             }
 
             override fun endEkrGauge() {
@@ -147,9 +205,14 @@ class EkrBattleEndingDifferentialTest {
             "ekrBattleEnding_80561C8" to Callback.C_80561C8,
             "ekrBattleEnding_8056228" to Callback.C_8056228,
             "ekrBattleEnding_8056288" to Callback.C_8056288,
+            "ekrBattleEnding_8056310" to Callback.C_8056310,
+            "ekrBattleEnding_8056390" to Callback.C_8056390,
+            "ekrBattleEnding_8056484" to Callback.C_8056484,
         )
 
+        val sizes = HashMap<Int, Int>()
         ending.start()
+        sizes[START] = 0
         for (n in START..END) {
             val step = s.getValue(n)
             if (n > START) {
@@ -157,12 +220,17 @@ class EkrBattleEndingDifferentialTest {
                 banimBg = u16(prev, BANIM_BG)
                 for (i in 0..3) loc[i] = s16(prev, BM_LOCATION + 2 * i)
                 if (n !in NO_RUN) ending.runStep()
+                sizes[n] = calls.size
             }
             val tag = "f$n"
-            assertEquals(step.cb?.let { byName.getValue(it) }, ending.callback, "$tag callback")
-            assertEquals(step.cur, ending.cursor, "$tag cursor")
-            assertEquals(step.timer, ending.timer, "$tag timer")
-            if (n >= 1993) {
+            assertEquals(n == END, ending.ended, "$tag proc ended")
+            if (!ending.ended) {
+                assertEquals(step.cb?.let { byName.getValue(it) }, ending.callback, "$tag callback")
+                assertEquals(step.cur, ending.cursor, "$tag cursor")
+                assertEquals(step.timer, ending.timer, "$tag timer")
+                if (n >= 2010) assertEquals(step.term, ending.terminator, "$tag terminator")
+            }
+            if (n in 1993 until END) {
                 assertEquals(
                     step.box,
                     listOf(ending.x1, ending.x2, ending.y1, ending.y2),
@@ -191,27 +259,59 @@ class EkrBattleEndingDifferentialTest {
                 assertEquals(if (n >= 1993) 5 else 0, calls.size, "$tag hook calls")
             }
         }
+        val box = listOf(136, 136, 96, 96)
+        val boxCalls = (1..15).flatMap { t ->
+            val l = 136 + (-136 * t) / 15
+            val tp = 96 + (-96 * t) / 15
+            val r = 136 + (104 * t) / 15
+            val b = 96 + (64 * t) / 15
+            listOfNotNull("box($l,$tp,$r,$b)", "clearBg2") +
+                (if (t == 15) listOf("box(0,0,240,160)", "paletteSync") else emptyList())
+        }
         assertEquals(
             listOf(
                 "animClearAll", "unitKakudai(1)", "baseKaiten(1)", "windowAppear(1,11)",
                 "baseAppear(1,11)", "endGauge", "initBgLayers", "winEnable(1,0,0)",
                 "box(0,0,0,0)", "win0Layers(1,1,1,1,1)", "woutLayers(1,1,1,1,0)",
-            ),
+                "resetUnitSprites", "bmapResume", "refreshUnitSprites", "forceSync",
+                "applyPalettes", "blendConfig(3,0,0,4)", "blendTargetA(0,0,0,1,0)",
+                "winEnableBlend(0,1)", "unpackMapPalette",
+            ) + boxCalls + listOf("endDeamon", "refreshBMapDisplay"),
             calls,
         )
-        assertEquals(0, u32(s.getValue(END).ram, WINDOW_APPEAR_EXIST))
+        assertEquals(11, sizes.getValue(2009))
+        assertEquals(20, sizes.getValue(2010))
+        assertEquals(20, sizes.getValue(2011))
+        assertEquals(20 + 2 * 14 + 4, sizes.getValue(2026))
+        assertEquals(sizes.getValue(2026), sizes.getValue(2026))
+        assertEquals(box, s.getValue(2027).box.let { listOf(it[0], it[1], it[2], it[3]) })
+        val gone = { n: Int, name: String -> s.getValue(n - 1).procs - s.getValue(n).procs ==
+            setOf(name) }
+        assertEquals(0, u32(s.getValue(2009).ram, WINDOW_APPEAR_EXIST))
         assertEquals(
             setOf("ProcScr_ekrGauge", "ProcScr_EkrBaseKaiten", "ProcScr_ekrWindowAppear",
                 "ProcScr_ekrBaseAppear"),
-            s.getValue(2008).procs - s.getValue(END).procs,
+            s.getValue(2008).procs - s.getValue(2009).procs,
         )
+        assertEquals(
+            setOf("sProc_DelayedBMapDispResume", "ProcScr_Mu"),
+            s.getValue(2010).procs - s.getValue(2009).procs,
+        )
+        assertEquals(true, s.getValue(2011).procs.contains("sProc_DelayedBMapDispResume"))
+        assertEquals(
+            setOf("sProc_DelayedBMapDispResume", "ProcScr_ekrUnitKakudai"),
+            s.getValue(2011).procs - s.getValue(2012).procs,
+        )
+        assertEquals(true, gone(2027, "gProc_ekrBattleDeamon"))
+        assertEquals(true, s.getValue(2027).procs.contains("ProcScr_ekrBattleEnding"))
+        assertEquals(false, s.getValue(2028).procs.contains("ProcScr_ekrBattleEnding"))
     }
 
     private companion object {
         const val RUN = "ram_trace_prologue_attack"
         const val START = 1989
-        const val END = 2009
-        val NO_RUN = 1995..1997
+        const val END = 2028
+        val NO_RUN = setOf(1995, 1996, 1997)
         const val EWRAM = 0x02000000
         const val WINDOW_APPEAR_EXIST = 0x0201FACC
         const val BANIM_BG = 0x0203E0FE

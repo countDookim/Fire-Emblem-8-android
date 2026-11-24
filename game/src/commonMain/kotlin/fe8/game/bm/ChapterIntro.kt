@@ -906,38 +906,6 @@ public class ChapterIntro(
     }
 
     /**
-     * Ported from src/hardware.c: MaybeResetSomePal
-     *
-     * Stops every palette fade (`gFadeComponentStep` all 0) before a scene sets up its own.
-     */
-    private fun maybeResetSomePal() {
-        for (i in 31 downTo 0) colorFade.step[i] = 0
-    }
-
-    /**
-     * Ported from src/hardware.c: MaybeSmoothChangeSomePal
-     *
-     * Sets up a fade of [c] palettes starting at palette [b] from the colours at buffer index
-     * [src] (`b * 16` in every call here), [d] per `ColorFadeTick`. A negative [d] starts at the
-     * colours and fades them to black; a positive one starts at black and fades them in.
-     */
-    private fun maybeSmoothChangeSomePal(src: Int, b: Int, c: Int, d: Int) {
-        val r3 = if (d < 0) 32 else 0
-        var destOffset = b * 48
-        var color = src
-        for (i in 0 until c) {
-            colorFade.step[b + i] = d.toByte()
-            for (j in 0 until 16) {
-                val rgb = hardware.palette[color].toInt()
-                colorFade.components[destOffset++] = ((rgb and 0x1F) + r3).toByte()
-                colorFade.components[destOffset++] = (((rgb shr 5) and 0x1F) + r3).toByte()
-                colorFade.components[destOffset++] = (((rgb shr 10) and 0x1F) + r3).toByte()
-                color++
-            }
-        }
-    }
-
-    /**
      * Ported from src/chapterintrofx.c: ChapterIntro_InitCameraYPos
      *
      * Sets the camera's Y to 4 screen heights (640); [initMapDisplay] later replaces it with the
@@ -993,10 +961,10 @@ public class ChapterIntro(
      */
     private fun chapterIntro8020A40(proc: Proc) {
         (proc.state as State).timer = 30
-        maybeResetSomePal()
-        maybeSmoothChangeSomePal(4 * 16, 4, 2, -1)
-        maybeSmoothChangeSomePal(14 * 16, 14, 2, -1)
-        maybeSmoothChangeSomePal(18 * 16, 18, 1, -1)
+        colorFade.maybeResetSomePal()
+        colorFade.maybeSmoothChangeSomePal(4 * 16, 4, 2, -1)
+        colorFade.maybeSmoothChangeSomePal(14 * 16, 14, 2, -1)
+        colorFade.maybeSmoothChangeSomePal(18 * 16, 18, 1, -1)
     }
 
     /**
@@ -1030,11 +998,11 @@ public class ChapterIntro(
      * Not verified: the `WEATHER_FLAMES` hook (chapter 0 has no flames weather).
      */
     private fun beginFadeToMap(proc: Proc) {
-        maybeResetSomePal()
-        maybeSmoothChangeSomePal(6 * 16, 6, 10, 1)
-        maybeSmoothChangeSomePal(26 * 16, 26, 6, 1)
-        maybeSmoothChangeSomePal(16 * 16, 16, 2, 1)
-        maybeSmoothChangeSomePal(23 * 16, 23, 1, 1)
+        colorFade.maybeResetSomePal()
+        colorFade.maybeSmoothChangeSomePal(6 * 16, 6, 10, 1)
+        colorFade.maybeSmoothChangeSomePal(26 * 16, 26, 6, 1)
+        colorFade.maybeSmoothChangeSomePal(16 * 16, 16, 2, 1)
+        colorFade.maybeSmoothChangeSomePal(23 * 16, 23, 1, 1)
         colorFade.tick()
         hardware.enablePaletteSync()
         (proc.state as State).timer = 30
@@ -1093,11 +1061,11 @@ public class ChapterIntro(
      */
     private fun beginFadeOut(proc: Proc) {
         sound.fadeOutBgm(4)
-        maybeResetSomePal()
-        maybeSmoothChangeSomePal(0, 0, 3, -2)
-        maybeSmoothChangeSomePal(4 * 16, 4, 2, -2)
-        maybeSmoothChangeSomePal(14 * 16, 14, 2, -2)
-        maybeSmoothChangeSomePal(18 * 16, 18, 1, -2)
+        colorFade.maybeResetSomePal()
+        colorFade.maybeSmoothChangeSomePal(0, 0, 3, -2)
+        colorFade.maybeSmoothChangeSomePal(4 * 16, 4, 2, -2)
+        colorFade.maybeSmoothChangeSomePal(14 * 16, 14, 2, -2)
+        colorFade.maybeSmoothChangeSomePal(18 * 16, 18, 1, -2)
         (proc.state as State).timer = 15
         hooks.fadeOutSe(1)
     }
@@ -1138,11 +1106,11 @@ public class ChapterIntro(
         engine.endEach(bg2ScrollScript)
         engine.endEach(bg1And3ScrollScript)
         engine.endEach(putDecalScript)
-        maybeResetSomePal()
-        maybeSmoothChangeSomePal(6 * 16, 6, 10, 2)
-        maybeSmoothChangeSomePal(26 * 16, 26, 6, 2)
-        maybeSmoothChangeSomePal(16 * 16, 16, 2, 2)
-        maybeSmoothChangeSomePal(23 * 16, 23, 1, 2)
+        colorFade.maybeResetSomePal()
+        colorFade.maybeSmoothChangeSomePal(6 * 16, 6, 10, 2)
+        colorFade.maybeSmoothChangeSomePal(26 * 16, 26, 6, 2)
+        colorFade.maybeSmoothChangeSomePal(16 * 16, 16, 2, 2)
+        colorFade.maybeSmoothChangeSomePal(23 * 16, 23, 1, 2)
         colorFade.tick()
         hardware.enablePaletteSync()
         (proc.state as State).timer = 14

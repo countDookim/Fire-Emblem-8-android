@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 747 across 107 decomp files (missing reason: 0).
+Total entries: 748 across 108 decomp files (missing reason: 0).
 
 ## src/bmunit.c (38)
 
@@ -1206,6 +1206,12 @@ Total entries: 747 across 107 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `ResetDialogueScreen` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `ResetFaces` is checked by WorldMapExitTest through the event end; `ClearTalkBubble` is a separate host call |
+
+## src/gameoverbgfx.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ProcScr_GameOverScreen` | `game/src/commonMain/kotlin/fe8/game/bm/GameOverScreen.kt` | only the commands up to `GameOverScreen_LoopFadeIn` are written; the rest, from `GameOverScreen_BeginIdle` to the end, is PC-8b and stands in as a block |
 
 ## src/helpbox.c (1)
 

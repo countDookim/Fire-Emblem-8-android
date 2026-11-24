@@ -42,6 +42,38 @@ public class ColorFade(
     }
 
     /**
+     * Stops every palette fade (`gFadeComponentStep` all 0) before a scene sets up its own.
+     *
+     * Ported from src/hardware.c: MaybeResetSomePal
+     */
+    public fun maybeResetSomePal() {
+        for (i in 31 downTo 0) step[i] = 0
+    }
+
+    /**
+     * Sets up a fade of [c] palettes starting at palette [b] from the colours at buffer index
+     * [src] (`b * 16` in every call here), [d] per [tick]. A negative [d] starts at the colours
+     * and fades them to black; a positive one starts at black and fades them in.
+     *
+     * Ported from src/hardware.c: MaybeSmoothChangeSomePal
+     */
+    public fun maybeSmoothChangeSomePal(src: Int, b: Int, c: Int, d: Int) {
+        val r3 = if (d < 0) 32 else 0
+        var destOffset = b * 48
+        var color = src
+        for (i in 0 until c) {
+            step[b + i] = d.toByte()
+            for (j in 0 until 16) {
+                val rgb = palette[color].toInt()
+                components[destOffset++] = ((rgb and 0x1F) + r3).toByte()
+                components[destOffset++] = (((rgb shr 5) and 0x1F) + r3).toByte()
+                components[destOffset++] = (((rgb shr 10) and 0x1F) + r3).toByte()
+                color++
+            }
+        }
+    }
+
+    /**
      * Starts a fade from the current colours to black ([step] negative: components start at the
      * colour + 0x20 and fall until the clamp shows black).
      *

@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 253 across 57 Kotlin files.
+Total entries: 254 across 58 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -38,7 +38,7 @@ Total entries: 253 across 57 Kotlin files.
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 31 |
+| unassigned | 32 |
 
 ## M6-B (13)
 
@@ -382,7 +382,7 @@ Total entries: 253 across 57 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (31)
+## unassigned (32)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -404,6 +404,7 @@ Total entries: 253 across 57 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt` | `namewinAppearUnexist` | `CheckEkrNamewinAppearUnexist()` (stand-in). |
 | `game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt` | `popupEnded` | `CheckEkrPopupEnded()` (stand-in); default: ended. |
 | `game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt` | `triangleUnitPresent` | `gpEkrTriangleUnits[0] != NULL` (stand-in). |
+| `game/src/commonMain/kotlin/fe8/game/bm/GameOverScreen.kt` | `Hooks` | What the screen leaves to other systems (stand-ins until they are ported). |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `mapAnimShowPoisonEffectIfAny` | Transcribed from src/mapanim.c: MapAnim_ShowPoisonEffectIfAny (not verified: no hit of the capture poisons, so the taken branch is a no-op the capture cannot tell from a stand-in) Starts the poison... |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `mapAnimStoleItemPopup` | Transcribed from src/mapanim.c: MapAnim_StoleItemPopup (not verified: no steal in the capture; the branch is the stolen item popup, a stand-in hook) Shows the stolen item's popup for a steal animat... |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `newMapPoisonEffect` | Stand-in until the poison effect is ported (no capture holds a poisoned hit): nothing happens. |

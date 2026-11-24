@@ -103,6 +103,22 @@ public class EkrBattleRound(
          * gained), [dragonPriority] the BG priority arm (draco zombie / demon king).
          */
         public fun drawExpBar(expValue: Int, dragonPriority: Boolean) {}
+
+        /** `SetWin0Box(left, top, right, bottom)` (default: nothing). */
+        public fun setWin0Box(left: Int, top: Int, right: Int, bottom: Int) {}
+
+        /** `EfxPlaySE(SONG_74, 0x100)` and `M4aPlayWithPostionCtrl(SONG_74, 0x78, 0)`. */
+        public fun startExpBarSong() {}
+
+        /** `DoM4aSongNumStop(SONG_74)`. */
+        public fun stopExpBarSong() {}
+
+        /**
+         * The bar redraw of `ekrBattleWaitExpBarIdle` (`EkrModifyBarfx`, `CpuFastSet`,
+         * `RegisterDataMove`); [exp] is `proc->timer` before the increment; the hook does the
+         * `DivRem(timer, 100)` split.
+         */
+        public fun drawExpBarValue(exp: Int) {}
     }
 
     /** The `proc_idleCb` values this part of the proc moves between. */
@@ -149,8 +165,23 @@ public class EkrBattleRound(
         /** `ekrBattleExecExpGain`. */
         EXEC_EXP_GAIN,
 
-        /** `ekrBattle_80508F0` (not ported here). */
+        /** `ekrBattle_80508F0`. */
         EXP_80508F0,
+
+        /** `ekrBattle_8050940`. */
+        EXP_8050940,
+
+        /** `ekrBattleWaitExpBarIdle`. */
+        WAIT_EXP_BAR_IDLE,
+
+        /** `ekrBattlePostExpBarIdle`. */
+        POST_EXP_BAR_IDLE,
+
+        /** `ekrBattle_8050AB8`. */
+        EXP_8050AB8,
+
+        /** `ekrBattleLvupHanlder` (not ported here). */
+        LVUP_HANDLER,
 
         /** `ekrNewEkrPopup` (not ported here). */
         NEW_EKR_POPUP,
@@ -197,7 +228,12 @@ public class EkrBattleRound(
             IdleCb.BATTLE_END_8050600 -> battleEnd8050600()
             IdleCb.WAIT_FOR_POST_BATTLE_ACT -> waitForPostBattleAct()
             IdleCb.EXEC_EXP_GAIN -> execExpGain()
-            IdleCb.EXP_80508F0 -> TODO("ekrBattle_80508F0: BA-p5b")
+            IdleCb.EXP_80508F0 -> exp80508F0()
+            IdleCb.EXP_8050940 -> exp8050940()
+            IdleCb.WAIT_EXP_BAR_IDLE -> waitExpBarIdle()
+            IdleCb.POST_EXP_BAR_IDLE -> postExpBarIdle()
+            IdleCb.EXP_8050AB8 -> exp8050AB8()
+            IdleCb.LVUP_HANDLER -> TODO("ekrBattleLvupHanlder: BA-p5c")
             IdleCb.NEW_EKR_POPUP -> TODO("ekrNewEkrPopup: BA-i7")
         }
     }
@@ -436,6 +472,78 @@ public class EkrBattleRound(
         )
         procTimer = 0
         idleCb = IdleCb.EXP_80508F0
+    }
+
+    /** `ProcEkrBattle.end` (0x2E). */
+    public var procEnd: Int = 0
+
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrBattle_80508F0
+     *
+     * Verified (`ram_trace_prologue_attack`, timer and callback); the window box goes to
+     * [Hooks.setWin0Box].
+     */
+    public fun exp80508F0() {
+        if (++procTimer > 12) {
+            procTimer = 0
+            idleCb = IdleCb.EXP_8050940
+        } else {
+            hooks?.setWin0Box(0, -108 - procTimer, 240, procTimer - 108)
+        }
+    }
+
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrBattle_8050940
+     *
+     * Verified for the `gBanimExpGain[R]` arm (left gain 0); the `gain[L]` arm and the
+     * neither-gain fall-through are Transcribed. The songs go to [Hooks].
+     */
+    public fun exp8050940() {
+        if (++procTimer > 10) {
+            val env = env()
+            if (env.banimExpGain[POS_L] != 0) {
+                procTimer = env.banimExpPrevious[POS_L]
+                procEnd = env.banimExpPrevious[POS_L] + env.banimExpGain[POS_L]
+            } else if (env.banimExpGain[POS_R] != 0) {
+                procTimer = env.banimExpPrevious[POS_R]
+                procEnd = env.banimExpPrevious[POS_R] + env.banimExpGain[POS_R]
+            }
+            idleCb = IdleCb.WAIT_EXP_BAR_IDLE
+            hooks?.startExpBarSong()
+        }
+    }
+
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrBattleWaitExpBarIdle
+     *
+     * Control state only; the redraw (including the `DivRem(timer, 100)` wrap) goes to
+     * [Hooks.drawExpBarValue] with the raw timer. Verified for values below 100.
+     */
+    public fun waitExpBarIdle() {
+        hooks?.drawExpBarValue(procTimer)
+        if (++procTimer > procEnd) {
+            procTimer = 0
+            idleCb = IdleCb.POST_EXP_BAR_IDLE
+        }
+    }
+
+    /** Ported from src/banim-ekrbattle.c: ekrBattlePostExpBarIdle */
+    public fun postExpBarIdle() {
+        if (procTimer == 0) hooks?.stopExpBarSong()
+        if (++procTimer > 30) {
+            procTimer = 0
+            idleCb = IdleCb.EXP_8050AB8
+        }
+    }
+
+    /** Ported from src/banim-ekrbattle.c: ekrBattle_8050AB8 */
+    public fun exp8050AB8() {
+        if (++procTimer > 12) {
+            procTimer = 0
+            idleCb = IdleCb.LVUP_HANDLER
+        } else {
+            hooks?.setWin0Box(0, procTimer - 120, 240, -96 - procTimer)
+        }
     }
 
     private fun startRound(front: Anim, back: Anim) {

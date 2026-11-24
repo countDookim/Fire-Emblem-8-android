@@ -147,6 +147,14 @@ public class EventEngine(
     }
 
     /**
+     * Starts the game over event: [create]s the `EventScr_GameOver` script (EVBIT_MODIFY 4, then
+     * ASMC `EventCallGameOverExt`) as an `EV_EXEC_GAMEPLAY` engine.
+     *
+     * Ported from src/event.c: CallGameOverEvent
+     */
+    public fun callGameOverEvent(): EventEngineProc = create(EVENT_SCR_GAME_OVER, EV_EXEC_GAMEPLAY)
+
+    /**
      * Creates a battle engine proc on proc tree 3 running the script at [events]. It runs as
      * `EV_EXEC_QUIET` (no fade, no locking) and starts with `EV_STATE_ABORT`, so ending it does
      * not start the next queued call.
@@ -422,6 +430,12 @@ public class EventEngine(
 
     /** Proc marks, tree and table sizes shared by the engine. */
     public companion object {
+        /**
+         * ROM address of `EventScr_GameOver` (US ROM; the decomp has no addresses for script data,
+         * read from the symbol map of the pinned build).
+         */
+        public const val EVENT_SCR_GAME_OVER: Int = 0x08592104
+
         /** `EventScr_DisplayBattleQuote` ROM address (0x08591F88). */
         public const val EVENT_SCR_DISPLAY_BATTLE_QUOTE: Int = 0x08591F88
 

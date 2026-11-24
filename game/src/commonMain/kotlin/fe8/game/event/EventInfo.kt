@@ -153,9 +153,9 @@ public interface EventInfoHooks {
     public fun countAvailableBlueUnits(): Int = 1
 
     /**
- * `sub_80837B0`: starts game over: sets `EVFLAG_GAMEOVER`, starts the game over song, turns the
- * BGM config off and creates the game over event.
- */
+     * `sub_80837B0`: starts the game over (see [GameOverStart.startGameOver]). Default: nothing,
+     * the game over is not wired into the game loop yet.
+     */
     public fun startGameOver() {}
 }
 

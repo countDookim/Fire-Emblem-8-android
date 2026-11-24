@@ -15,8 +15,12 @@ import java.io.File
 class EventTrace private constructor(
     /** Steps (prologue) or frames (newgame_bm) that can be passed to [at], ascending. */
     val steps: List<Int>,
+    private val procDumps: ((Int) -> ProcArrayDump)? = null,
     private val reader: (Int) -> EventSnapshot,
 ) {
+    /** The proc array at [step] of a per-step trace ([prologue]); shares its loaded watch. */
+    fun procsAt(step: Int): ProcArrayDump = checkNotNull(procDumps) { "no per-step procs" }(step)
+
     /** The snapshot after step (or at frame) [step], which must be one of [steps]. */
     fun at(step: Int): EventSnapshot = reader(step)
 
@@ -66,7 +70,8 @@ class EventTrace private constructor(
             val scripts = ScriptNames.load()
             val first = maxOf(procs.firstStep, globals.firstStep, flags?.firstStep ?: 0)
             val last = minOf(procs.lastStep, globals.lastStep, flags?.lastStep ?: Int.MAX_VALUE)
-            return EventTrace((first..last).toList()) { step ->
+            val dumpAt = { step: Int -> ProcArrayDump.ofWatch(procs, step, names) }
+            return EventTrace((first..last).toList(), dumpAt) { step ->
                 decode(
                     step,
                     ProcArrayDump.ofWatch(procs, step, names),

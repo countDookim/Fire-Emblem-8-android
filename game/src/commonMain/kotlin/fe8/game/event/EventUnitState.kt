@@ -68,8 +68,13 @@ public class EventUnitState(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event34_MessWithUnitState (not verified: only subs 5, 10 and
-     *   15 are compared; breaks in other subs and the CLEA loop survive)
+     * Partially ported from src/eventscr.c: Event34_MessWithUnitState
+     *
+     * Verified: KILL and DISA_IF by Chapter1ScriptCoreDifferentialTest on PC-cap1 (`f15526`:
+     * unit at the tile of slot B hidden; `f15558`: unit cleared once the death fade is gone) and
+     * DISA with no unit at the tile (`f13103`: continues, unit arrays unchanged). Every other
+     * subcode is Transcribed (not verified: no PC-cap1 window runs it). The death fade itself
+     * (`MU_StartDeathFade`, `PalFade`) is [EventUnitStateHooks], not compared.
      *
      * The subcodes: REMU (hide and make unavailable), REVEAL (undo REMU), CUSA/CUSN/CUSE (move
      * the unit to the player, ally or enemy faction), SET_HP (HP from slot 1, dead at 0),
@@ -82,9 +87,9 @@ public class EventUnitState(
      * other subcode is an error. `UnitChangeFaction` is partial in [UnitLoader] (`gActiveUnit` is
      * not updated), the MU parts of KILL are [EventUnitStateHooks].
      *
-     * Verification: partial. The differential test compares the unit arrays only for subcodes
-     * 5 (SET_HP), 10 (CLEA) and 15 (DISA) in the 8 windows of the trace that touch units; the
-     * other subcodes are not checked against the game. For CLEA only the unit state words are
+     * EventVmDifferentialTest also compares the unit arrays for subcodes 5 (SET_HP), 10 (CLEA)
+     * and 15 (DISA) in 8 windows of `ram_trace_prologue`; it is not a credit for those subcodes
+     * (see its comments). For CLEA only the unit state words are
      * compared with `US_HIDDEN` masked out, which hides its main effect (hiding the units), so
      * its hide / clear-bits loop is unverified.
      */

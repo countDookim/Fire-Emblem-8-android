@@ -24,10 +24,13 @@ public class EventFade(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event17_Fade (not verified: subcodes 2 (FAWU) and 3
-     *   (FAWI), the skipping branch and the SetDispEnable call survive breaks; subcode 0 (FADU)
-     *   is compared in CutsceneStartSkipDifferentialTest and PC-cap1 f4916..f4931, and subcode 1
-     *   (FADI) in PC-cap1 f4895..f4910 and f9406..f9421)
+     * Ported from src/eventscr.c: Event17_Fade
+     *
+     * Verified: subcodes 0 (FADU) and 1 (FADI) by Chapter1ScriptCoreDifferentialTest on PC-cap1
+     * (`f10497..f20231`: `evStateBits`, cursor, engine lock count, fade proc speed and level).
+     * Subcodes 2 (FAWU) and 3 (FAWI) are Transcribed (not verified: no capture runs them); the
+     * skipping branch and the `SetDispEnable` call are not compared there (the LCD registers
+     * exist only in the sparse dumps; CutsceneStartSkipDifferentialTest compares FADU's).
      *
      * Not while skipping. Subcode 0 (FADU) and 2 (FAWU) fade in from black / white, clear
      * `EV_STATE_FADEDIN` and enable all layers; 1 (FADI) and 3 (FAWI) fade out to black / white

@@ -219,9 +219,11 @@ public class EventScrCore(
     /**
      * The check commands: test an engine state bit or an event flag.
      *
-     * Transcribed from src/eventscr.c: Event03_CheckEvBitOrId (not verified: only sub 0 (EvBit
-     *   check) is traced, including PC-cap1 bits 8, 10 and 11; a broken sub 1 (flag check) and
-     *   negative arg slot-2 fallback survive)
+     * Partially ported from src/eventscr.c: Event03_CheckEvBitOrId
+     *
+     * Verified: sub 0 (EvBit check) by Chapter1ScriptCoreDifferentialTest on PC-cap1 (bit 8 clear
+     * at `f10496..f20206`, slot C stays 0; bits 10, 8 and 7 at `f25419` with bit 7 set, slot C
+     * becomes 1). Sub 1 (flag check) is Transcribed (not verified: no capture runs it).
      *
      * Sub command 0 stores whether an `evStateBits` bit is set in slot C, 1 whether an event
      * flag is set.
@@ -268,8 +270,10 @@ public class EventScrCore(
      * The slot arithmetic commands (add, subtract, multiply, divide, modulo, and, or, xor, shifts):
      * `dest = src1 op src2` on three slot numbers packed in the argument.
      *
-     * Transcribed from src/eventscr.c: Event06_SlotOperation (not verified: the traced calls prove
-     *   the slot write only; broken operators survive)
+     * Transcribed from src/eventscr.c: Event06_SlotOperation (not verified: PC-cap1 `f10534`,
+     *   `f13201` and `f16310` (Chapter1ScriptCoreDifferentialTest) run only SADD with slot 0 as
+     *   second source, so it proves the destination and first-source indices but not the
+     *   operator; a broken SADD (`a - b`, `a or b`) and every other operator survive)
      *
      * Division and modulo are unsigned (`gEventSlots` is `u32`). Assumption: a zero divisor
      * (libgcc's `__div0` returns) yields 0. Shifts use the low byte of the shift register as ARM
@@ -517,8 +521,11 @@ public class EventScrCore(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event19_Checks (not verified: only sub 7 of the 11 subs runs
-     *   on data)
+     * Partially ported from src/eventscr.c: Event19_Checks
+     *
+     * Verified: sub 7 (tutorial mode) by Chapter1ScriptCoreDifferentialTest on PC-cap1
+     * (`f16019`, `f25419`: slot C 0 and the branch after it). Only the result 0 occurs; subs 0-6,
+     * 8, 9 and 0xA are Transcribed (not verified: no capture runs them).
      *
      * The CHECK commands: store a game-state query in slot C. Sub commands: 0 mode, 1
      * chapter number, 2 hard mode, 3 turn number, 4 enemy units, 5 other (green) units, 6

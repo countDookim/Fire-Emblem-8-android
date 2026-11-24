@@ -75,6 +75,12 @@ public class EkrBattleRound(
 
         /** `gCtrlC01Blocking`; `ekrBattle_80503EC` writes it (shared with the executor). */
         public var ctrlC01Blocking: Int
+
+        /** `gBanimExpPrevious[2]`; default: both 0. */
+        public val banimExpPrevious: IntArray get() = IntArray(2)
+
+        /** `GetBanimDragonStatusType()` (stand-in); default: 0 (no dragon status). */
+        public val banimDragonStatusType: Int get() = 0
     }
 
     /** Effects `ekrBattleSetFlashingEffect` starts; their procs are not ported. */
@@ -90,6 +96,13 @@ public class EkrBattleRound(
 
         /** `NewEfxHpBarColorChange(anim)`. */
         public fun newEfxHpBarColorChange(anim: Anim)
+
+        /**
+         * The window, BG, DMA and palette calls of `ekrBattleExecExpGain` (default: nothing).
+         * [expValue] is the experience the bar shows (`gBanimExpPrevious` of the side that
+         * gained), [dragonPriority] the BG priority arm (draco zombie / demon king).
+         */
+        public fun drawExpBar(expValue: Int, dragonPriority: Boolean) {}
     }
 
     /** The `proc_idleCb` values this part of the proc moves between. */
@@ -130,8 +143,17 @@ public class EkrBattleRound(
         /** `ekrBattle_8050600`. */
         BATTLE_END_8050600,
 
-        /** `ekrBattle_WaitForPostBattleAct` (not ported here). */
+        /** `ekrBattle_WaitForPostBattleAct`. */
         WAIT_FOR_POST_BATTLE_ACT,
+
+        /** `ekrBattleExecExpGain`. */
+        EXEC_EXP_GAIN,
+
+        /** `ekrBattle_80508F0` (not ported here). */
+        EXP_80508F0,
+
+        /** `ekrNewEkrPopup` (not ported here). */
+        NEW_EKR_POPUP,
     }
 
     /** `ProcEkrBattle.speedup` (0x29). */
@@ -173,7 +195,10 @@ public class EkrBattleRound(
             IdleCb.IN_ROUND_IDLE -> inRoundIdle()
             IdleCb.ON_BATTLE_END -> onBattleEnd()
             IdleCb.BATTLE_END_8050600 -> battleEnd8050600()
-            IdleCb.WAIT_FOR_POST_BATTLE_ACT -> TODO("ekrBattle_WaitForPostBattleAct: BA-i4b")
+            IdleCb.WAIT_FOR_POST_BATTLE_ACT -> waitForPostBattleAct()
+            IdleCb.EXEC_EXP_GAIN -> execExpGain()
+            IdleCb.EXP_80508F0 -> TODO("ekrBattle_80508F0: BA-p5b")
+            IdleCb.NEW_EKR_POPUP -> TODO("ekrNewEkrPopup: BA-i7")
         }
     }
 
@@ -375,6 +400,44 @@ public class EkrBattleRound(
         if (procSpeedup) TODO("ekrBattle_8050600: far attack arm not ported")
     }
 
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrBattle_WaitForPostBattleAct
+     *
+     * Verified (`ram_trace_prologue_attack` f1831..f1860) for the arm to `ekrBattleExecExpGain`
+     * (not link arena, gains not opposite); the `ekrNewEkrPopup` arm is Transcribed.
+     */
+    public fun waitForPostBattleAct() {
+        if (++procTimer < 0x1E) return
+
+        val env = env()
+        idleCb = if (env.banimLinkArenaFlag != 1 &&
+            env.banimExpGain[POS_L] != -env.banimExpGain[POS_R]
+        ) {
+            IdleCb.EXEC_EXP_GAIN
+        } else {
+            IdleCb.NEW_EKR_POPUP
+        }
+    }
+
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrBattleExecExpGain
+     *
+     * Control state only: the draw, window and palette calls go to [Hooks.drawExpBar] (their
+     * effects are in VRAM/IO, not in the dumps). Verified (f1861) for the default priority arm
+     * with no gain on the left; the other arms are Transcribed.
+     */
+    public fun execExpGain() {
+        val env = env()
+        val side = if (env.banimExpGain[POS_L] != 0) POS_L else POS_R
+        val type = env.banimDragonStatusType
+        hooks?.drawExpBar(
+            env.banimExpPrevious[side],
+            type == DRAGON_DRACO_ZOMBIE || type == DRAGON_DEMON_KING,
+        )
+        procTimer = 0
+        idleCb = IdleCb.EXP_80508F0
+    }
+
     private fun startRound(front: Anim, back: Anim) {
         for (anim in arrayOf(front, back)) {
             anim.state3 = BIT3_NEW_ROUND_START
@@ -389,6 +452,8 @@ public class EkrBattleRound(
         const val DISTANCE_FARFAR = 2
         const val DISTANCE_MONOCOMBAT = 3
         const val DISTANCE_PROMOTION = 4
+        const val DRAGON_DRACO_ZOMBIE = 1
+        const val DRAGON_DEMON_KING = 2
         const val POS_L = 0
         const val POS_R = 1
         const val STATE2_POS_RIGHT = 1 shl 9

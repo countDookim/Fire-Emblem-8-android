@@ -21,6 +21,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- PC-3a, PC-4, PC-5 (agent A, in order) and PC-cap2, PC-7i, PC-7a (agent B): owner PC Claude, until ~12:49Z
 
 ## Current state
 

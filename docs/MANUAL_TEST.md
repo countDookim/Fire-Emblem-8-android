@@ -18,7 +18,20 @@ Items are removed from this page once the owner confirms them; the history is in
 
 ## 1. Test now
 
-Nothing new: everything up to 0.1.856 has been tested. New items appear here with the build that has them.
+Prologue ending and save menu (PC-3a, PC-4; Chapter 1 start is PC-5, not verified yet):
+
+1. Win the Prologue (defeat the last enemy). The ending dialogue plays, the map goes away and the
+   post-chapter save menu appears (slot boxes, banner, hand cursor).
+2. Press A on slot 1, A again to confirm. The slot box refreshes and the menu fades out (about a
+   quarter of a second).
+3. Expected next: the Chapter 1 intro screen starts (headless runs reach the chapter intro with the
+   battle map procs alive, but its picture and the opening event are not compared with the capture
+   yet). Report what you actually see after the fade: the intro, a black screen, or a hang, and
+   whether a power-off and Continue then loads the new save.
+4. Known limits: the save menu allocates about 270 bytes per frame (no effect on play); slot text such
+   as play time and gold comes from your own run.
+
+(Everything up to 0.1.856 was tested earlier; new items carry their build.)
 
 ## 2. Open bugs (no fix yet)
 

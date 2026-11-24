@@ -152,13 +152,13 @@ Window: `ram_trace_prologue_end` (`PC-cap1`) `f9862 -> f9863`. Compare: `ProcScr
 
 ### PC-8a: Game-over background and scroll
 
-Candidate source: `src/gameoverbgfx.c`: `StartGameOverScreen`, `GameOverScreen_Init`, `GameOverScreen_RandomScroll_Init`, `GameOverScreen_RandomScroll_Loop`, `GameOverScreenHBlank`.
-Window: PC-cap2 screen init through idle; add a scanline CAP if required. Compare: Proc state, scroll RNG, scanline offsets and LCD. Proposed test: `GameOverScreenDifferentialTest`.
+Candidate source: `src/gameoverbgfx.c`: `StartGameOverScreen`, `GameOverScreen_Init`, `GameOverScreen_RandomScroll_Init`, `GameOverScreen_RandomScroll_Loop`, plus `PutScreenFogEffect`, `PutScreenFogEffectOverlayed` (PC-7i: `GameOverScreenHBlank` moved to PC-8h, needs PC-cap2b).
+Window: PC-cap2 `f5953..6293` (proc `f5953`, scroll child `f5954`, scroll from `f5955`). Compare: Proc state, scroll RNG, scanline offsets and LCD. Proposed test: `GameOverScreenDifferentialTest`.
 
 ### PC-8b: Game-over fades and teardown
 
 Candidate source: `src/gameoverbgfx.c`: `GameOverScreen_LoopFadeIn`, `GameOverScreen_BeginIdle`, `GameOverScreen_LoopIdle`, `GameOverScreen_BeginFadeOut`, `GameOverScreen_LoopFadeOut`, `GameOverScreen_End`.
-Window: PC-cap2 fade in, idle and fade out. Compare: Fade counters, palette, HBlank cleanup and child termination. Proposed test: `GameOverScreenDifferentialTest`.
+Window: PC-cap2 fade in `f5954..6123`, idle `f6124..6260` (A at `f6260`; timeout path not captured, PC-cap2c), fade out `f6261..6293`, end `f6294`. Compare: Fade counters, palette, HBlank cleanup and child termination. Proposed test: `GameOverScreenDifferentialTest`.
 
 ### PC-9a: Difficulty screen lifecycle
 

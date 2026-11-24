@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 240 across 54 Kotlin files.
+Total entries: 241 across 55 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -37,7 +37,7 @@ Total entries: 240 across 54 Kotlin files.
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 19 |
+| unassigned | 20 |
 
 ## M6-B (13)
 
@@ -375,13 +375,14 @@ Total entries: 240 across 54 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (19)
+## unassigned (20)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleAisCommands.kt` | `BattleAisCommands` | Script pointers are GBA addresses, so the C `pScrCurrent + 1` (a `u32 *`) is `+ 4` here. @property hooks the stand-ins of the parts that are not ported. @property anims `gAnims[0..3]`: left front/b... |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleAisCommands.kt` | `BattleAisHooks` | Later tasks (BA-p3c/d/e) replace the stand-ins with ports, and a loaded mod may replace any of them. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmContainer.kt` | `getNextUnclearedChapter` | Stand-in until the game wires `WorldMapPath.getNextUnclearedNode`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/EfxHpBar.kt` | `Env` | Stand-ins: [roundFlag] (`GetRoundFlagByAnim`, reads `gAnimRoundData`) and [onDeath] (the `next == 0` arm of `EfxHpBar_DeclineToDeath`: `GetBanimLinkArenaFlag`, `CheckBattleDefeatTalk`, `NewEfxDeadE... |
 | `game/src/commonMain/kotlin/fe8/game/bm/EkrBattleInit.kt` | `Env` | Stand-ins: [battleQuoteEntryExists] (`GetBattleQuoteEntry`, which reads the quote table and event flags) and [battleMapKind] (`GetBattleMapKind`) are not ported here; the caller supplies them. |
 | `game/src/commonMain/kotlin/fe8/game/bm/EkrBattleInit.kt` | `battleMapKind` | `GetBattleMapKind` (stand-in). |
 | `game/src/commonMain/kotlin/fe8/game/bm/EkrBattleInit.kt` | `battleQuoteEntryExists` | `GetBattleQuoteEntry(pidA, pidB) != NULL` (stand-in). |

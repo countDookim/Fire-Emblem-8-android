@@ -155,11 +155,13 @@ public class BattleAisCommands(
      * Runs the queued commands and the FRAME / round-start follow-ups of the four anims.
      * Break-checked against the capture: the drain loop, both `end_exec_loop` clears of the
      * COMMAND and FRAME bits, `ANIM_CMD_WAIT_01` (pre-battle and in-battle release), `0x03`,
-     * `0x04` (non-miss) and the NEW_ROUND_START arm. Transcribed only (no capture changes a
+     * `0x04` (non-miss), the NEW_ROUND_START arm and the NEXT_ROUND_START arm that starts a round
+     * (f1622, BA-p3d). Transcribed only (no capture changes a
      * compared field there): the `0x07` arm (the plain arm does nothing and its mutation
      * survives), its SURE_SHOT, GREAT_SHIELD and PIERCE sub-arms, the `ANIM_CMD_WAIT_04` miss
-     * branch, the FRAME arm sheet registration, the STOP gate before the round-start arms, the
-     * NEXT_ROUND_START arm, the `gBanimDoneFlag` arm and the 0x08FF low `state2` bits.
+     * branch, the FRAME arm sheet registration, the STOP gate before the round-start arms (`gCtrlC01Blocking`
+     * is 1 at f1537, so the gate passes without it), the NEXT_ROUND_START arm with no next round
+     * (`GetAnimNextRoundType` == -1: only clears the bit), the `gBanimDoneFlag` arm and the 0x08FF low `state2` bits.
      * `0x06` (NEXT_ROUND_START request), `0x1A` (defender marks) and the `0x0D` arm that starts
      * the own next round (f1630) are break-checked; the `0x0D` standing arms, the `type` local of
      * `0x06`/`0x0D` and the `NewEkrChienCHR` call are transcribed only.

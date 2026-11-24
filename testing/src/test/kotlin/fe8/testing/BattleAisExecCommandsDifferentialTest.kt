@@ -2,6 +2,7 @@ package fe8.testing
 
 import fe8.game.bm.BattleAisCommands
 import fe8.game.bm.BattleAisHooks
+import fe8.game.bm.EkrBattleRound
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
 import gbafe.anim.Anim
@@ -22,8 +23,11 @@ import java.io.File
  * `state`, `state2`, `state3`, `nextRoundId`, `commandQueueSize`, `pScrCurrent` and the done flags
  * are compared with the next dump.
  *
- * Stand-ins (no port, they read the dump of the compared step; BA-p3c/d/e replace them):
- * `ekrBattleTriggerNewRoundStart` (f1537: NEW_ROUND_START set on all four anims),
+ * `ekrBattleTriggerNewRoundStart` (BA-p3d) runs the ported [EkrBattleRound] from f1507 (proc timer
+ * from the f1506 dump); its timer, idle callback and, at f1537, the NEW_ROUND_START arms are
+ * compared.
+ *
+ * Stand-ins (no port, they read the dump of the compared step; BA-p3e replaces them):
  * `gCtrlC01Blocking` (its dump value),
  * `RegisterAISSheetGraphics` (no-op), `CheckEkrHitDone` (`gEkrHpBarCount`, `gEfxSpellAnimExists`), the round-type tables and the
  * effect/sound commands (`C1a`, `1f`, `24`, `34`, `43` change none of the compared fields).
@@ -35,12 +39,14 @@ class BattleAisExecCommandsDifferentialTest {
 
     private fun u8(e: ByteArray, a: Int) = e[a - EWRAM].toInt() and 0xFF
     private fun u16(e: ByteArray, a: Int) = u8(e, a) or (u8(e, a + 1) shl 8)
+    private fun s16(e: ByteArray, a: Int) = u16(e, a).toShort().toInt()
     private fun u32(e: ByteArray, a: Int) = u16(e, a) or (u16(e, a + 2) shl 16)
 
     private fun addr(i: Int) = POOL + STRIDE * i
 
     @Test
     @VerifiesPort(
+        "ekrBattleTriggerNewRoundStart",
         "BattleAIS_ExecCommands",
         "GetAnimNextRoundType",
         "SwitchAISFrameDataFromBARoundType",
@@ -153,6 +159,13 @@ class BattleAisExecCommandsDifferentialTest {
             override fun startHitEffectsDefault(anim: Anim, miss: Boolean) = Unit
         }
         val exec = BattleAisCommands(hooks, Array(4) { anims[it] })
+        val timerStart = at(TRIGGER_FIRST)
+        val round = EkrBattleRound(
+            Array(4) { anims[it] },
+            BooleanArray(2) { s16(timerStart, BANIM_VALID + 2 * it) == 1 },
+            exec.banimDoneFlag,
+        )
+        round.procTimer = s16(timerStart, u32(timerStart, PROC_EKR_BATTLE) + 0x2C)
 
         for (side in 0..1) exec.imgSheet[side] = u32(ram, IMG_SHEET + 4 * side)
 
@@ -160,8 +173,32 @@ class BattleAisExecCommandsDifferentialTest {
             cur = at(step)
             exec.ctrlC01Blocking = u32(cur, CTRL_C01_BLOCKING)
             if (step == ROUND_START_STEP) {
-                // ekrBattleTriggerNewRoundStart is not ported: it queues the new round.
-                anims.forEach { it.state3 = it.state3 or NEW_ROUND_START }
+                // Makes the `gBanimDoneFlag` reset of the port observable (the dumps hold 0).
+                exec.banimDoneFlag.fill(1)
+            }
+            if (step in TRIGGER_FIRST + 1..ROUND_START_STEP) {
+                round.triggerNewRoundStart()
+                val procNow = u32(cur, PROC_EKR_BATTLE)
+                assertEquals(s16(cur, procNow + 0x2C), round.procTimer, "f$step proc timer")
+                assertEquals(
+                    step == ROUND_START_STEP,
+                    round.idleCb == EkrBattleRound.IdleCb.ROUND_START_80503EC,
+                    "f$step idle callback",
+                )
+                if (step == ROUND_START_STEP) {
+                    // The STOP bit is not visible in the dumps (gCtrlC01Blocking is still 1, so
+                    // the exec gate passes anyway); asserted from the decomp, not ground truth.
+                    for (i in 0 until 4) {
+                        assertEquals(NEW_ROUND_START, anims[i].state3, "f$step trigger state3 $i")
+                        assertEquals(STOP, anims[i].state2 and STOP, "f$step trigger STOP $i")
+                    }
+                }
+                if (step < ROUND_START_STEP) {
+                    // The `++timer <= 0x1E` early return: nothing else is touched.
+                    for (i in 0 until 4) {
+                        assertEquals(u16(cur, addr(i) + 0x10), anims[i].state3, "f$step early $i")
+                    }
+                }
             }
             pool.updateAll(reader)
             exec.execCommands()
@@ -226,6 +263,10 @@ class BattleAisExecCommandsDifferentialTest {
         const val HIT_MARK = 0x9
         const val BLOCKEND = 1 shl 6
         const val NEW_ROUND_START = 1 shl 15
+        const val STOP = 1 shl 14
+        const val PROC_EKR_BATTLE = 0x02000064
+        const val BANIM_VALID = 0x0203E104
+        const val TRIGGER_FIRST = 1506
         const val START = 1498
         const val ROUND_START_STEP = 1537
         const val END = 1630

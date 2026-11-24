@@ -81,6 +81,12 @@ public class EkrBattleRound(
 
         /** `GetBanimDragonStatusType()` (stand-in); default: 0 (no dragon status). */
         public val banimDragonStatusType: Int get() = 0
+
+        /** `CheckEkrPopupEnded()` (stand-in); default: ended. */
+        public val popupEnded: Boolean get() = true
+
+        /** `gEkrDebugModeMaybe`; default: 0. */
+        public val debugMode: Int get() = 0
     }
 
     /** Effects `ekrBattleSetFlashingEffect` starts; their procs are not ported. */
@@ -119,6 +125,31 @@ public class EkrBattleRound(
          * `DivRem(timer, 100)` split.
          */
         public fun drawExpBarValue(exp: Int) {}
+
+        /**
+         * `SpellFx_ClearBG1`, `EkrGauge_Setup44(0)` and the BG priority writes of
+         * `ekrBattleLvupHanlder` (default: nothing); [dragonPriority] selects the draco zombie /
+         * demon king priority order.
+         */
+        public fun clearLvupBg(dragonPriority: Boolean) {}
+
+        /** `NewEkrPopup()`; the popup content is not ported (default: nothing). */
+        public fun newEkrPopup() {}
+
+        /** `DeleteAnimsOnPopup()` (default: nothing). */
+        public fun deleteAnimsOnPopup() {}
+
+        /** `EndProcEfxWeaponIcon()` (default: nothing). */
+        public fun endProcEfxWeaponIcon() {}
+
+        /** `EndEfxHPBarColorChange()` (default: nothing). */
+        public fun endEfxHpBarColorChange() {}
+
+        /** `NewEkrNamewinAppear(a, b, c)` (default: nothing). */
+        public fun newEkrNamewinAppear(a: Int, b: Int, c: Int) {}
+
+        /** `EkrRestoreBGM()` (default: nothing). */
+        public fun ekrRestoreBgm() {}
     }
 
     /** The `proc_idleCb` values this part of the proc moves between. */
@@ -180,11 +211,26 @@ public class EkrBattleRound(
         /** `ekrBattle_8050AB8`. */
         EXP_8050AB8,
 
-        /** `ekrBattleLvupHanlder` (not ported here). */
+        /** `ekrBattleLvupHanlder`. */
         LVUP_HANDLER,
 
-        /** `ekrNewEkrPopup` (not ported here). */
+        /** `ekrNewEkrPopup`. */
         NEW_EKR_POPUP,
+
+        /** `ekrBattle_WaitForPopup`. */
+        WAIT_FOR_POPUP,
+
+        /** `ekrBattle_PostPopup`. */
+        POST_POPUP,
+
+        /** `ekrBattle_TriggerDragonStatusFinished`. */
+        TRIGGER_DRAGON_STATUS_FINISHED,
+
+        /** `ekrBattle_PostDragonStatusEffect`. */
+        POST_DRAGON_STATUS_EFFECT,
+
+        /** `nullsub_69`. */
+        NULLSUB_69,
     }
 
     /** `ProcEkrBattle.speedup` (0x29). */
@@ -233,8 +279,13 @@ public class EkrBattleRound(
             IdleCb.WAIT_EXP_BAR_IDLE -> waitExpBarIdle()
             IdleCb.POST_EXP_BAR_IDLE -> postExpBarIdle()
             IdleCb.EXP_8050AB8 -> exp8050AB8()
-            IdleCb.LVUP_HANDLER -> TODO("ekrBattleLvupHanlder: BA-p5c")
-            IdleCb.NEW_EKR_POPUP -> TODO("ekrNewEkrPopup: BA-i7")
+            IdleCb.LVUP_HANDLER -> lvupHandler()
+            IdleCb.NEW_EKR_POPUP -> newEkrPopup()
+            IdleCb.WAIT_FOR_POPUP -> waitForPopup()
+            IdleCb.POST_POPUP -> postPopup()
+            IdleCb.TRIGGER_DRAGON_STATUS_FINISHED -> triggerDragonStatusFinished()
+            IdleCb.POST_DRAGON_STATUS_EFFECT -> postDragonStatusEffect()
+            IdleCb.NULLSUB_69 -> Unit
         }
     }
 
@@ -544,6 +595,109 @@ public class EkrBattleRound(
         } else {
             hooks?.setWin0Box(0, procTimer - 120, 240, -96 - procTimer)
         }
+    }
+
+    /** `gEkrBattleEndFlag`. */
+    public var battleEndFlag: Int = 0
+
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrBattleLvupHanlder
+     *
+     * Verified (`ram_trace_prologue_attack` f1941..f1982) for the exp-gain-on-the-right,
+     * `c < 100` arm with the default priority arm. Transcribed only: the `gain[L] != 0` sum and
+     * the dragon priority arm (a [Hooks.clearLvupBg] argument). The `c >= 100` arms
+     * (`NewEkrLvlupFan`, `ekrBattle_ExecEkrLvup`, `ekrBattle_WaitEkrLvupIdle`) throw
+     * (BA-level-inv / BA-cap4).
+     */
+    public fun lvupHandler() {
+        val env = env()
+        if (++procTimer == 0x18) {
+            if (lvupSum(env) >= 100) TODO("ekrBattleLvupHanlder: NewEkrLvlupFan (BA-cap4)")
+        }
+
+        if (procTimer <= 0x28) return
+
+        val type = env.banimDragonStatusType
+        hooks?.clearLvupBg(type == DRAGON_DRACO_ZOMBIE || type == DRAGON_DEMON_KING)
+        hooks?.setWin0Box(0, 0, 0xF0, 0xA0)
+
+        if (lvupSum(env) >= 100) TODO("ekrBattle_ExecEkrLvup arm (BA-level-inv / BA-cap4)")
+        idleCb = IdleCb.NEW_EKR_POPUP
+    }
+
+    private fun lvupSum(env: Env): Int {
+        val side = if (env.banimExpGain[POS_L] != 0) POS_L else POS_R
+        return env.banimExpPrevious[side] + env.banimExpGain[side]
+    }
+
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrNewEkrPopup
+     *
+     * Control state only; `NewEkrPopup` (the popup content, BA-i7) goes to [Hooks.newEkrPopup].
+     */
+    public fun newEkrPopup() {
+        hooks?.newEkrPopup()
+        idleCb = IdleCb.WAIT_FOR_POPUP
+    }
+
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrBattle_WaitForPopup
+     *
+     * Verified for the ended arm; the wait-return arm is Transcribed.
+     */
+    public fun waitForPopup() {
+        if (!env().popupEnded) return
+        hooks?.deleteAnimsOnPopup()
+        idleCb = IdleCb.POST_POPUP
+    }
+
+    /** Ported from src/banim-ekrbattle.c: ekrBattle_PostPopup */
+    public fun postPopup() {
+        hooks?.endProcEfxWeaponIcon()
+        hooks?.endEfxHpBarColorChange()
+        procSide = env().initialHitSide
+        procCounter = 0
+        idleCb = IdleCb.TRIGGER_DRAGON_STATUS_FINISHED
+    }
+
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrBattle_TriggerDragonStatusFinished
+     *
+     * Verified for anims without a dragon status (default arms, counter 0, 1, 2); the
+     * demon king, draco zombie and Myrrh arms throw.
+     */
+    public fun triggerDragonStatusFinished() {
+        if (procCounter == 2) {
+            idleCb = IdleCb.POST_DRAGON_STATUS_EFFECT
+            return
+        }
+
+        val left = procSide == POS_L
+        val anim = anims[(if (left) POS_L else POS_R) * 2]!!
+        procAnim = anim
+        val type = dragonType[if (anim.state2 and STATE2_POS_RIGHT != 0) 1 else 0]
+        if (type != 0) {
+            TODO("ekrBattle_TriggerDragonStatusFinished: dragon arms (type $type) not ported")
+        }
+        procSide = if (left) POS_R else POS_L
+
+        procCounter++
+    }
+
+    /**
+     * Ported from src/banim-ekrbattle.c: ekrBattle_PostDragonStatusEffect
+     *
+     * Verified for `gEkrDebugModeMaybe == 0`; the debug arm (no namewin or BGM restore) is
+     * Transcribed. The namewin proc and the BGM restore go to [Hooks].
+     */
+    public fun postDragonStatusEffect() {
+        val env = env()
+        battleEndFlag = 1
+        if (env.debugMode == 0) {
+            hooks?.newEkrNamewinAppear(2, 7, 0)
+            hooks?.ekrRestoreBgm()
+        }
+        idleCb = IdleCb.NULLSUB_69
     }
 
     private fun startRound(front: Anim, back: Anim) {

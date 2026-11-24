@@ -8,8 +8,8 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1462,
-    "implemented_unverified": 118
+    "verified": 1468,
+    "implemented_unverified": 120
   },
   "functions": {
     "APProc_Create": {
@@ -3867,6 +3867,14 @@
         "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
       ]
     },
+    "EventCallGameOverExt": {
+      "decomp_file": "src/eventcall.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/GameOverCaller.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "EventDisplayCursor_Loop": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -5503,7 +5511,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -9394,6 +9402,14 @@
       "tests": [
         "fe8.testing.PopupProcDifferentialTest#positive clock counts down and breaks like the original"
       ]
+    },
+    "PostGameOverHandler": {
+      "decomp_file": "src/eventcall.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/GameOverCaller.kt",
+      "status": "implemented",
+      "tests": []
     },
     "PostSaveMenuHandler": {
       "decomp_file": "src/savemenu.c",
@@ -13795,6 +13811,16 @@
         "fe8.testing.EkrBattleRoundIdleDifferentialTest#idle chain f1506 to f1831"
       ]
     },
+    "ekrBattleLvupHanlder": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleLvupPopupDifferentialTest#lvup handler to post dragon status f1941 to f1989"
+      ]
+    },
     "ekrBattleMain": {
       "decomp_file": "src/banim-ekrbattle.c",
       "system": "battle_anim",
@@ -13926,6 +13952,26 @@
         "fe8.testing.EkrBattleInitDifferentialTest#scripted window with quote f14468"
       ]
     },
+    "ekrBattle_PostDragonStatusEffect": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleLvupPopupDifferentialTest#lvup handler to post dragon status f1941 to f1989"
+      ]
+    },
+    "ekrBattle_PostPopup": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleLvupPopupDifferentialTest#lvup handler to post dragon status f1941 to f1989"
+      ]
+    },
     "ekrBattle_StartPromotion": {
       "decomp_file": "src/banim-ekrbattle.c",
       "system": "battle_anim",
@@ -13936,6 +13982,26 @@
         "fe8.testing.EkrBattleRoundIdleDifferentialTest#idle chain f1506 to f1831"
       ]
     },
+    "ekrBattle_TriggerDragonStatusFinished": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleLvupPopupDifferentialTest#lvup handler to post dragon status f1941 to f1989"
+      ]
+    },
+    "ekrBattle_WaitForPopup": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleLvupPopupDifferentialTest#lvup handler to post dragon status f1941 to f1989"
+      ]
+    },
     "ekrBattle_WaitForPostBattleAct": {
       "decomp_file": "src/banim-ekrbattle.c",
       "system": "battle_anim",
@@ -13944,6 +14010,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EkrBattleExpGainDifferentialTest#post battle wait and exp gain f1829 to f1862"
+      ]
+    },
+    "ekrNewEkrPopup": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleLvupPopupDifferentialTest#lvup handler to post dragon status f1941 to f1989"
       ]
     },
     "m4aMPlayImmInit": {

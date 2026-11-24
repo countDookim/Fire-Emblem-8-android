@@ -21,9 +21,10 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-3a, PC-4, PC-5 (agent A, in order) and PC-cap2, PC-7i, PC-7a (agent B): owner PC Claude, until ~12:49Z
 
 ## Current state
+
+- 2026-11-24 owner PC Claude (2 Sonnet agents): **M6-E start.** PC-cap2 captured (`ram_trace_prologue_gameover`, ROM `assets-8a52aac`, published locally). PC-3a (fb2f51d): Prologue ending -> save menu wired (EndBMapMain hook etc., `PrologueEndingWireTest`). PC-4 (9887a3e): menu replay = PC-cap1 (SRAM write f9800 with masks, layers aligned; ~272 B/frame alloc open). PC-5 (dd96da1): label 6 -> Ch1 intro -> beginning event = f9863..10298. PC-7i (344b0af): `GameOverInventoryTest`, PC-7/8 rows rewritten, new PC-8h, PC-cap2b/c. PC-7a (1b88057): game-over start Ported, NOT wired until PC-7b/PC-8. M4aNoteTest excludes the gameover run (prologue.sav divergence). **Device:** Ch1 unit menu throws EvCheck05_LOCA (EP-35b) = crash after selecting a unit in Ch1. Full jvmTest green.
 
 - 2026-11-24 ~05:35Z scheduled (Sonnet agents): **BA-p3b, BA-i4, BA-p3c done**. `fe8.game.bm.BattleAisCommands`
   (`BattleAIS_ExecCommands` drain/C01/C03/C04/C06/C0d/C1a/FRAME/round-start arms, `GetAnimNextRoundType`,

@@ -275,7 +275,8 @@ public class EventEngine(
      * `EV_EXEC_UNK5` is set by the END command after a cutscene (the decomp calls it unused).
      *
      * Transcribed from src/event.c: EventEngine_OnEnd (not verified: the call queue is empty in the
-     *   prologue). Delegated to hooks:
+     *   prologue; the `EV_STATE_CHANGEGM` branch runs in `PrologueEndingWireTest` through
+     *   `Fe8Boot`, which checks the teardown frame, not the hook order). Delegated to hooks:
      * [EventEngineHooks.resetTextFont], [EventEngineHooks.restoreAfterEvent5],
      * [EventEngineHooks.endMapForChangeGm], [EventEngineHooks.resumeGameplay],
      * [EventEngineHooks.endEventTalk], [EventEngineHooks.changeUnitSpritePalette] and

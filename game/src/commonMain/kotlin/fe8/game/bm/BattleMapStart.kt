@@ -553,8 +553,9 @@ public class BattleMapStart(
     }
 
     /**
-     * Transcribed from src/bmio.c: EndBMapMain (not verified: no test checks it against a trace
-     *   yet)
+     * Transcribed from src/bmio.c: EndBMapMain (not verified: `PrologueEndingWireTest` checks the lock
+     *   release and the ended procs at `f9441` of `ram_trace_prologue_end`, but the capture ends
+     *   the DISP procs one frame before `BMapMain`)
      *
      * Ends every `PROC_MARK_DISP` proc, releases the game control lock and ends BMapMain.
      */

@@ -373,7 +373,7 @@ Total entries: 749 across 106 decomp files (missing reason: 0).
 | `MuExists` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial Proc_Find |
 | `UpdateMuStepSounds` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the Foot class of the Prologue walks is the only class list seen; the song and x it passes are compared |
 | `MuStepSe_Init` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the proc is new when it runs, so the cleared fields are 0 either way |
-| `EndAllMus` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the walk ends one MU through EndMu |
+| `EndAllMus` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the walk ends one MU through EndMu; no Mu is left at the `EV_STATE_CHANGEGM` end of the Prologue |
 | `EnableMuCamera` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial setter |
 | `DisableMuCamera` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial setter, driven by the test only as the event code's input |
 | `EndMuMovement` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the function has no body |
@@ -568,7 +568,7 @@ Total entries: 749 across 106 decomp files (missing reason: 0).
 | `EnqueueEventCall` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
 | `CallNextQueuedEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
 | `CallEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the enqueue branch when a standard engine is already running is not exercised in any capture; the empty-queue branch calling [create] is exercised at f4893 -> f4894 of `ram_trace_prologue_end` |
-| `EventEngine_OnEnd` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
+| `EventEngine_OnEnd` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue; the `EV_STATE_CHANGEGM` branch runs in `PrologueEndingWireTest` through `Fe8Boot`, which checks the teardown frame, not the hook order |
 | `EventEngine_CanStartSkip` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the captured events never press START, so the result is not observable; the engine only acts on it together with START |
 | `SetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | the only reference value is 0, so a no-op survives |
 | `GetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | no test checks it against a trace yet |
@@ -643,7 +643,7 @@ Total entries: 749 across 106 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GameCtrl_StartResumedGame` | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | the only reference resume has camera 0, so the camera centring is unchecked; the blend setup is not compared |
-| `EndBMapMain` | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | no test checks it against a trace yet |
+| `EndBMapMain` | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `PrologueEndingWireTest` checks the lock release and the ended procs at `f9441` of `ram_trace_prologue_end`, but the capture ends the DISP procs one frame before `BMapMain` |
 | `sProc_BMVSync` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | data symbol; script execution verified via BMapVSync_Start and BMapVSync_OnLoop |
 | `BMapVSync_UpdateMapPalAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | only the tile animation is compared against a trace |
 | `BMapVSync_End` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | no battle map teardown trace exercises ending the VSync proc |

@@ -925,7 +925,8 @@ public class Mu(
     /**
      * Ends every `ProcScr_Mu` proc.
      *
-     * Transcribed from src/mu.c: EndAllMus (not verified: the walk ends one MU through EndMu)
+     * Transcribed from src/mu.c: EndAllMus (not verified: the walk ends one MU through EndMu;
+     *   no Mu is left at the `EV_STATE_CHANGEGM` end of the Prologue)
      */
     public fun endAllMus() {
         procs.endEach(script)

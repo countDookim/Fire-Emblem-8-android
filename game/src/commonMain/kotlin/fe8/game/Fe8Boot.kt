@@ -433,6 +433,12 @@ public class Fe8Boot(
                 talkScene.text.initSystemTextFont()
                 UiFrame.loadUiFrameGraphics(hw, rom, control.playSt.windowColor)
             }
+            // `EndAllMus`, `EndBMapMain` (`EV_STATE_CHANGEGM`: the chapter ends; releasing the
+            // game control lock lets `GameControl` run its post-chapter label).
+            override fun endMapForChangeGm() {
+                mu.endAllMus()
+                battleMap.endBMapMain()
+            }
             override fun lockGame() { loop.lockGame() }
             override fun freezeMenu() { playerWiring?.menu?.freezeMenu() }
             // `UnlockGame`, `ResumeMenu`, `ResetBkselPalette` (`ClearCutsceneUnits` is EP-11h
@@ -1687,6 +1693,15 @@ public class Fe8Boot(
             control.hooks.worldMapWrapperProvider = { worldMapBoot.wrapperScript }
             control.hooks.endWorldMap = ProcFunc { worldMapBoot.endWm(it) }
         }
+        control.rng = rng
+        control.hooks.endAllMus = ProcFunc { mu.endAllMus() }
+        control.hooks.winFlagSet = { flags.checkFlag(EVFLAG_WIN) }
+        control.hooks.chapterSwitch = ProcFunc { control.chapterSwitch(it) }
+        control.hooks.callPostChapterSaveMenu = ProcFunc { control.callPostChapterSaveMenu(it) }
+        if (rom.isWholeRom) {
+            control.hooks.startPostChapterSaveMenu =
+                ProcFunc { SaveMenuAssembly.makeHook(postChapterSaveMenu)(it) }
+        }
         control.sound.setDefaultMaxNumChannels() // AgbMain, after m4aSoundInit
         control.hooks.gmDataInit = ProcFunc { gmData.init() }
         control.hooks.registerChapterTimeAndTurnCount = ProcFunc {
@@ -1753,6 +1768,9 @@ public class Fe8Boot(
         }
     }
 }
+
+/** `EVFLAG_WIN`: the chapter's win flag, read by `GameControl_ChapterSwitch`. */
+private const val EVFLAG_WIN = 3
 
 /** World map nodes tried by `GetPlayChapterId`. */
 private const val WM_NODE_COUNT = 0x1D

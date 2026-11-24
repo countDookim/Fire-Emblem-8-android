@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1444,
+    "verified": 1462,
     "implemented_unverified": 118
   },
   "functions": {
@@ -13755,6 +13755,166 @@
         "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
       ]
     },
+    "ekrBattleExecDragonIntro": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleMainChainDifferentialTest#idle chain f1496 to f1506"
+      ]
+    },
+    "ekrBattleExecExpGain": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleExpGainDifferentialTest#post battle wait and exp gain f1829 to f1862"
+      ]
+    },
+    "ekrBattleExecTriangleAtk": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleMainChainDifferentialTest#idle chain f1496 to f1506"
+      ]
+    },
+    "ekrBattleInRoundIdle": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleRoundIdleDifferentialTest#idle chain f1506 to f1831"
+      ]
+    },
+    "ekrBattleMain": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleMainChainDifferentialTest#idle chain f1496 to f1506"
+      ]
+    },
+    "ekrBattleOnBattleEnd": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleRoundIdleDifferentialTest#idle chain f1506 to f1831"
+      ]
+    },
+    "ekrBattlePostEkrDragonIntro": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleMainChainDifferentialTest#idle chain f1496 to f1506"
+      ]
+    },
+    "ekrBattlePostExpBarIdle": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleExpBarDifferentialTest#exp bar chain f1862 to f1941"
+      ]
+    },
+    "ekrBattlePrepareDragonIntro": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleMainChainDifferentialTest#idle chain f1496 to f1506"
+      ]
+    },
+    "ekrBattleSetFlashingEffect": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleMainChainDifferentialTest#idle chain f1496 to f1506"
+      ]
+    },
+    "ekrBattleWaitExpBarIdle": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleExpBarDifferentialTest#exp bar chain f1862 to f1941"
+      ]
+    },
+    "ekrBattle_80503EC": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleRoundIdleDifferentialTest#idle chain f1506 to f1831"
+      ]
+    },
+    "ekrBattle_8050600": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleRoundIdleDifferentialTest#idle chain f1506 to f1831"
+      ]
+    },
+    "ekrBattle_80508F0": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleExpBarDifferentialTest#exp bar chain f1862 to f1941"
+      ]
+    },
+    "ekrBattle_8050940": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleExpBarDifferentialTest#exp bar chain f1862 to f1941"
+      ]
+    },
+    "ekrBattle_8050AB8": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleExpBarDifferentialTest#exp bar chain f1862 to f1941"
+      ]
+    },
     "ekrBattle_Init": {
       "decomp_file": "src/banim-ekrbattle.c",
       "system": "battle_anim",
@@ -13764,6 +13924,26 @@
       "tests": [
         "fe8.testing.EkrBattleInitDifferentialTest#attack window without quote f1497",
         "fe8.testing.EkrBattleInitDifferentialTest#scripted window with quote f14468"
+      ]
+    },
+    "ekrBattle_StartPromotion": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleRoundIdleDifferentialTest#idle chain f1506 to f1831"
+      ]
+    },
+    "ekrBattle_WaitForPostBattleAct": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleRound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleExpGainDifferentialTest#post battle wait and exp gain f1829 to f1862"
       ]
     },
     "m4aMPlayImmInit": {

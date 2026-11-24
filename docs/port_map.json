@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1469,
-    "implemented_unverified": 120
+    "implemented_unverified": 126
   },
   "functions": {
     "APProc_Create": {
@@ -4399,6 +4399,30 @@
         "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
       ]
     },
+    "GameOverScreen_Init": {
+      "decomp_file": "src/gameoverbgfx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/GameOverScreen.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GameOverScreen_RandomScroll_Init": {
+      "decomp_file": "src/gameoverbgfx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/GameOverScreen.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GameOverScreen_RandomScroll_Loop": {
+      "decomp_file": "src/gameoverbgfx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/GameOverScreen.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GenerateExtendedMovementMapOnRange": {
       "decomp_file": "src/bmidoten.c",
       "system": "battle_map",
@@ -8188,7 +8212,7 @@
       "decomp_file": "src/hardware.c",
       "system": "core",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ColorFade.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
@@ -8198,7 +8222,7 @@
       "decomp_file": "src/hardware.c",
       "system": "core",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ColorFade.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
@@ -9972,6 +9996,22 @@
         "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
       ]
     },
+    "PutScreenFogEffect": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ScreenFogEffect.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "PutScreenFogEffectOverlayed": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ScreenFogEffect.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "PutSpecialChar": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -11590,6 +11630,14 @@
       "tests": [
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
       ]
+    },
+    "StartGameOverScreen": {
+      "decomp_file": "src/gameoverbgfx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/GameOverScreen.kt",
+      "status": "implemented",
+      "tests": []
     },
     "StartGmMu": {
       "decomp_file": "src/worldmap_mapmu.c",

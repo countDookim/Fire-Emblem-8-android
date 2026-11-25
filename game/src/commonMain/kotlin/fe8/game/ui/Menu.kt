@@ -247,8 +247,9 @@ public class Menu(
     }
 
     /**
-     * Transcribed from src/uimenu.c: ResumeMenu (not verified: no menu proc exists when the boss
-     * turn event ends at f3722 of `ram_trace_prologue_clear`)
+     * Transcribed from src/uimenu.c: ResumeMenu (not verified: no `sProc_Menu` proc exists when the
+     * boss turn event ends at `f3722` of `ram_trace_prologue_clear` or anywhere in `PC-cap1`
+     * `f10297..25580`)
      *
      * Clears `MENU_STATE_FROZEN` on the running menu ([menuScript]), if there is one.
      */

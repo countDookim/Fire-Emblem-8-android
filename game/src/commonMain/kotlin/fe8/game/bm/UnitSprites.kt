@@ -119,10 +119,11 @@ public class UnitSprites(
     public var isBattleDeamonActive: () -> Boolean = { false }
 
     /**
-     * Transcribed from src/eventscr_utils.c: ChangeUnitSpritePalette (not verified: the packed
-     * value is 0 in the captured events, so only [applyUnitSpritePalettes] runs, and the palettes
-     * it writes are already in place before the call at f3720..3722 of
-     * `ram_trace_prologue_clear`)
+     * Transcribed from src/eventscr_utils.c: ChangeUnitSpritePalette (not verified:
+     * `mapSpritePalIdOverride` is 0 throughout `ram_trace_prologue_clear` and `PC-cap1`
+     * `f10298..25423`, and the standard map sprite palettes it writes are already in
+     * `gPaletteBuffer` banks 27..31 at `f3720..3722` and `PC-cap1` `f25420..25426` and at every
+     * non-battle dump in `f10297..25580`)
      *
      * Reloads the standard map sprite palettes ([applyUnitSpritePalettes]), then recolours the
      * blue, red and green banks (OBJ palettes 12 to 14, `0x1C` to `0x1E`) by the three low

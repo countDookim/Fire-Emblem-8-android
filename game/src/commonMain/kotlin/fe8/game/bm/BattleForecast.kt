@@ -418,8 +418,9 @@ public class BattleForecast(
     }
 
     /**
-     * Transcribed from src/eventscr_utils.c: ResetBkselPalette (not verified: no forecast proc
-     * exists when the boss turn event ends at f3722 of `ram_trace_prologue_clear`)
+     * Transcribed from src/eventscr_utils.c: ResetBkselPalette (not verified: no `gProcScr_BKSEL`
+     * forecast proc exists when the boss turn event ends at `f3722` of `ram_trace_prologue_clear`
+     * or anywhere in `PC-cap1` `f10297..25580`)
      *
      * Colours the frame again if the forecast window is up ([find]), as the end of an event does:
      * [initBattleForecastFramePalettes].

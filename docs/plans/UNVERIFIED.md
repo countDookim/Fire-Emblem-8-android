@@ -7,13 +7,13 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 733 across 108 decomp files (missing reason: 0).
+Total entries: 732 across 108 decomp files (missing reason: 0).
 
-## src/scene.c (35)
+## src/scene.c (34)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `EndTalk` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | in the captured text ends the talk has already ended, so no talk proc is there to end |
+| `EndTalk` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | in captured text ends and `PC-cap1` `f10298..25423`, every `gProcScr_Talk` ends before `REMA` and before `EventEngine_OnEnd` at `f25422` where the last talk ended at `f25404`, and `B`/`START` is never pressed to skip, so no talk proc is alive when `EndTalk` runs |
 | `ProcScr_TalkSpriteShiftClear` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | the script position is checked per step in WorldMapEventHostTest, which cannot tag a script |
 | `ProcScr_0859160C` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | see [spriteShiftClearScript] |
 | `ProcScr_08591624` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | see [spriteShiftClearScript] |
@@ -44,7 +44,6 @@ Total entries: 733 across 108 decomp files (missing reason: 0).
 | `SetTalkFaceNoMouthMove` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | no @VerifiesPort test names it |
 | `GetStrTalkLen` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | in production; the same code drives the traced talk through the test rig |
 | `TalkBgSync` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
-| `TalkSkipListener_OnIdle` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | the traced talk has no B or START press |
 | `TalkToggleInvertedPalette` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `InitTalkTextWin` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no |
@@ -734,7 +733,7 @@ Total entries: 733 across 108 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `FreezeMenu` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the captures have no menu proc when it runs, f2964 and f4894 of `ram_trace_prologue_clear` start events from the bare map |
-| `ResumeMenu` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | no menu proc exists when the boss turn event ends at f3722 of `ram_trace_prologue_clear` |
+| `ResumeMenu` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | no `sProc_Menu` proc exists when the boss turn event ends at `f3722` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580` |
 | `SyncMenuBgs` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the sync flags are consumed in VBlank before the RAM dumps |
 | `HasMenuChangedItem` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | only its callers' switch in and out branches use it, and no item of the captured menus has such callbacks |
 | `OverriddenMenuAvailability` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the override table is empty in the captures and AddMenuOverride is not ported |
@@ -1026,7 +1025,7 @@ Total entries: 733 across 108 decomp files (missing reason: 0).
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `EndCgText` | `game/src/commonMain/kotlin/fe8/game/scene/CgText.kt` | in the captured text ends no CG text proc is active, so the find returns null |
+| `EndCgText` | `game/src/commonMain/kotlin/fe8/game/scene/CgText.kt` | no `gProcScr_CgTextMain` proc exists in captured text ends or anywhere in `PC-cap1` `f10297..25580`, so the find returns null |
 | `CgTextExists` | `game/src/commonMain/kotlin/fe8/game/scene/CgText.kt` | only the event wait calls it while no CG text is running |
 
 ## src/cp_script.c (2)
@@ -1054,8 +1053,8 @@ Total entries: 733 across 108 decomp files (missing reason: 0).
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `ResetBkselPalette` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | no forecast proc exists when the boss turn event ends at f3722 of `ram_trace_prologue_clear` |
-| `ChangeUnitSpritePalette` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt` | the packed value is 0 in the captured events, so only [applyUnitSpritePalettes] runs, and the palettes it writes are already in place before the call at f3720..3722 of `ram_trace_prologue_clear` |
+| `ResetBkselPalette` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | no `gProcScr_BKSEL` forecast proc exists when the boss turn event ends at `f3722` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580` |
+| `ChangeUnitSpritePalette` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt` | `mapSpritePalIdOverride` is 0 throughout `ram_trace_prologue_clear` and `PC-cap1` `f10298..25423`, and the standard map sprite palettes it writes are already in `gPaletteBuffer` banks 27..31 at `f3720..3722` and `PC-cap1` `f25420..25426` and at every non-battle dump in `f10297..25580` |
 
 ## src/icon.c (2)
 
@@ -1202,7 +1201,7 @@ Total entries: 733 across 108 decomp files (missing reason: 0).
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` is in the procs of f3706..3722 or f4894..4912 of `ram_trace_prologue_clear` |
+| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` exists in `f3706..3722` or `f4894..4912` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580` |
 
 ## src/m4a_1.s (1)
 

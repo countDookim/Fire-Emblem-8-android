@@ -17,7 +17,7 @@ Total entries: 254 across 58 Kotlin files.
 | M6-B | 13 |
 | M6-C | 5 |
 | M6-D | 13 |
-| M6-E | 42 |
+| M6-E | 41 |
 | M6-F | 16 |
 | M6-G | 5 |
 | M6-H | 44 |
@@ -34,6 +34,7 @@ Total entries: 254 across 58 Kotlin files.
 | IS-2 | 1 |
 | PC-4f | 1 |
 | PC-8 | 1 |
+| PC-cap1 | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-4 | 1 |
@@ -86,7 +87,7 @@ Total entries: 254 across 58 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11: the range of a unit the player does not control, `PLAYER_SELECT_NOCONTROL`). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (label 12: the danger zone, `GenerateDangerZoneRange`, reached when the resume finds no active unit). |
 
-## M6-E (42)
+## M6-E (41)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -127,7 +128,6 @@ Total entries: 254 across 58 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `event21TextBg` | The background fade procs are host stand-ins (M6-E). |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `startBackgroundFade` | Stand-in until M6-E for `Proc_StartBlocking(gUnknown_08591E00/E58/EB0, proc)` with the fields set as `Event21_TextBg` does (`sub_800EA84` ... |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `boxDialogueExists` | Stand-in (M6-E): the box dialogue is not ported, so none exists. |
-| `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `endBoxDialogue` | Transcribed from src/helpbox.c: sub_808BB74 (not verified: none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnkn... |
 | `game/src/commonMain/kotlin/fe8/game/event/ReleaseEventStubs.kt` | `ReleaseEventStubs` | Stand-in until M6-E: not ports; no-op event commands that let a script run past commands whose handlers are not ported yet (text, fades, unit loads, ASMC and so on), as the skip mode of the beginni... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/PostSaveMenu.kt` | `standInSelection` | Stand-in until M6-E for the player's choice on the save menu: picks the first usable entry in this order (not checked against the interactive menu code): 1. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `TalkScene` | Stand-ins until M6-E (no behaviour is invented; each is a no-op or the smallest working substitute): - talk choices (`StartTalkChoice`), `[G]` numbers (`NumberToStringAscii`) and the tactician name... |
@@ -357,6 +357,12 @@ Total entries: 254 across 58 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/event/GameOverCaller.kt` | `GameOverCaller` | It waits, fades the music and the screen out, ends the MUs, shows the game over screen and then returns to the title (not wired into the game loop: that is PC-8). @param engine the proc engine the... |
+
+## PC-cap1 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `endBoxDialogue` | Transcribed from src/helpbox.c: sub_808BB74 (not verified: none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnkn... |
 
 ## PP-10 (1)
 

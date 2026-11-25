@@ -466,7 +466,12 @@ public class Fe8Boot(
             }
             // The talk needs the whole ROM (messages, portraits); with boot windows only the
             // chapter data of the events is missing as well, so the default no-op stays.
-            override fun endEventTalk() { if (rom.isWholeRom) eventTextHost.endTalk() }
+            override fun endEventTalk() {
+                if (!rom.isWholeRom) return
+                eventTextHost.endTalk()
+                eventTextHost.endCgText()
+                eventTextHost.endBoxDialogue()
+            }
             override fun eventEndCleanup(proc: EventEngineProc) {
                 if (rom.isWholeRom) eventText.endTextFaces(proc)
             }

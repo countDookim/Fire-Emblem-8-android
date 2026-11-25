@@ -73,8 +73,10 @@ public class EventTextTalkHost(
     /**
      * `Proc_EndEach(gProcScr_Talk)`: ends every running talk bubble scene.
      *
-     * Transcribed from src/scene.c: EndTalk (not verified: in the captured text ends the talk has
-     * already ended, so no talk proc is there to end)
+     * Transcribed from src/scene.c: EndTalk (not verified: in captured text ends and `PC-cap1`
+     * `f10298..25423`, every `gProcScr_Talk` ends before `REMA` and before `EventEngine_OnEnd` at
+     * `f25422` where the last talk ended at `f25404`, and `B`/`START` is never pressed to skip, so
+     * no talk proc is alive when `EndTalk` runs)
      */
     override fun endTalk() {
         procs.endEach(talk.talkScript)
@@ -88,8 +90,8 @@ public class EventTextTalkHost(
     /**
      * Transcribed from src/helpbox.c: sub_808BB74 (not verified: none of its five procs
      * `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`,
-     * `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` is in the procs of f3706..3722 or
-     * f4894..4912 of `ram_trace_prologue_clear`)
+     * `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` exists in `f3706..3722` or
+     * `f4894..4912` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580`)
      *
      * Stand-in until M6-E: the box dialogue is not ported, so none of those procs can exist and
      * there is nothing to end.

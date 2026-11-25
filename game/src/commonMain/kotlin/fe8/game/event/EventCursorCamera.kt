@@ -267,6 +267,8 @@ public fun eventDisplayCursorLoop(
 /**
  * `ProcScr_EventDisplayCursor` (`src/eventscr.c:3435`): the proc that keeps the event cursor
  * drawn every frame with [eventDisplayCursorLoop] until it is ended (`endDisplayCursor`).
+ * Lifecycle and OAM output are verified across `PC-cap1` (`Chapter1TeardownDifferentialTest`:
+ * all 5 Chapter 1 opening windows and `f15600`/`f20300` OAM).
  */
 public fun createProcScrEventDisplayCursor(
     putMapCursor: (x: Int, y: Int, kind: Int) -> Unit = { _, _, _ -> },

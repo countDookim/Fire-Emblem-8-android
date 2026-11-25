@@ -10,6 +10,8 @@ import fe8.game.scene.TalkFace
 import fe8.game.scene.TalkFaceHost
 import fe8.game.scene.TalkFlags
 import fe8.game.scene.TalkHost
+import fe8.game.scene.TalkSkipListener
+import fe8.game.scene.TalkSkipListenerHost
 import fe8.game.scene.TalkState
 import fe8.game.text.Fe8Text
 import gba.data.Decompress
@@ -102,10 +104,26 @@ internal class TalkRig(
     var msg = ByteArray(0)
     private var displaySpeed = 0
 
-    val skipScript = ProcScript(
-        "gProcScr_TalkSkipListener",
-        listOf(mark(Talk.PROC_MARK_TALK), repeat(skipIdle()), end()),
+    val skipListener = TalkSkipListener(
+        engine,
+        talk,
+        bubble.shiftClearScript,
+        bubble.shiftClearAllScript,
+        object : TalkSkipListenerHost {
+            override fun newKeys() = keys
+
+            override fun setDialogueSkipEvBit() = error("skip")
+
+            override fun setTalkFaceNoMouthMove(faceSlot: Int) =
+                face.setTalkFaceNoMouthMove(faceSlot)
+
+            override fun clearTalkBgTilemaps() {
+                tm.fill(0)
+                tm1.fill(0)
+            }
+        },
     )
+    val skipScript: ProcScript get() = skipListener.script
     val lockScript = ProcScript(
         "ProcScr_TemporaryLock", listOf(yield(), repeat(lockIdle()), end()),
     ) { CounterState() }
@@ -201,7 +219,7 @@ internal class TalkRig(
     override fun setBgPosition(bg: Int, x: Int, y: Int) {}
 
     override fun startTalkSkipListener() {
-        engine.start(skipScript, 3)
+        skipListener.start()
     }
 
     override fun bg0Tilemap() = tm
@@ -454,7 +472,7 @@ internal class TalkRig(
     override fun talkFlushAllLine() = bubble.talkFlushAllLine()
 
     override fun endTalkSkipListener() {
-        engine.endEach(skipScript)
+        skipListener.end()
     }
 
     override fun endTalkShiftClearAll() = bubble.endTalkShiftClearAll()
@@ -480,15 +498,6 @@ internal class TalkRig(
         assertEquals(4, oam2)
         assertEquals((clock / 2) and 0xF, lutIndex)
         waitSprites++
-    }
-
-    /** Transcribed from src/scene.c: TalkSkipListener_OnIdle (the fast-forward branch). */
-    private fun skipIdle() = ProcFunc {
-        val s = talk.state
-        if (engine.find(bubble.shiftClearScript) != null) return@ProcFunc
-        check(talk.checkTalkFlag(TalkFlags.NOSKIP) != 0 || keys and 0x0A == 0) { "skip" }
-        if (engine.find(talk.waitForInputScript) != null) return@ProcFunc
-        if (talk.checkTalkFlag(TalkFlags.NOFAST) == 0 && keys and 0xF3 != 0) s.instantScroll = 1
     }
 
     private fun lockIdle() = ProcFunc { p ->

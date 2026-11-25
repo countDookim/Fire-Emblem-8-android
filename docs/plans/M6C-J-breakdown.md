@@ -1689,6 +1689,33 @@ Corrections from PC-6e-b (2026-11-24, `Chapter1BeginningTailDifferentialTest`):
 - `UpdatePrevDeployStates` (`fe8.game.bm.UnitDeployState`) is not wired in `Fe8Boot` yet
   (`BMapMain.hooks.updatePrevDeployStates` no-op): PC-6 WIRE.
 
+Results from PC-6e-c (2026-11-25, `Chapter1TeardownDifferentialTest`):
+- None of the non-talk teardown target procs (`gProcScr_CgTextMain`, all five box-dialogue procs
+  `gProcScr_BoxDialogue` / `ProcScr_TalkBoxIdle` / `ProcScr_MergeBoxDialogue` /
+  `ProcScr_BoxDialogueDrawTextExt` / `gUnknown_08A01800`, `gProcScr_BKSEL`, `sProc_Menu` /
+  `sProc_MenuMain`) ever exists in `PC-cap1` (`f10297..25580`), `B`/`START` is never pressed
+  there, and every `gProcScr_Talk` ends on its own (`f13005`, `f15005`, `f16004`, `f20204`, `f25404`)
+  before `REMA` (`f13006`, `f15006`, `f16005`, `f20205`, `f25405`) and before `EventEngine_OnEnd`
+  at `f25422`. Per rule 4, `EndTalk`, `EndCgText`, `sub_808BB74`, `ResetBkselPalette`, and
+  `ResumeMenu` remain `Transcribed`.
+- `EventEngineProc.mapSpritePalIdOverride` (`+0x44`) is 0 throughout `f10298..25423`, and
+  `gPaletteBuffer` OBJ banks 27..31 at `f25420..25422` (and every non-`FIGHT` dump in
+  `f10297..25580`) already hold the standard `gPal_LightRune` / `gPal_MapSprite` palettes, so
+  `ChangeUnitSpritePalette` stays `Transcribed`. The tail teardown at `f25420 -> f25422` runs the
+  real hooks and verifies `gActiveFont` reset (`sTalkFont` -> `gDefaultFont`), `sModifiedPalette`
+  set to 1, `gBmSt.lock` -> 0, unchanged `gPaletteBuffer`, and ended event/talk/skip/face-wait
+  procs. (`Fe8Boot.endEventTalk` also wired to call `endTalk`/`endCgText`/`endBoxDialogue`.)
+- Extracted `gProcScr_TalkSkipListener` into `fe8.game.scene.TalkSkipListener` (`TalkScene` and
+  `TalkRig` share it); `TalkSkipListener_OnIdle` upgraded to `Partially ported` against `PC-cap1`
+  `f10534..10820` (`assertTalkWindow1`: proc lifecycle, `A` setting `instantScroll = 1` at
+  `f10600`, `TalkWaitForInput` guard at `f10800`) and `f25390..25405` (`assertTalkWindow5Tail`:
+  guard at `f25400`, `Talk_OnEnd` ending `TalkSkipListener` at `f25404`). Unexercised branches
+  remain `shiftClearAll`/`shiftClear` guards with non-zero keys, `TALK_FLAG_NOSKIP`/`NOFAST`, and
+  `B`/`START`/`DPAD_ANY`.
+- Verified `ProcScr_EventDisplayCursor` (`createProcScrEventDisplayCursor`, `EventDisplayCursor_Loop`,
+  `PutMapCursor`) across all five Chapter 1 opening cursor windows (`10436..10495`, `13103..13162`,
+  `15558..15617`, `16211..16270`, `20269..20328`) and hardware `OAM[0..3]` at `f15600` and `f20300`.
+
 
 ## PC-6i-load inventory (2026-11-22)
 

@@ -98,9 +98,29 @@ public class TalkScene(
 
     private val paletteFade = PaletteFade(hw, procs)
 
-    private val skipScript = ProcScript(
-        "gProcScr_TalkSkipListener",
-        listOf(mark(Talk.PROC_MARK_TALK), repeat(ProcFunc { skipListenerOnIdle(it) }), end()),
+    /**
+     * The dialogue skip and fast-forward listener (`gProcScr_TalkSkipListener`) wired to this
+     * scene's keys, faces, event-skip callback and tilemaps.
+     */
+    public val skipListener: TalkSkipListener = TalkSkipListener(
+        procs,
+        talk,
+        bubble.shiftClearScript,
+        bubble.shiftClearAllScript,
+        object : TalkSkipListenerHost {
+            override fun newKeys(): Int = keys.newKeys
+
+            override fun setDialogueSkipEvBit() = this@TalkScene.setDialogueSkipEvBit()
+
+            override fun setTalkFaceNoMouthMove(faceSlot: Int) =
+                face.setTalkFaceNoMouthMove(faceSlot)
+
+            override fun clearTalkBgTilemaps() {
+                hw.fill(hw.mapBuffer(0), 0)
+                hw.fill(hw.mapBuffer(1), 0)
+                hw.enableBgSyncByMask(3)
+            }
+        },
     )
     private val temporaryLock = TemporaryLock(procs)
 
@@ -185,7 +205,7 @@ public class TalkScene(
     }
 
     override fun startTalkSkipListener() {
-        procs.start(skipScript, TREE_3)
+        skipListener.start()
     }
 
     override fun bg0Tilemap(): ShortArray = hw.mapBuffer(0)
@@ -405,7 +425,7 @@ public class TalkScene(
     }
 
     override fun endTalkSkipListener() {
-        procs.endEach(skipScript)
+        skipListener.end()
     }
 
     override fun endTalkShiftClearAll() {
@@ -433,37 +453,6 @@ public class TalkScene(
 
     override fun putSprite(layer: Int, x: Int, y: Int, lutIndex: Int, oam2: Int) {
         sprites.put(layer, x, y, arrowLut[lutIndex], oam2)
-    }
-
-    /**
-     * Per-frame body of `gProcScr_TalkSkipListener`. While a line shift runs it does nothing. A
-     * B or START press (unless `TALK_FLAG_NOSKIP`) skips the dialogue: sets the dialogue-skip
-     * event bit, ends the talk and blanks BG0 and BG1. Otherwise, unless the press-key arrow is
-     * up, a D-pad, A or B press (unless `TALK_FLAG_NOFAST`) switches to instant printing.
-     *
-     * Transcribed from src/scene.c: TalkSkipListener_OnIdle (not verified: the traced talk has no
-     * B or START press).
-     */
-    private fun skipListenerOnIdle(proc: Proc) {
-        if (procs.find(bubble.shiftClearAllScript) != null) return
-        if (procs.find(bubble.shiftClearScript) != null) return
-        val talkState = talk.state
-        if (talk.checkTalkFlag(TalkFlags.NOSKIP) == 0 &&
-            keys.newKeys and (B_BUTTON or START) != 0
-        ) {
-            setDialogueSkipEvBit()
-            face.setTalkFaceNoMouthMove(talkState.activeFaceSlot)
-            procs.end(proc)
-            procs.endEach(talk.talkScript)
-            hw.fill(hw.mapBuffer(0), 0)
-            hw.fill(hw.mapBuffer(1), 0)
-            hw.enableBgSyncByMask(3)
-            return
-        }
-        if (procs.find(talk.waitForInputScript) != null) return
-        if (talk.checkTalkFlag(TalkFlags.NOFAST) == 0 && keys.newKeys and ANY_KEY != 0) {
-            talkState.instantScroll = 1
-        }
     }
 
     // --- TalkBubbleHost
@@ -670,14 +659,5 @@ public class TalkScene(
 
         /** Bit of `WINOUT` (outside windows): colour special effect enable. */
         private const val WOUT_ENABLE_BLEND = 21
-
-        /** `B_BUTTON`. */
-        private const val B_BUTTON = 2
-
-        /** `START_BUTTON`. */
-        private const val START = 8
-
-        /** `DPAD_ANY | A_BUTTON | B_BUTTON`: the buttons that make the text print instantly. */
-        private const val ANY_KEY = 0xF3
     }
 }

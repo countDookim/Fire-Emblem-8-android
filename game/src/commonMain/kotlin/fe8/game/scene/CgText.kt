@@ -18,8 +18,8 @@ public class CgText(
     /**
      * Ends the active CG text proc (`Proc_End(Proc_Find(gProcScr_CgTextMain))`).
      *
-     * Transcribed from src/cgtext.c: EndCgText (not verified: in the captured text ends no CG text
-     * proc is active, so the find returns null)
+     * Transcribed from src/cgtext.c: EndCgText (not verified: no `gProcScr_CgTextMain` proc exists
+     * in captured text ends or anywhere in `PC-cap1` `f10297..25580`, so the find returns null)
      */
     public fun endCgText() {
         procs.find(script)?.let { procs.end(it) }

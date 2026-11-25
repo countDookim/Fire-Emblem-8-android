@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1476,
-    "implemented_unverified": 137
+    "implemented_unverified": 140
   },
   "functions": {
     "APProc_Create": {
@@ -10841,6 +10841,30 @@
       "system": "save",
       "in_scope": true,
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSlotFlip.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SaveMenu_NewGame": {
+      "decomp_file": "src/savemenu.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuNewGame.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SaveMenu_PostDifficultHandler": {
+      "decomp_file": "src/savemenu.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuNewGame.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SaveMenu_ResetLcdFormDifficulty": {
+      "decomp_file": "src/savemenu.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuNewGame.kt",
       "status": "implemented",
       "tests": []
     },

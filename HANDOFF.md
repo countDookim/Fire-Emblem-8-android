@@ -24,7 +24,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-9a: owner PC, until ~11:00Z
+- D-23: owner PC, until ~11:00Z
 - PC-6: owner PC, until ~11:00Z
 
 

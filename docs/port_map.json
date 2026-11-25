@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1477,
-    "implemented_unverified": 145
+    "implemented_unverified": 149
   },
   "functions": {
     "APProc_Create": {
@@ -4517,7 +4517,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -5607,7 +5607,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -5852,7 +5852,7 @@
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHandles.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
       "status": "implemented",
       "tests": []
     },
@@ -6776,6 +6776,14 @@
         "fe8.testing.MapAnimFlowDifferentialTest#map anim popup checks and helpers reproduce captured trace steps f4880 to f4892",
         "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
       ]
+    },
+    "HelpPrompt_OnIdle": {
+      "decomp_file": "src/statscreen.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpPromptSprite.kt",
+      "status": "implemented",
+      "tests": []
     },
     "HideMoveRangeGraphics": {
       "decomp_file": "src/playerphase.c",
@@ -11923,6 +11931,14 @@
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
+    "StartHelpPromptSprite": {
+      "decomp_file": "src/statscreen.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpPromptSprite.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "StartLockingFadeFromBlack": {
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
@@ -14952,6 +14968,22 @@
       "system": "save",
       "in_scope": true,
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawEffects.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80AABC4": {
+      "decomp_file": "src/savedraw.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80AAE90": {
+      "decomp_file": "src/savedraw.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt",
       "status": "implemented",
       "tests": []
     },

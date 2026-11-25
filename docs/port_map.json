@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1477,
-    "implemented_unverified": 144
+    "implemented_unverified": 145
   },
   "functions": {
     "APProc_Create": {
@@ -4517,7 +4517,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -5607,7 +5607,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "implemented",
       "tests": []
     },
@@ -5852,7 +5852,7 @@
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHandles.kt",
       "status": "implemented",
       "tests": []
     },
@@ -10852,6 +10852,14 @@
       "system": "save",
       "in_scope": true,
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSlotFlip.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SaveMenuScrollSlot": {
+      "decomp_file": "src/savemenu.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuMainLoop.kt",
       "status": "implemented",
       "tests": []
     },

@@ -344,6 +344,7 @@ Scenario scopes and stop conditions: [M6 task scopes](plans/M6-task-scopes.md).
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
+| PC-6e-c-speed | INV | `Chapter1TeardownDifferentialTest` teardown case takes ~112 s (CI timed out at 120 s, runs 878..883); seed closer to f25419 or cache-free lighter replay | Under 20 s locally, same assertions | — | todo |
 | CAP-hard1 | CAP | Hard-mode New Game run reaching autolevelled loads (unblocks old M6-13) | Run published; then tag `UnitAutolevelRealistic`, `UnitApplyBonusLevels`, `UnitAutolevelPenalty` | — | todo |
 | CAP-collide1 | CAP | Run where a unit load lands on an occupied tile (unblocks old M6-14) | Run published; then verify `AiGetUnitClosestValidPosition`, `AdjustNewUnitPosition` | — | todo |
 | BUG-gold | CAP+PORT | Give-gold event path: port `NewPopup_GoldGot` (adds gold only for a blue unit, else the stolen popup) and `GetPartyGoldAmount`/`SetPartyGoldAmount` (chapter index 5 reads 0, cap 999999); Fe8Boot wires the raw field (found by the 11-13 readability audit) | Capture of a gold event checked against the port | — | todo |

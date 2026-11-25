@@ -73,7 +73,8 @@ import org.junit.jupiter.api.Timeout
  *   `f20269..20328`) and reproduces hardware `OAM[0..3]` at `f15600` and `f20300`.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Timeout(120)
+// ~112 s locally (dense f25419..25423 replay); CI runners are slower. Speed-up: row PC-6e-c-speed.
+@Timeout(600)
 class Chapter1TeardownDifferentialTest {
     private var shared: Rig? = null
     private var loaded = false

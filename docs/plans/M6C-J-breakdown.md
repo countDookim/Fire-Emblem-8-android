@@ -2503,3 +2503,27 @@ Not covered by any inventory: f19560..22214 (turn-1 enemy phase, TutMessageTurn1
 f24870..25148 + f25750..26392 (ONeillAttack, Seth/Eirika dialogue, PhaseIntro, TutEirikaAttack): INV rows PC-10i-turn and
 PC-10i-turn3. Not exercised by any run: the `Exec0` fail branch (wrong unit selected; text of Tutorial A/0/4 hint 2) -> CAP
 row PC-10cap3. Other unobserved inputs: PC-10cap, PC-10cap2.
+
+### PC-10i-turn result
+
+Run `ram_trace_newgame_easy`, window `f19560..22214`; test `EasyTutorialTurnInventoryTest` (proc rows per sub-window without
+`ekr*`/`efx*`/`eobj*`, which BA-* cover; plus queue, phase/turn, red/blue unit and flag state). The tutorial queue is empty over the
+whole window until f22137 (ONSELECT(2), counter 5 = Tutorial4, queued at the end of `TutMessageTurn2`). No player input is
+used except the 30-frame A grid (text pages, e.g. the durability-box pages at f19590, f19680, f19770, f19860). Normal
+comparison: `ram_trace_prologue_enemy_phase` (`EnemyPhaseInventoryTest`, `EnemyPhaseInventory2Test`,
+`EnemyPhaseTimingInventoryTest`); only Easy-specific differences are listed.
+
+| Sub-window | Frames | What runs | Status / Easy-specific |
+|---|---|---|---|
+| Durability box, end turn | f19560..19900 | `GiveRapier` tutorial box (`TUTORIALTEXTBOXSTART`, box procs `gProcScr_BoxDialogue`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `ProcScr_TalkBoxIdle`, four `gProcScr_TalkWaitForInput` pages) f19560..19882; event gone f19892 (`ProcScr_StdEventEngine` f19889..19892 is the end-turn event; flags 0x52, 0x64 set f19886, TMP6 0x106 cleared f19890); Seth `SET_ENDTURN` -> PlayerPhase gone f19897, `BerserkCpPhase`/`BerserkCpOrder` f19898 | box procs as PC-10e; Normal has no box here (rapier is given in the beginning scene) |
+| Spawn, O'Neill dialogue, Turn1 box | f19901..20731 | faction 0x80 f19901 (turn 1). `EventScr_Prologue_Turn1`: `CALL(CallOnTutorialMode)` -> `ONeillSpawn`: `LOAD1` creates Red[0] O'Neill (14,8) HP 23 and Red[1] (14,7) HP 22 f19901, Red[2] (14,7) HP 20 f19902; three `ProcScr_Mu`/`MuCtrl` walks (Red[0] -> (10,8) f19936, Red[1] -> (8,6) f19960, Red[2] -> (9,6) f19967, `ProcScr_MuStepSe` per tile); `ProcScr_EventDisplayCursor` f19969..20028 (O'Neill); dialogue `gProcScr_Talk` + `gProcScr_E_FACE` (two speakers) f20032..20474 (`TalkBubbleOpen` f20048, f20133, f20254; `TalkShiftClear` f20341, f20407; 9 `TalkWaitForInput` waits), music proc f20030; `TUTORIALTEXTBOXSTART` Turn1 box f20480..20721 (3 pages); flag TMP3 0x103 cleared f20479; flags 0x4F, 0x50 set f20725 (`ENUT(0xB4/0xB5)` guide flags); event gone f20727 | Easy only: the three red units do not exist before f19901 (Normal places them from the start, Red[0] (10,8), Red[1] (8,6), Red[2] (9,6)); `EventScr_CallOnTutorialMode` is the gate (Normal has no Turn1 event run) |
+| Enemy phase, Soldier attack | f20732..21459 | `ProcScr_PhaseIntro` (+BlendBox, Squares, Text, Unk) f20732..20802; `gProcScr_CpPhase`/`CpOrder`/`CpDecide` f20809..21455; `CpPerform` f20811..21432: only Red[1] acts: walk (8,6) -> (5,5) f20811..20850 (5 `MuStepSe`), `gProcScr_AiTargetCursor` f20845..20850, `sProcScr_CombatAction` f20852..21427 (ekrBattle f20886..21389, animations ON), Soldier HP 22 -> 8 f21427, Eirika unhurt (HP 16), struct kept; `BMXFADE` f21433..21448, StdEventEngine f21429..21431 (flag TMP5 0x105 cleared f21429); `BerserkCpPhase` f21457 | Differences vs Normal: Normal's Red[0] and Red[2] and Red[1] all get a CpDecide pass, Red[1] and Red[2] both attack and are killed (animations OFF, Eirika HP 16 -> 7); here Red[0] and Red[2] never move or attack, Red[1] attacks once and survives with 8 HP; no turn-end dialogue event (Normal has one f2403..2722). AI data is not watched in this run: CAP PC-10cap4. Battle internals: BA-*, MapCombat*, EnemyPhase* |
+| Other phase, turn-2 start event | f21460..22140 | faction 0x40 f21460 (empty `CpPhase` f21469..21471, `UpdateTraps` f21476), faction 0, turn 2 f21478; `BerserkCpPhase` f21473; `TutMessageTurn2` StdEventEngine f21478..22139: `EventDisplayCursor` on Seth f21478..21537, dialogue (Seth) `gProcScr_Talk` + `E_FACE` f21540..21734 (3 pages, `TalkShiftClear` f21667), tutorial box f21740..22072 (4 `TalkWaitForInput` pages: objective explanation), flags 0x01 -> 0, 0x77 set f22076 (`ENUF(0x66)`), `EventDisplayCursor` on Eirika f22076..22135 (`CURSOR_FLASHING_CHAR`), `EvtEnqueueConditionalTutCall(Tutorial4, ONSELECT)` f22137 | the script's `StartBattle .. FIGHT_SCRIPT` block runs no `ProcScr_ScriptBattleDeamon` in this window (no battle proc row): note for PC-10o; Normal turn 2 has only a 3-frame StdEventEngine |
+| Turn-2 phase intro | f22141..22213 | `ProcScr_PhaseIntro` (+BlendBox, Squares, Text, Unk), `gProcScr_ResetCursorPosition` f22143 (cursor to Eirika), then `gProcScr_PlayerPhase` f22220 (PC-10i-battle window) | as Normal PhaseIntro |
+
+Tutorial script map additions (counter = `gPlaySt+0x4B`): no counter is queued or run in f19560..22136; `ONeillSpawn`,
+`TutMessageTurn1` and `TutMessageTurn2` are event-script CALLs gated by `EventScr_CallOnTutorialMode`, not queue entries;
+the queue entry written at the end of `TutMessageTurn2` (f22137) is Tutorial4 (PC-10i-battle table). Flags changed in the
+window: 0x52/0x64 (f19886), 0x106 off (f19890), 0x103 off (f20479), 0x4F/0x50 on (f20725), 0x105 off (f21429), 0x01 off and
+0x77 on (f22076). New rows: PC-10m (spawn/Turn1 gate), PC-10n (tutorial boxes in turn events), PC-10o (turn-2 event and
+phase flips), CAP PC-10cap4 (AI decisions of the three units, which this run does not watch).

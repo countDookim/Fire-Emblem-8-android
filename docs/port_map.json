@@ -8,8 +8,8 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1474,
-    "implemented_unverified": 136
+    "verified": 1476,
+    "implemented_unverified": 137
   },
   "functions": {
     "APProc_Create": {
@@ -2797,6 +2797,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "DrawDifficultySprites_Loop": {
+      "decomp_file": "src/difficultymenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenuSprites.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.DifficultyMenuSpritesDifferentialTest#sprites proc state, palettes, sprite pool, and f1020 OAM match ram_trace_newgame"
       ]
     },
     "DrawHpBar": {
@@ -11657,6 +11667,16 @@
         "fe8.game.BrownTextBoxReferenceTest#the Prologue box hold frame equals the reference OAM entries"
       ]
     },
+    "StartDrawDifficultyMenuSprites": {
+      "decomp_file": "src/difficultymenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenuSprites.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.DifficultyMenuSpritesDifferentialTest#sprites proc state, palettes, sprite pool, and f1020 OAM match ram_trace_newgame"
+      ]
+    },
     "StartEventFromInfo": {
       "decomp_file": "src/eventinfo.c",
       "system": "events",
@@ -14875,6 +14895,14 @@
       "system": "save",
       "in_scope": true,
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80AC680": {
+      "decomp_file": "src/difficultymenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenu.kt",
       "status": "implemented",
       "tests": []
     },

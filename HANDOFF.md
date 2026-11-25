@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-25 08:50Z (owner PC: PC-6l-c/d/e, PC-8, PC-9a, PC-6, EP-drift, D-23); earlier 05:35Z (scheduled: BA-i1, BA-i5); earlier 2026-11-24 23:28Z (scheduled: PC-8b, BA-p8a, BA-p8b); earlier 2026-11-24 22:40Z (owner PC: PC-7b, PC-6e-a, PC-8a, PC-6e-b); earlier 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-25 11:45Z (scheduled: EP-11-hooks, PC-9b partial); earlier 08:50Z (owner PC: PC-6l-c/d/e, PC-8, PC-9a, PC-6, EP-drift, D-23); earlier 05:35Z (scheduled: BA-i1, BA-i5); earlier 2026-11-24 23:28Z (scheduled: PC-8b, BA-p8a, BA-p8b); earlier 2026-11-24 22:40Z (owner PC: PC-7b, PC-6e-a, PC-8a, PC-6e-b); earlier 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -24,11 +24,10 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- EP-11-hooks: scheduled, until ~11:30Z (finishing `wip/ep11hooks`).
-- PC-9b: scheduled, until ~11:30Z (finishing `wip/pc9b`).
-
 
 ## Current state
+
+- 2026-11-25 ~11:45Z scheduled (Sonnet agents): **EP-11-hooks done, PC-9b partial.** EP-11-hooks: `EventScrHooks` wired in `Fe8Boot`; Prologue one-enemy-left event runs; 3 tests moved to capture frames (full jvmTest+test 1270 green on the branch). PC-9b: `sub_80AC680` Ported (5 mutations killed); `DifficultySelect_Loop_KeyHandler`, `SaveMenu_SetDifficultyChoice` Transcribed (capture covers only Down + A on sel 1; SaveMenu proc stand-in until PC-9d). Root `dokkaGenerate` needs `-Pfe8.docs=true`; `:testing` tests run via `test`, not `jvmTest`. WIP branches ep11hooks/eventscrhooks/pc9b deleted. Next: D-24, PC-9c/d.
 
 - 2026-11-25 ~08:50Z owner PC Claude (Sonnet agents): **PC-6l-d (Gemini WIP finished), PC-6l-c, PC-6l-e, PC-8, PC-9a, PC-6, EP-drift, D-23 done.** Game over wired (0.1.886, device check pending). Chapter 1 opening wired end to end (`Chapter1OpeningWireTest`; Event33 ported, KILL fade, UpdatePrevDeployStates). D-23 (owner: enemies that fought stop acting) = unported `AiScriptCmd_03_Goto`, fixed (`CpScript.cmdGoto`), device check pending. EP-drift: enemy-phase drift = missing one-enemy-left event; wiring `EventScrHooks` makes it run but 3 tests encode the old flow -> **EP-11-hooks** (`wip/eventscrhooks`). New rows: D-24 (HP-box `TODO()` crash risk), D23-cap, PC-6e-c-speed. CI was red 876..883 (Chapter1TeardownDifferentialTest 112 s vs 120 s timeout), fixed; `@Timeout` >= 5x local. Next: EP-11-hooks, D-24, PC-9b..d, PC-9.
 

@@ -2399,3 +2399,45 @@ DESTSELECTED event runs, `CHECK_CURSOR` fails, and `Exec1` snaps the cursor to t
 (A f18800). The destination A is accepted only when the cursor equals the forced (4,5). The menu is limited by
 `DISABLEOPTIONS(~EVENT_MENUOVERRIDE_WAIT)` (all other unit-menu commands hidden). Not observed: B/START/R/D-pad at the
 destination idle or in the menu (CAP row PC-10cap).
+
+### PC-10i-battle result
+
+Run `ram_trace_newgame_easy`, windows `f22214..24870` and `f25148..25750`; test `EasyTutorialBattleInventoryTest`
+(proc rows per sub-window without the `ekr*`/`efx*`/`eobj*` battle-animation procs, which BA-* inventories cover;
+plus the tutorial queue, PlayerPhase idle callback, unit and flag state). Map-battle and phase machinery
+(`sProcScr_CombatAction`, `MuDeathFade`, PhaseIntro, CpPhase, BerserkCp) are as in the MapCombat*/EnemyPhase* inventories.
+Inputs: A f22230 (select Eirika, cursor already on her), A f22440 (destination = her own tile), A f22530 (Attack),
+A f22560 (Rapier), A f23370 (target), other A presses are text pages (30-frame grid).
+
+The tutorial dispatch is a queue in `gPlaySt` (`tutorial_exec_type` = byte +0x4A bits 4..7, `tutorial_counter` = +0x4B;
+counter - 1 indexes `EventListScr_Prologue_Tutorial`). Each tutorial event ends by enqueueing the next one with another
+trigger type (`EnqueueTutEvent`), and the matching hook runs it (`RunTutorialEvent`):
+
+| Frame | Queue (type, counter) | Run by | Event |
+|---|---|---|---|
+| f22137 | ONSELECT(2), 5 | queued at the end of the turn-2 event | Tutorial4 |
+| f22230 A -> f22231 | cleared | `TryCallSelectEvents` | Tutorial4 box (select Eirika hint), queues DESTSELECTED(3), 6 f22404 |
+| f22440 A | cleared f22440 | `StartDestSelectedEvent` | Tutorial5: `PlayPhaseForcePressAButtonInRangeDisp` (idle cb RangeDisplayIdle -> ForceAPress f22442 -> WaitForUnitMovement f22446), `DISABLEOPTIONS(~ATTACK)`, `IGNORE_KEYS(R,START,B)`; queues AFTERMOVE(4), 7 f22441 |
+| f22448 | cleared f22448 | `StartAfterUnitMovedEvent` | Tutorial6 (box, Attack-only menu `sProc_Menu` f22448..22559); queues FORECAST(5), 8 f22524 |
+| f22566 | cleared f22566 | `StartBattleForecastTutorialEvent` (from `TriggerBattleForcastToturialEvent`, bksel.c) | Tutorial7 forecast box f22566..23369; queues POSTACTION(1), 9 f23366 |
+| f24029 | cleared f24029 | post-action hook (`RunTutorialEvent(POSTACTION)`, eventinfo.c:1648 path) | Tutorial8 (Eirika/Seth dialogue); queues PLAYERPHASE(6), 10 f24199 |
+| f24210 | cleared f24210 | `StartPlayerPhaseStartTutorialEvent` | Tutorial9 |
+
+Sub-windows (battle procs excluded from rows):
+
+| Sub-window | Frames | Tutorial/Easy-specific content | Functions and our status |
+|---|---|---|---|
+| Turn-2 select | f22214..22447 | PlayerPhase f22220, Tutorial4 box f22231..22408 (+ `EventDisplayCursor`, `sProcScr_MoveLimitView`), A f22440 -> Tutorial5 f22440..22444 | as PC-10a/b/d; `PlayPhaseForcePressAButtonInRangeDisp` + `PlayerPhase_RangeDisplayIdle_ForceAPress` seen again (missing in code) |
+| Attack-only menu, weapon list | f22448..22565 | `sProc_Menu` + item f22448..22559, Tutorial6 box f22448..22526 (menu override bit set: `~EVENT_MENUOVERRIDE_ATTACK`, so Attack is the only entry); A f22530 -> weapon list `gProcCmd_MenuItemPanel` + `gProcScr_E_FACE` f22530..22560 (Rapier only: Eirika has one item); A f22560 -> `gProcScr_TargetSelection` + `gProcScr_BKSEL` | `Event3D_MenuOverride`/`AddMenuOverride` missing (PC-10c); weapon list is the normal item menu (ported, UnitActionMenu); BKSEL/forecast ported (BattleForecast.kt), tutorial branches transcribed |
+| Forecast box | f22566..23373 | `StartBattleForecastTutorialEvent` event with a multi-page box; while it runs A is masked: `BKSEL` init sets A in the ignore mask when `CheckBattleForecastTutorialEvent() == 1` (bksel.c:654) and `TriggerBattleForcastToturialEvent` clears it just before starting the event (bksel.c:606); A f23370 confirms the target | `CheckBattleForecastTutorialEvent`, `StartBattleForecastTutorialEvent` transcribed (UNVERIFIED says no capture reaches them; this window does); BattleForecast.kt tutorial branch transcribed; ignore-mask bits not read (not in a watch): CAP-note in PC-10g |
+| Map battle | f23374..24028 | `sProcScr_CombatAction` f23374..24028, ekrBattle f23407..23958 (animations ON), Eirika kills Soldier gUnitArrayRed[1] (5,5) HP 8 -> 0 f23995 (struct cleared f24027), Eirika HP 16 unchanged | covered by BA-*/MapCombat*; result fields `bstats`/`bhits` unchanged vs Normal logic |
+| Post-action | f24029..24209 | Tutorial8 event: `EventDisplayCursor` f24029..24089, `gProcScr_E_FACE` dialogue f24097..24198; Eirika state 0x2 f24207 | `RunTutorialEvent(POSTACTION)` hook transcribed; talk/E_FACE ported |
+| Seth scripted kill, one enemy left, end turn | f24210..24870 | Tutorial9: Seth (4,4) -> (9,5) f24260 (event MOVE), `ProcScr_ScriptBattleDeamon` f24262..24649 (`Event3F_ScriptBattle` FIGHT with scripted `NormalDamage(0,20)`), ekrBattle f24297..24609, `KILL(-2)`/`DISA_IF(-2)`: Soldier gUnitArrayRed[2] (9,6) HP 20 -> 0 f24647, MuDeathFade f24666..24698, struct cleared f24699; OneEnemyLeft box f24699..24858 (flag TMP7 0x107 cleared f24859, set again f24867); `SET_ENDTURN(Seth)`: PlayerPhase gone f24863, BerserkCp f24864..24866, faction 0x80 f24867 | `Event3F_ScriptBattle`, `ScriptBattleDeamon`, `GenerateScriptBattleHitFormEventQueue` Ported (EventScriptBattle.kt, first tutorial-context run); `SetScriptedBattle` Transcribed; `EventBattleReloadBmStatus` ported; KILL/DISA_IF event commands and `SET_ENDTURN`: check existing labels at PORT time |
+| O'Neill vs Seth | f25148..25750 | Turn-3 event: O'Neill (10,8) -> (9,6) f25174, `ScriptBattleDeamon` f25176..25731, ekrBattle f25211..25690, `ProcScr_BattleEventEngine` f25223..25311 (pre-battle line), scripted `MissedAttack`, Seth HP 13 -> 11 f25729, flag 0x100 set f25223 | `EventEngine_CreateBattle`/BattleEventEngine procs: partial/transcribed (EventEngine.kt); scripted-hit variants as above |
+
+Blocked inputs (decomp, confirmed by the run): R/START/B are ignored by `IGNORE_KEYS` in Tutorial5/6/7 as in PC-10i-input; the
+D-pad and A are not filtered by the player phase, the forced behaviour comes from the dispatch hooks (A on the select
+step must be on the forced unit, otherwise the hint branch, as in PC-10i-input); during the forecast tutorial A is
+masked in the ignore mask (bksel.c). Menu bits: `DISABLEOPTIONS(~EVENT_MENUOVERRIDE_ATTACK)` in Tutorial5 (menu shows
+only Attack); the item/weapon list is not overridden in this window. Not observed: B in the Attack-only menu, B/D-pad
+during the forecast box, a different weapon (CAP row PC-10cap2).

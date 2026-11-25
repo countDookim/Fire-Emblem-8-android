@@ -25,10 +25,11 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 ## In progress
 
 - PC-6e-c: Gemini owner PC, until ~04:44Z (`wip/pc6ec`, 2026-11-25).
-- PC-6l-a: Gemini owner PC, until ~04:44Z (`wip/pc6la`, 2026-11-25).
 
 
 ## Current state
+
+- 2026-11-25 04:21Z owner PC Gemini (Pro agent): **PC-6l-a done (`a48d58b3`).** `ClearUnit` Ported (`UnitLoader.kt`, r10298 dirty Prologue red slots cleared); `EventLoadUnitWithMovement`, `ModifyMoveUnitFlag`, `TryPrepareEventUnitMovement`, `ShouldUNITBeLoaded`, `IsUnitSlotAvailable`, `LoadUnit_800F704`, and `sub_800F8A8` Partially ported (`EventUnitLoads.kt`/`UnitLoader.kt`; deduplicated shared helpers with `EventMoveUnit.kt`); `GenUnitDefinitionFinalPosition` stays Transcribed (mutation to `(0, 0)` survives W1). Verified in `Chapter1EnemyLoadDifferentialTest` (`PC-cap1` W1 `f10298..10378`, 18 break-check mutations); `Chapter1*` (16 ok), `EventUnitLoadsTest`/`MoveUnitDifferentialTest`/`UnitLoaderDifferentialTest` (16 ok), `:game:jvmTest` (89 ok), `:game:dokkaGenerate`, `standins.py`/`unverified.py --check`, game-text guard green.
 
 - 2026-11-24 ~23:28Z scheduled (Sonnet agents): **PC-8b, BA-p8a, BA-p8b done.** `GameOverScreen` fades/idle/end verified on PC-cap2 to f6295 (End Partially, LoopIdle Transcribed: timeout needs PC-cap2c); fixed `ColorFade.tick` clamp (unwrapped sum, asm `ColorFadeTick`). New `fe8.game.bm.EkrBattleEnding` runs `ProcScr_ekrBattleEnding` f1989..2028 (`EkrBattleEndingDifferentialTest`); BanimBG!=0/arena arms TODO (BA-cap4); not called yet (`EkrMainEndExec` unported). Full jvmTest green before BA-p8b (its test green). Next: PC-8h/PC-8 wire, PC-6e-c, PC-6l-a.
 

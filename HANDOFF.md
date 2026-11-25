@@ -388,6 +388,7 @@ Close an issue only after reference verification and owner confirmation; preserv
 | #7 expected gaps | Issue #7 closed 11-24; remaining gaps tracked in ROADMAP "User-report issues" (class showcase: new `BA-reel-inv`). Was: **Not bugs (0.1.852):** title class reel (D-15, M6-G); Item command (Known gaps list); no game over on lord death (PC-7/PC-8). |
 | #8 report (0.1.868) | **Open (owner, 11-24):** PC-3a/PC-4/PC-5 confirmed on device. Not bugs: power-on resumes the Ch1 suspend because `Fe8Boot.newGameSaveMenu` stands in for the title menu (PC-11cap/i/PC-11); no enemy range (PP-enemy-cap/PP-enemy); Ch1 unit-menu crash EP-35b; boss AI EP-11; game over PC-7/8. Tracked in ROADMAP "User-report issues". |
 | D-05 interactions | Expected missing gameplay; re-test when player actions are ported. |
+| PC-8 game over | **Resolved:** owner confirmed on 0.1.889 (2026-11-25): game over screen works as expected and returns to the title/main menu on A (idle timeout PC-cap2c open). |
 
 D-01–04, D-06, D-08, D-10 and normal portrait mouths are owner-confirmed solved.
 Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not request routine repeats of solved checks.

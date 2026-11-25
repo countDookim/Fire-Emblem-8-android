@@ -10,7 +10,7 @@ needs your ROM, imported on first start.
 | | Build | Date | Report |
 |---|---|---|---|
 | Latest APK | 0.1.889 (`271bd27`) | 2026-11-25 | — |
-| Last owner test | 0.1.868 (`dd96da1`) | 2026-11-24 | Issue #8: save menu to Chapter 1 OK |
+| Last owner test | 0.1.889 (`271bd27`) | 2026-11-25 | Game over (PC-8) confirmed OK |
 | Last full pass | 0.1.622 (`22cfc9d`) | 2026-11-12 | HANDOFF "Device status" |
 
 Items are removed from this page once the owner confirms them; the history is in git and in
@@ -19,19 +19,6 @@ Items are removed from this page once the owner confirms them; the history is in
 ## 1. Test now
 
 Everything up to 0.1.868 was tested earlier; new items carry their build.
-
-- **Game over (PC-8).** Build: 0.1.886 (`848cd63`).
-  1. Start the Prologue (or resume it) and let Eirika die: end turns with her next to the enemies, or
-     leave her in reach of the boss's soldiers and do not move her away.
-  2. Expected: after her last hit the screen fades to black (the map music fades first), then the game
-     over screen shows a scrolling fog with the game over text and the game over song. Wait or press A.
-  3. Expected: pressing A fades the screen out and returns to the title; the title music starts again.
-     Without a press the screen should end by itself after about 25 seconds (idle timeout, not yet
-     verified against a capture: PC-cap2c).
-  - Known limits: the death comes from the real battle, but the battle animations are off (M6-G); after
-    the title, the game resumes the last suspend save (start of that player phase), because there is no
-    title menu yet (PC-11); the fog's blend can differ from the original by a
-    shade in single frames (not visible in play).
 
 - **Chapter 1 opening (PC-6).** Build: 0.1.889 (`271bd27`).
   1. Play (or fast-forward with A) the Prologue to its end, take save slot 1 in the save menu, and
@@ -105,3 +92,4 @@ Retest these only when a change to them is announced.
   background when an enemy attacks (D-19); level-up numbers (D-21), the boss's name (D-22) and the menus after
   Eirika's death (D-20) have the normal colours.
 - **App icon:** no home-screen shortcut, default launcher icon, Eirika's portrait in recents.
+- **Game over (PC-8, 0.1.889):** Eirika's death fades to the game over screen and returns to the title/main menu on A (idle timeout PC-cap2c untested).

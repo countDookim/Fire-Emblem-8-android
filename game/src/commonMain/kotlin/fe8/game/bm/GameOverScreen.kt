@@ -18,9 +18,8 @@ import gbafe.render.HBlankHandler
 
 /**
  * The game over screen of `src/gameoverbgfx.c`: its set-up (`GameOverScreen_Init`), the fog
- * background scroll (`ProcScr_GameOverScreen_RandomScroll`) and its start. The fades, the idle
- * wait and the teardown (PC-8b) are here too; `GameOverScreenHBlank` (PC-8h) is behind
- * [Hooks]. Not wired
+ * background scroll (`ProcScr_GameOverScreen_RandomScroll`) and its start, the fades, idle wait
+ * and teardown (PC-8b), and the scanline HBlank blend (`GameOverScreenHBlank`, PC-8h). Not wired
  * into the game loop (PC-8).
  *
  * @param engine the proc engine the screen runs on.
@@ -47,8 +46,8 @@ public class GameOverScreen(
         /** `EndAllMus`. */
         public fun endAllMus() {}
 
-        /** `GameOverScreenHBlank` (PC-8h); a no-op by default. */
-        public val hblankHandler: HBlankHandler get() = NO_HBLANK
+        /** `GameOverScreenHBlank`; defaults to calling [gameOverScreenHBlank]. */
+        public val hblankHandler: HBlankHandler get() = DEFAULT_HBLANK
 
         /** `GetGameClock`: the frame count the fade-in is paced on; 0 by default. */
         public fun gameClock(): Int = 0
@@ -377,6 +376,37 @@ public class GameOverScreen(
         /** `Tsa_GameOverFx`. */
         public const val TSA_GAME_OVER_FX: Int = 0x08A0AE84
 
-        private val NO_HBLANK = HBlankHandler { _, _ -> }
+        /** `DISPLAY_HEIGHT` (include/gba/defines.h): GBA screen height in scanlines. */
+        public const val DISPLAY_HEIGHT: Int = 160
+
+        /** `REG_OFFSET_BLDALPHA + 0` (`REG_BLDCA`): EVA alpha blend coefficient byte offset. */
+        public const val REG_BLDCA_OFFSET: Int = 0x52
+
+        /** `REG_OFFSET_BLDALPHA + 1` (`REG_BLDCB`): EVB alpha blend coefficient byte offset. */
+        public const val REG_BLDCB_OFFSET: Int = 0x53
+
+        /** Maximum hardware alpha blend coefficient (16 / 16). */
+        public const val MAX_BLEND_COEFF: Int = 0x10
+
+        private val DEFAULT_HBLANK = HBlankHandler { vcount, io ->
+            gameOverScreenHBlank(vcount, io)
+        }
+
+        /**
+         * Updates `REG_BLDCA` and `REG_BLDCB` in [io] for the next scanline from [vcount]: wraps
+         * values above [DISPLAY_HEIGHT] to 0, mirrors the lower half around `DISPLAY_HEIGHT / 2`,
+         * divides by 3 and clamps to [MAX_BLEND_COEFF].
+         *
+         * Ported from src/gameoverbgfx.c: GameOverScreenHBlank
+         */
+        public fun gameOverScreenHBlank(vcount: Int, io: ByteArray) {
+            var value = (vcount + 1) and 0xFFFF
+            if (value > DISPLAY_HEIGHT) value = 0
+            if (value > DISPLAY_HEIGHT / 2) value = DISPLAY_HEIGHT - value
+            value /= 3
+            if (value > MAX_BLEND_COEFF) value = MAX_BLEND_COEFF
+            io[REG_BLDCA_OFFSET] = value.toByte()
+            io[REG_BLDCB_OFFSET] = value.toByte()
+        }
     }
 }

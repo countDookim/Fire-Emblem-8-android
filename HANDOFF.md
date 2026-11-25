@@ -24,7 +24,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-6l-d: wrapped up at 2026-11-25 05:58Z, unfinished on `origin/wip/pc6ld` (`63cc3d8f`): `Chapter1MuStepSeDifferentialTest` passes W1/W4; finish remaining break-check mutations, update `Mu.kt` KDoc/`UNVERIFIED.md`/`M6C-J-breakdown.md`, run `:game:jvmTest` & Dokka.
+- PC-8: owner PC, until ~09:00Z
+- PC-6l-d: owner PC (finishing `origin/wip/pc6ld`), until ~08:00Z
 
 
 ## Current state

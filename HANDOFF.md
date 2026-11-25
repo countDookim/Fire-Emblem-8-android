@@ -24,6 +24,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- PC-6e-c: Gemini owner PC, until ~04:44Z (`wip/pc6ec`, 2026-11-25).
+- PC-6l-a: Gemini owner PC, until ~04:44Z (`wip/pc6la`, 2026-11-25).
 
 
 ## Current state

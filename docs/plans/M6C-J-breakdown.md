@@ -2027,3 +2027,57 @@ Proposed rows:
 | BA-p8a | PORT | `NewEkrbattleending`, `ekrBattleEnding_80560F0`/`_8056170`/`_80561C8` (`gBanimBG == 0` arm), `_8056228`, `_8056288` (draw/proc-start calls behind hooks) | f1989..2009 callback, cursor, `timer`, `x1..y2`, proc-start hook calls equal the dumps; mutated `> 0xC` gate fails | BA-p5c | todo |
 | BA-p8b | PORT | `ekrBattleEnding_8056310` (non-arena, non-link arm), `_8056390`, `_8056484`, `sProc_DelayedBMapDispResume` order (restore calls behind hooks) | f2010..2028 callback, cursor, `timer`, `terminator`, `gProc_ekrBattleDeamon` end, delayed proc lifetime equal the dumps | BA-p8a | todo |
 
+
+### BA-i1 result
+
+`BattleEntryInventoryTest` (same method as BA-i8; no function-entry trace, dump = state after the step). Windows:
+`ram_trace_prologue_attack` f1463..1500 (Eirika/Soldier, primary; `gEkrBmLocation` (8, 6, 8, 5)) and
+`ram_trace_prologue_battle` f14429..14469 (scripted Seth/Valter, `gEkrBmLocation` (8, 5, 7, 5)); both: `gEkrDebugModeMaybe`
+0, `gBanimBG` 0, `gEkrDistanceType` CLOSE, `gBanimValid` (1, 1), `gEkrInitPosReal` 1. The entry procs are all in
+`PROC_TREE_3`. Every proc is first read some steps after it is started: the furniture procs (started in one
+`InitBattleScreen` call) show their start values for 3 (attack) or 5 (scripted) steps before the first call, and
+`ekrBaStart_ExecEkrBattle6C` shows timer 1 for 3 / 5 steps; these steps are no-run steps for the port (the likely cause
+is `InitBattleScreen`'s heavy calls spilling over frames; unattributable without a proc-run trace, BA-cap3 style).
+`PrepareBattleGraphicsMaybe`/`BeginAnimsOnBattleAnimations` ran in the step before the first dump (all entry globals are
+0 at f1463 and set at f1464; f14430..14431 scripted), so only their combined output is observed, not this proc group.
+
+| Function | Frames (calls) | Branch taken | Not exercised |
+|---|---|---|---|
+| `NewEkrBattleDeamon` | f1464 (1); scripted f14431 (1) | `gBattleDeamonActive` 0 -> 1, `gpProcEkrBattleDeamon` = the proc address; same step as `NewEkrBattleStarting` (`LockGame` not dumped) | none |
+| `nullsub_35` (`gProc_ekrBattleDeamon` repeat, cursor 3) | f1465..1500 / f14432..14469 every step | callback stays set the whole window (proc ends in BA-i8 `_8056484`, f2027) | `ekrBattleDeamon_Destructor` (BA-i8 window) |
+| `NewEkrBattleStarting` | f1464 (1); f14431 (1) | `ProcScr_ekrBattleStarting` started; attack dump already shows `InitScreen` run (cursor 2), scripted shows it set and unrun | arena (`BeginAnimsOnBattle_Arena`) and hensei arms, `BeginAnimsOnBattleAnimations`/`MainUpdate_8055C68` bodies (no entry trace) |
+| `ekrBaStart_InitScreen` | f1464 / f14432 (1) | `timer` 0, `terminator` 15, `x1 = x2 = (loc[0] + loc[2]) * 8 + 8` (136 / 128), `y1 = y2 = (loc[1] + loc[3]) * 8 + 8` (96 / 88); BG2 clear, blend, WIN0 setup (not dumped) | none |
+| `ekrBaStart_SreenFailIn` | f1465..1479 / f14433..14447 (15) | timer 1..15, then the `timer == terminator` arm: `InitOam`, `BMapDispSuspend`, palette fade, `EndAllMus` (`ProcScr_Mu` gone the same step), `Proc_Break` | none; WIN0 box interpolation not observable |
+| `ekrBaStart_InitBattleScreen` | set f1480..1481 (run by f1482); scripted f14448..14450 | `gEkrDebugModeMaybe == 0`: `ProcScr_ekrGauge` + `gProc_ekrDispUP` appear f1480 / f14448; CLOSE: switch is a no-op; then `NewEkrUnitKakudai(0)`, `NewEkrBaseKaiten(0)`, `NewEkrWindowAppear(0, 0xB)`, `NewEkrNamewinAppear(0, 0xB, 0)`, `NewEkrBaseAppear(0, 0xB)`; timer 0 | debug mode, MONOCOMBAT (`EkrGauge_Set4C/50`), PROMOTION |
+| `ekrBaStart_ExecEkrBattle6C` | f1483..1496 / f14452..14467 (12 calls over 14 / 16 steps) | timer 1..11, 12th call `++timer > 0xB` with `gBanimBG == 0`: `NewEkrBattle` + `Proc_End` (`gProc_ekrBattle` appears f1496 / f14467, `ProcScr_ekrBattleStarting` gone, cursor never passes 5) | `Proc_Break` arm (`gBanimBG != 0` or dragon status) and `ekrBaStart_8055FE8`, `_8056024`, `_8056078` (never run) |
+| `NewEkrUnitKakudai` | f1482 / f14450 (1) | type 0, `valid_l = valid_r = 1` (CLOSE arm) | PROMOTION, normal-vs-dragon `valid_l` arm |
+| `UnitKakudaiPrepareAnimScript` | f1485 / f14456 (1) | box `x1 = loc[0] * 16 + 8`, `y1 = loc[1] * 16 + 8`, `x2`/`y2` from `loc[2]`/`loc[3]` ((136,104,136,88) / (136,88,120,88)); `left_pos` 92, `right_pos` 148 (`gEkrInitPosReal` 1: left reduced); timer 0, terminator 11; image decompress/DMA, palette (not dumped) | `gEkrBattleEndFlag` arm (BA-i8 window), petrify and REFRESH palette arms |
+| `UnitKakudaiMain` | f1486..1497 / f14457..14468 (12) | timer 1..11 (type 0: zoom 0x250 -> 0x100), 12th call `timer >= terminator` -> `Proc_Break` (f1497); `AnimDisplay` sprites (OAM) not dumped | type != 0 arm (ending, BA-i8) |
+| `UnitKakudaiEndNop` | f1499 / f14470 (1) | `Proc_Break`; proc gone f1500 / f14471 (one idle step f1498 / f14469 before it) | none |
+| `NewEkrBaseKaiten` / `EkrBaseKaitenMain` | f1482 / f14451; Main timer 1..11 f1485..1495, 12th call f1496 / f14467 | CLOSE arm, type 0: box `(x1, x2, y1, y2)` = `((loc[0] + loc[2]) * 8 + 8, 0x78, (loc[1] + loc[3]) * 8 + 8, 0x68)`, terminator 11; 12th call: `AnimDelete`, `Proc_Break`; gone f1497 / f14468; anim script id and anim position are in the anim array, not read | FAR/FARFAR (two procs), MONOCOMBAT, type 1 |
+| `NewEkrWindowAppear` / `EkrWindowAppearMain` | f1482 / f14451; Main timer 1..11, 12th call f1496 / f14467 | type 0, terminator 11, `ymax` 0x39, `gEkrWindowAppearExist` 0 -> 1 -> 0 at the 12th call; `EkrGauge_Clr323A` and `EkrGauge_SetInitFlag` (not dumped); gone f1497 / f14468 | type 1 arm (scripted f14470.., f14633.., and the endings f1993..2009, f15039..; BA-i8/BA-i2 windows) |
+| `NewEkrNamewinAppear` / `EkrNamewinAppearDelay` / `EkrNamewinAppearMain` | f1482 / f14451; Delay 1 call (delay 0), Main timer 1..11 f1486..1496, 12th call f1497 / f14468 | type 0, terminator 11, `ymax_name` -49, `gEkrNamewinAppearExist` 0 -> 1 -> 0 at the 12th call (one step after the window flag); gone f1499 / f14470 | delay > 0, type 1 (scripted f14470) and type 2 (`EndEkrDispUP`, ending f15035) |
+| `NewEkrBaseAppear` / `EkrBaseAppearMain` | f1482 / f14451; Main timer 1..11, 12th call f1496 / f14467 | type 0, terminator 11, `gProcEkrBaseAppearExist` 0 -> 1 -> 0 at the 12th call; BG2 scroll (not dumped); gone f1497 / f14468 | type 1 arm (endings) |
+| `ScriptBattleDeamon` (eventscr.c) | scripted f14430..14469+ (every step, never breaks in the capture) | proc created by the event engine one step before `ekrBattleStarting`; `lock` (0x64) 1, parent = `evtproc` (0x58) = `ProcScr_StdEventEngine`; condition `lock == GetGameLock()` false throughout | Break arm (`EventBattleReloadBmStatus`, `Proc_SetMark`): the capture ends before `EndEkrBattleDeamon` (f15059 < ~f15085) |
+
+Proc set changes (attack): f1464 +`ekrBattleStarting`, `sProcScr_CombatAction`, `gProc_ekrBattleDeamon`; f1479 -`ProcScr_Mu`;
+f1480 +`ekrGauge`, `gProc_ekrDispUP`; f1482 +`ekrNamewinAppear`, `ekrWindowAppear`, `EkrBaseKaiten`, `ekrUnitKakudai`,
+`ekrBaseAppear`; f1496 +`gProc_ekrBattle`, `gMusicProc3Script` -`ekrBattleStarting`; f1497 -`ekrWindowAppear`, `EkrBaseKaiten`,
+`ekrBaseAppear`; f1499 -`ekrNamewinAppear`; f1500 -`ekrUnitKakudai`. Scripted: the same shape with `ProcScr_ScriptBattleDeamon` +
+`ProcScr_Mu` at f14430, starting + deamon f14431, `ProcScr_Mu` gone f14447, gauge/dispUP f14448, kakudai f14450, the other four
+f14451, ekrBattle f14467, three furniture procs gone f14468.
+
+BA-cap1 evidence: control state (callbacks, cursor, timers, boxes, flags, proc set) is complete for both windows, so the
+PORT rows below need no new capture. Still missing, and needed only for visual correctness (not these rows): per-step
+LCD registers (WIN0 box, blend, BG2 scroll, BG enable), palette (map-fade `EfxPalBlackInOut`) and OAM for the kakudai
+sprites and the base-kaiten anim; no capture of non-CLOSE distances (FAR/FARFAR/MONOCOMBAT/PROMOTION), banim BG
+(`gBanimBG != 0`, the `_8055FE8/_8056024/_8056078` fades), arena, hensei, debug mode or dragon status. BA-cap1 stays
+conditional on the owner wanting those pixels; the no-run steps are unattributable without BA-cap3.
+
+Proposed rows:
+
+| ID | Kind | Task | Acceptance | Deps | Status |
+|---|---|---|---|---|---|
+| BA-p1a | PORT | `NewEkrBattleDeamon`, `nullsub_35`, `NewEkrBattleStarting`, `ekrBaStart_InitScreen`, `_SreenFailIn`, `_InitBattleScreen` (debug 0, CLOSE arm), `_ExecEkrBattle6C` (`gBanimBG == 0` arm); draws, `NewEkr*` starts behind hooks | f1464..1496 and f14431..14467 callback, cursor, timer, `x1..y2`, `gBattleDeamonActive`, proc-start hook order equal the dumps (no-run steps skipped); mutated `> 0xB` gate fails | BA-i1 | todo |
+| BA-p1b | PORT | `NewEkrWindowAppear`, `EkrWindowAppearMain`, `NewEkrNamewinAppear`, `EkrNamewinAppearDelay`/`Main`, `NewEkrBaseAppear`, `EkrBaseAppearMain` (type 0; register writes behind hooks) | timer, terminator, `ymax`, exist flags and end step equal the dumps in both windows; mutated `>= terminator` fails | BA-i1 | todo |
+| BA-p1c | PORT | `NewEkrBaseKaiten`, `EkrBaseKaitenMain` (CLOSE, type 0), `NewEkrUnitKakudai` (CLOSE), `UnitKakudaiPrepareAnimScript`, `UnitKakudaiMain`, `UnitKakudaiEndNop`, `ScriptBattleDeamon` (lock-false arm) | box, `left_pos`/`right_pos`, `valid_l/r`, timer, callback/cursor and gone steps equal the dumps; sprite/anim draws behind hooks | BA-i1 | todo |

@@ -50,6 +50,9 @@ public class SaveMenuState : SaveDrawSlotsParent {
     /** `scroll_cnt` (u8, 0x29): scroll frame counter cleared in `SaveMenu_InitScreen`. */
     public var scrollCnt: Int = 0
 
+    /** `difficulty` (u8, 0x2A): chosen new-game difficulty (`0..2`, or `3` when cancelled). */
+    public var difficulty: Int = 0
+
     /** `main_select` (u8, 0x2B): current index in the main menu list. */
     public var mainSelect: Int = 0
 
@@ -203,6 +206,11 @@ public class SaveMenuPostChapter(
          * `StartSaveDraw(proc)` called from `SaveMenu_InitScreen`; wired by [wireSaveDraw].
          */
         public var startSaveDraw: (Proc) -> Proc? = { null },
+        /**
+         * `ProcScr_SaveMenu` (`PC-9d`, not ported yet); searched by
+         * [saveMenuSetDifficultyChoice].
+         */
+        public var saveMenuProcScript: ProcScript? = null,
     )
 
     /**
@@ -301,6 +309,24 @@ public class SaveMenuPostChapter(
         state.mainSelBitfile = PostSaveMenu.MAIN_MENU_OPTION_INVALID
         state.unk31 = 0
         state.unk2f = POST_CHAPTER_MENU_X_OFFSET
+    }
+
+    /**
+     * Finds the running `ProcScr_SaveMenu` proc via [Hooks.saveMenuProcScript] and writes the
+     * selected [difficulty] (`0..2`, or `3` when cancelled) and [b] (`unk_3d`) onto its
+     * [SaveMenuState].
+     *
+     * Transcribed from src/savemenu.c: SaveMenu_SetDifficultyChoice (not verified:
+     * `ProcScr_SaveMenu` itself is `PC-9d`, so tests pass a stand-in `ProcScript`; the null-proc
+     * guard, `difficulty` values `0`/`2`/`3`, and non-zero `b` are unexercised in
+     * `ram_trace_newgame`; `difficulty = 1` and `b = 0` on an active proc are verified at `f1060`)
+     */
+    public fun saveMenuSetDifficultyChoice(difficulty: Int, b: Int) {
+        val script = hooks.saveMenuProcScript ?: return
+        val proc = engine.find(script) ?: return
+        val state = proc.state as SaveMenuState
+        state.difficulty = difficulty and BYTE_MASK
+        state.unk3d = b and BYTE_MASK
     }
 
     /**
@@ -524,5 +550,8 @@ public class SaveMenuPostChapter(
 
         /** Mask for `BGxCNT` priority bits 0..1. */
         private const val BG_PRIORITY_MASK = 3
+
+        /** Low-byte mask for `u8` struct fields (`difficulty`, `unk_3d`). */
+        private const val BYTE_MASK = 0xFF
     }
 }

@@ -1,17 +1,23 @@
 package fe8.testing
 
 import fe8.game.RomView
+import fe8.game.bm.BmSt
 import fe8.game.bm.PlaySt
+import fe8.game.save.BmSaveLib
 import fe8.game.savemenu.DifficultyMenu
 import fe8.game.savemenu.DifficultyMenuSpritesState
 import fe8.game.savemenu.DifficultyMenuState
 import fe8.game.savemenu.SaveDrawProc
+import fe8.game.savemenu.SaveMenuPostChapter
 import fe8.game.savemenu.SaveMenuState
 import fe8.game.text.Fe8Text
+import fe8.game.worldmap.GmData
 import gba.core.VerifiesPort
+import gba.core.sram.CartSram
 import gba.testkit.ReferenceData
+import gbafe.core.rng.RngService
+import gbafe.input.KeyStatus
 import gbafe.proc.Proc
-import gbafe.proc.ProcFunc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
@@ -23,28 +29,43 @@ import gbafe.text.MsgStrings
 import gbafe.text.TextHost
 import gbafe.text.TextSystem
 import java.io.File
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.Timeout
 
 /**
- * (No capture data is held in fields: each test builds its own rig and reads dumps on demand.)
- * `PC-9a` against `ram_trace_newgame` (steps 981..1089): the lifecycle of
- * `ProcScr_NewGameDifficultySelect` and the screen it builds. The capture has no per-step proc
- * watch, so the proc is decoded from the EWRAM dumps (`ProcArrayDump.ofEwram`). Frame lag makes
- * the init step boundaries unusable (the init spans steps 982..984), so the screen is compared
- * where it is settled: step 985 (before the fade-in), f1020 (video regions) and step 1088 (end).
- * The key handler (`PC-9b`, confirm at step 1060) and the sprite child (`PC-9c`) are stand-ins.
+ * `PC-9a` / `PC-9b` against `ram_trace_newgame` (steps 981..1089): the lifecycle of
+ * `ProcScr_NewGameDifficultySelect`, screen setup, real `inputs.bin` key handling (`Down` at
+ * `f1030`, `A` at `f1060`), description redraw, `sub_80AC680` cursor move seeding, sound-effect
+ * hooks, and `SaveMenu_SetDifficultyChoice` on a `ProcScr_SaveMenu` stand-in parent. The sprite
+ * loop (`PC-9c`) and `ProcScr_SaveMenu` (`PC-9d`) are stand-ins.
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Timeout(300)
 class DifficultyMenuDifferentialTest {
+    private var cachedRun: ReferenceData.Run? = null
+    private var cachedRomBytes: ByteArray? = null
+
+    @AfterAll
+    fun releaseReferenceData() {
+        cachedRun = null
+        cachedRomBytes = null
+    }
+
     private class Rig(val run: ReferenceData.Run, val romBytes: ByteArray) {
         val rom = RomView.ofRom(romBytes)
         val engine = ProcEngine()
         val hardware = BgHardware()
         val playSt = PlaySt()
+        val keys = KeyStatus()
         val fade = ArchivedPaletteFade(PaletteFade(hardware, engine), hardware, engine)
         val host = object : TextHost {
             override fun language(): Int = 1
@@ -84,20 +105,30 @@ class DifficultyMenuDifferentialTest {
             ),
             0x0815D48C - 0x08000000,
         )
-        val menu = DifficultyMenu(engine, hardware, rom, playSt, text, messages, fade)
-        val names = ProcArrayDump.romNames()
-        var frame = 0
-        var loopStart = -1
-        var confirmAt = -1
-        lateinit var parent: Proc
-        var spritesStarts = 0
-
-        init {
-            menu.hooks.keyHandler = ProcFunc { proc ->
-                // PC-9b stand-in: confirm (Proc_Goto(proc, 1)) at the captured frame.
-                if (loopStart >= 0 && frame == confirmAt) engine.goto(proc, 1)
-            }
-            menu.hooks.startSprites = { p ->
+        val saveMenuScript = ProcScript("ProcScr_SaveMenu", listOf(block())) { SaveMenuState() }
+        val saveMenuPostChapter = SaveMenuPostChapter(
+            engine,
+            hardware,
+            playSt,
+            BmSt(),
+            GmData(ByteArray(0x8000), RngService()),
+            BmSaveLib(CartSram()),
+            fade,
+        ).also { it.hooks.saveMenuProcScript = saveMenuScript }
+        val sounds = ArrayList<Int>()
+        val menu = DifficultyMenu(
+            engine,
+            hardware,
+            rom,
+            playSt,
+            text,
+            messages,
+            fade,
+            keys = keys,
+        ).also { m ->
+            m.hooks.playSoundEffect = { id -> sounds += id }
+            m.hooks.setDifficultyChoice = saveMenuPostChapter::saveMenuSetDifficultyChoice
+            m.hooks.startSprites = { p ->
                 spritesStarts++
                 engine.start(
                     ProcScript("DrawDifficultyMenuSprites stand-in", listOf(block())) {
@@ -107,6 +138,10 @@ class DifficultyMenuDifferentialTest {
                 )
             }
         }
+        val names = ProcArrayDump.romNames()
+        var frame = 0
+        lateinit var parent: Proc
+        var spritesStarts = 0
 
         fun ewram(step: Int) = run.region(dump(step), "ewram")
 
@@ -123,15 +158,15 @@ class DifficultyMenuDifferentialTest {
             hardware.lcd.readFrom(iw, GLCD_CONTROL - IWRAM)
             for (bg in 0..3) hardware.setMapDataOffset(bg, 0x6000 + bg * 0x800)
             playSt.decode(ew, GPLAYST - EWRAM)
+            keys.readFrom(ew, GKEYSTATUS - EWRAM)
             text.resetText()
-            val saveMenu = ProcScript("ProcScr_SaveMenu", listOf(block())) { SaveMenuState() }
-            parent = engine.start(saveMenu, 3)
+            parent = engine.start(saveMenuScript, 3)
             val state = parent.state as SaveMenuState
             val savedraw = engine.start(
                 ProcScript("ProcScr_savedraw", listOf(block())) { SaveDrawProc() },
                 parent,
             )
-            (savedraw.state as SaveDrawProc).unk29 = ewram(step)[0x24E68 + 3 * 0x6c + 0x29].toInt()
+            (savedraw.state as SaveDrawProc).unk29 = ew[0x24E68 + 3 * 0x6c + 0x29].toInt()
             state.savedraw = savedraw
         }
 
@@ -143,16 +178,24 @@ class DifficultyMenuDifferentialTest {
     }
 
     private fun rig(): Rig {
-        val ref = ReferenceData.fromEnvironment()
-        val romFile = File(
-            System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets",
-            "baserom.gba",
-        )
-        assumeTrue(ref.available && romFile.isFile, "ROM / reference data not present")
-        assumeTrue(ProcArrayDump.romNames().isNotEmpty(), "decomp nm file not present")
-        val run = ref.run(RUN)
-        assumeTrue(run.dumps.containsKey("r00981"), "$RUN not present")
-        return Rig(run, romFile.readBytes())
+        var run = cachedRun
+        var romBytes = cachedRomBytes
+        if (run == null || romBytes == null) {
+            val ref = ReferenceData.fromEnvironment()
+            val romFile = File(
+                System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets",
+                "baserom.gba",
+            )
+            assumeTrue(ref.available && romFile.isFile, "ROM / reference data not present")
+            assumeTrue(ProcArrayDump.romNames().isNotEmpty(), "decomp nm file not present")
+            val loadedRun = ref.run(RUN)
+            assumeTrue(loadedRun.dumps.containsKey("r00981"), "$RUN not present")
+            run = loadedRun
+            romBytes = romFile.readBytes()
+            cachedRun = run
+            cachedRomBytes = romBytes
+        }
+        return Rig(run, romBytes)
     }
 
     /** The capture's difficulty proc cursor at [step]: its script position, or -1 when gone. */
@@ -165,61 +208,120 @@ class DifficultyMenuDifferentialTest {
         ProcArrayDump.ofEwram(r.ewram(step), r.names).find(name) != null
 
     @Test
-    @Timeout(120)
     @VerifiesPort(
         "DifficultySelect_Init",
         "DifficultySelect_OnEnd",
         "InitDifficultySelectScreen",
         "DrawDifficultyModeText",
         "sub_80AC034",
+        "sub_80AC680",
     )
-    fun `lifecycle, settled screen and end match steps 981 to 1089`() {
+    fun `lifecycle, settled screen, selection input and end match steps 981 to 1089`() {
         val r = rig()
         r.seed(981, "f00962")
-        r.confirmAt = Int.MAX_VALUE
         val proc = r.menu.newNewGameDifficultySelect(r.parent)
         assertNotNull(proc)
         val state = proc!!.state as DifficultyMenuState
+        val saveMenu = r.parent.state as SaveMenuState
 
-        // Settled init: run until the sleep after the init call (script index 5, step 984).
-        val cursors = ArrayList<Int>()
-        val fadeIn = ArrayList<Boolean>()
-        val fadeOut = ArrayList<Boolean>()
-        var checked985 = false
-        var frames = 0
-        while (frames++ < 400) {
+        // Settled init: one frame advances past yield -> init -> sleep(1) (cursor 5, step 985).
+        r.runFrame()
+        assertEquals(5, proc.scrCur, "settled init cursor")
+        compareSettled(r, state)
+        val sprites = state.spritesProc!!.state as DifficultyMenuSpritesState
+
+        val sel0TextVram = r.run.region("f01020", "vram")
+            .copyOfRange(TEXT_VRAM_START, TEXT_VRAM_END)
+        val sel1TailVram = r.run.region("f01100", "vram")
+            .copyOfRange(TEXT_TAIL_VRAM_START, TEXT_VRAM_END)
+
+        val portPath = ArrayList<Int>()
+        val portFadeIn = ArrayList<Boolean>()
+        val portFadeOut = ArrayList<Boolean>()
+        val steps = 986..1088
+        for (step in steps) {
+            r.keys.update(r.run.inputs[step - 1])
             r.runFrame()
             val cur = if (proc.script == null) -1 else proc.scrCur
-            cursors += cur
-            fadeIn += r.fade.exists()
-            fadeOut += r.fade.fadeOutExists()
-            if (cur == 5 && !checked985) {
-                checked985 = true
-                compareSettled(r, state, proc)
-            }
-            if (cur == 10 && r.loopStart < 0) {
-                r.loopStart = r.frame
-                // Capture: cursor 10 first at step 1003, confirm handled in the frame of 1060.
-                // The handler runs before the frame counter is incremented, hence the - 1.
-                r.confirmAt = r.frame + (1060 - 1003) - 1
-            }
-            if (cur == -1) break
-        }
-        assertTrue(checked985, "reached the settled init point")
-        assertTrue(cursors.last() == -1, "proc ended")
+            portPath += cur
+            portFadeIn += r.fade.exists()
+            portFadeOut += r.fade.fadeOutExists()
 
-        // Observed cursor path from the fade-in on, against the dumps from step 986.
-        val capPath = (986..1088).map { capCursor(r, it) }
-        val first7 = cursors.indexOf(7)
-        val portPath = cursors.subList(first7, cursors.size)
+            if (step == 1020) {
+                r.hardware.flushBackgrounds()
+                assertEquals(0, r.hardware.modifiedBgs, "BG sync cleared at f1020")
+            }
+
+            if (step in 1003..1087) {
+                val ew = r.ewram(step)
+                val dump = ProcArrayDump.ofEwram(ew, r.names)
+                val dmDump = dump.find("ProcScr_NewGameDifficultySelect")!!
+                val spDump = dump.find("gProcScr_DrawDifficultyMenuSprites")!!
+                val smDump = dump.find("ProcScr_SaveMenu")!!
+
+                assertEquals(
+                    dmDump.u8(0x30),
+                    state.currentSelection,
+                    "current_selection at f$step",
+                )
+                assertEquals(
+                    spDump.u8(0x2B),
+                    sprites.currentSelection,
+                    "sprite selection at f$step",
+                )
+                assertEquals(smDump.u8(0x2A), saveMenu.difficulty, "saveMenu.difficulty at f$step")
+                assertEquals(smDump.u8(0x3D), saveMenu.unk3d, "saveMenu.unk_3d at f$step")
+
+                val expBg0 = (0 until 0x400).map { u16(ew, BG0_TILEMAP - EWRAM + it * 2) }
+                val actBg0 = r.hardware.mapBuffer(0).map { it.toInt() and 0xFFFF }
+                assertEquals(expBg0, actBg0, "BG0 tilemap at f$step")
+            }
+
+            if (step == 1030) {
+                val spDump = ProcArrayDump.ofEwram(r.ewram(step), r.names)
+                    .find("gProcScr_DrawDifficultyMenuSprites")!!
+                assertEquals(spDump.u8(0x29) and 1 != 0, sprites.flags0, "sprites.flags_0 at f1030")
+                assertEquals(spDump.u16(0x30), sprites.unk30, "sprites.unk_30 at f1030")
+                assertEquals(spDump.u16(0x32), sprites.unk32, "sprites.unk_32 at f1030")
+                assertEquals(spDump.u16(0x34), sprites.unk34, "sprites.unk_34 at f1030")
+                assertEquals(spDump.u16(0x36), sprites.unk36, "sprites.unk_36 at f1030")
+                assertEquals(listOf(0x66), r.sounds, "cursor sound at f1030")
+                assertTrue(r.hardware.modifiedBgs and 1 != 0, "BG0 sync requested at f1030")
+
+                val actFullTextVram = r.hardware.vram.copyOfRange(TEXT_VRAM_START, TEXT_VRAM_END)
+                assertFalse(
+                    sel0TextVram.contentEquals(actFullTextVram),
+                    "text VRAM redrawn for selection 1 at f1030",
+                )
+                assertArrayEquals(
+                    sel1TailVram,
+                    r.hardware.vram.copyOfRange(TEXT_TAIL_VRAM_START, TEXT_VRAM_END),
+                    "selection 1 text VRAM 0x1280..0x2180 matches f01100",
+                )
+            }
+
+            if (step == 1060) {
+                val dmDump = ProcArrayDump.ofEwram(r.ewram(step), r.names)
+                    .find("ProcScr_NewGameDifficultySelect")!!
+                assertEquals(listOf(0x66, 0x6A), r.sounds, "confirm sound at f1060")
+                assertEquals(dmDump.u32(0x2C), state.unk2c, "unk_2c at f1060")
+                assertEquals(0, dmDump.u32(0x0C), "capture idleCb cleared at f1060")
+                assertNull(proc.idleCb, "port idleCb cleared at f1060")
+                assertEquals(1, saveMenu.difficulty, "saveMenu.difficulty at f1060")
+                assertEquals(0, saveMenu.unk3d, "saveMenu.unk_3d at f1060")
+            }
+        }
+        assertEquals(-1, portPath.last(), "proc ended at step 1088")
+
+        // Observed cursor path and fade lifetimes from step 986..1088.
+        val capPath = steps.map { capCursor(r, it) }
         assertEquals(capPath, portPath, "cursor per step from the fade-in (steps 986..1088)")
-        val capFadeIn = (986..1088).map { capExists(r, it, "ProcScr_BmFadeIN") }
-        assertEquals(capFadeIn, fadeIn.subList(first7, fadeIn.size), "fade-in proc per step")
-        val capFadeOut = (986..1088).map { capExists(r, it, "ProcScr_BmFadeOUT") }
-        assertEquals(capFadeOut, fadeOut.subList(first7, fadeOut.size), "fade-out proc per step")
+        val capFadeIn = steps.map { capExists(r, it, "ProcScr_BmFadeIN") }
+        assertEquals(capFadeIn, portFadeIn, "fade-in proc per step")
+        val capFadeOut = steps.map { capExists(r, it, "ProcScr_BmFadeOUT") }
+        assertEquals(capFadeOut, portFadeOut, "fade-out proc per step")
 
         // OnEnd: savedraw.unk_29 is 1 again (step 1088), the parent is unblocked.
-        val saveMenu = r.parent.state as SaveMenuState
         assertEquals(1, (saveMenu.savedraw!!.state as SaveDrawProc).unk29)
         assertEquals(
             r.ewram(1088)[0x24E68 + 3 * 0x6c + 0x29].toInt(),
@@ -227,9 +329,10 @@ class DifficultyMenuDifferentialTest {
             "unk_29 at step 1088",
         )
         assertEquals(0, r.parent.lockCnt, "parent unblocked")
+        assertEquals(listOf(0x66, 0x6A), r.sounds, "exact sound sequence across run")
     }
 
-    private fun compareSettled(r: Rig, state: DifficultyMenuState, proc: Proc) {
+    private fun compareSettled(r: Rig, state: DifficultyMenuState) {
         val ew = r.ewram(985)
         // unk_29 cleared by init (step 983 on).
         assertEquals(
@@ -268,11 +371,9 @@ class DifficultyMenuDifferentialTest {
     }
 
     @Test
-    @Timeout(120)
     fun `video at f1020 equals the capture`() {
         val r = rig()
         r.seed(981, "f00962")
-        r.confirmAt = Int.MAX_VALUE
         val proc = r.menu.newNewGameDifficultySelect(r.parent)!!
         var frames = 0
         while (proc.scrCur != 10 && frames++ < 100) r.runFrame()
@@ -306,10 +407,14 @@ class DifficultyMenuDifferentialTest {
         const val PAL_TEXT = 0x0859EF00
         const val GPALETTE = 0x020228A8
         const val BG0_TILEMAP = 0x02022CA8
+        const val GKEYSTATUS = 0x02024CC0
         const val GPLAYST = 0x0202BCF0
         const val GLCD_CONTROL = 0x03003080
         const val PAL_ANIMATED = 337
         const val DISP_ENABLE_MASK = 0x1F00
+        const val TEXT_VRAM_START = 0x1000
+        const val TEXT_TAIL_VRAM_START = 0x1280
+        const val TEXT_VRAM_END = 0x2180
 
         fun dump(step: Int): String =
             (if (step in intArrayOf(962, 1020, 1100, 1225)) "f%05d" else "r%05d").format(step)

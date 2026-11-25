@@ -3,6 +3,7 @@ package fe8.game.savemenu
 import fe8.game.RomView
 import fe8.game.bm.PlaySt
 import fe8.game.ui.UiFrame
+import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcArgFunc
 import gbafe.proc.ProcBoolFunc
@@ -27,10 +28,17 @@ import gbafe.text.TextSystem
 
 /**
  * The fields of `struct DifficultyMenuSpritesProc` (`include/savemenu.h`) that the difficulty
- * screen's lifecycle writes. The sprite proc itself belongs to `PC-9c`; its state object must be
- * (or extend) this class so [DifficultyMenu.initDifficultySelectScreen] can seed it.
+ * screen's lifecycle and key handler write. The sprite proc itself belongs to `PC-9c`; its state
+ * object must be (or extend) this class so [DifficultyMenu.initDifficultySelectScreen] and
+ * [DifficultyMenu.startDifficultyCursorMove] can update it.
  */
 public class DifficultyMenuSpritesState {
+    /**
+     * `flags_0` (+0x29 bit 0): set by [DifficultyMenu.startDifficultyCursorMove] to start cursor
+     * movement (`PC-9c`).
+     */
+    public var flags0: Boolean = false
+
     /** `flags_1` (+0x29 bit 1): set while the cursor moves (read by the key handler, `PC-9b`). */
     public var flags1: Boolean = false
 
@@ -42,6 +50,18 @@ public class DifficultyMenuSpritesState {
 
     /** `unk_2e` (+0x2E, `s16`): cursor Y target, from `gUnknown_08A209FC[selection].b`. */
     public var unk2e: Int = 0
+
+    /** `unk_30` (+0x30, `u16`): move start X, set by [DifficultyMenu.startDifficultyCursorMove]. */
+    public var unk30: Int = 0
+
+    /** `unk_32` (+0x32, `u16`): move start Y, set by [DifficultyMenu.startDifficultyCursorMove]. */
+    public var unk32: Int = 0
+
+    /** `unk_34` (+0x34, `u16`): move target X set by [DifficultyMenu.startDifficultyCursorMove]. */
+    public var unk34: Int = 0
+
+    /** `unk_36` (+0x36, `u16`): move target Y set by [DifficultyMenu.startDifficultyCursorMove]. */
+    public var unk36: Int = 0
 }
 
 /** The proc fields of `struct DifficultyMenuProc` (`include/savemenu.h`) past `PROC_HEADER`. */
@@ -66,10 +86,10 @@ public class DifficultyMenuState {
 }
 
 /**
- * The new-game difficulty select screen (`src/difficultymenu.c`, PC-9a): the blocking proc
- * `ProcScr_NewGameDifficultySelect` with its screen setup and end callback. The per-frame key
- * handler (`PC-9b`) and the sprite child (`PC-9c`) run through [hooks]. Not wired into the live
- * New Game flow (PC-9 WIRE).
+ * The new-game difficulty select screen (`src/difficultymenu.c`, PC-9a/PC-9b): the blocking proc
+ * `ProcScr_NewGameDifficultySelect` with its screen setup, description drawing, key handler, and
+ * end callback. The sprite child (`PC-9c`), sound effects, and `SaveMenu_SetDifficultyChoice`
+ * run through [hooks]. Not wired into the live New Game flow (`PC-9` WIRE).
  */
 public class DifficultyMenu(
     /** The proc scheduler running the screen. */
@@ -86,21 +106,27 @@ public class DifficultyMenu(
     private val messages: MsgStrings,
     /** Archived palette fade (`NewFadeIn`, `NewFadeOut`, `FadeInExists`, `FadeOutExists`). */
     private val fade: ArchivedPaletteFade,
-    /** Callbacks for the parts owned by later tasks. */
+    /** Callbacks for the parts owned by other tasks. */
     public val hooks: Hooks = Hooks(),
+    /** Key status (`gKeyStatusPtr`) read by [difficultySelectLoopKeyHandler]. */
+    private val keys: KeyStatus = KeyStatus(),
 ) {
-    /** Parts of the screen owned by other tasks; the defaults do nothing. */
+    /** Parts of the screen owned by other tasks or host wiring. */
     public class Hooks(
         /**
-         * `DifficultySelect_Loop_KeyHandler` (`PC-9b`), the `PROC_REPEAT` of label 0. The
-         * default does nothing, so the proc never leaves the loop.
+         * `DifficultySelect_Loop_KeyHandler` (`PC-9b`), the `PROC_REPEAT` of label 0. When null,
+         * [script] runs [difficultySelectLoopKeyHandler]; callers or tests may override it.
          */
-        public var keyHandler: ProcFunc = ProcFunc { },
+        public var keyHandler: ProcFunc? = null,
         /**
          * `StartDrawDifficultyMenuSprites(parent)` (`PC-9c`): starts the sprite child and returns
          * it; its [Proc.state] must be a [DifficultyMenuSpritesState]. Null: no sprites.
          */
         public var startSprites: (Proc) -> Proc? = { null },
+        /** `PlaySoundEffect(songId)` called by [difficultySelectLoopKeyHandler]. */
+        public var playSoundEffect: (songId: Int) -> Unit = {},
+        /** `SaveMenu_SetDifficultyChoice(difficulty, b)` called on confirm or cancel. */
+        public var setDifficultyChoice: (difficulty: Int, b: Int) -> Unit = { _, _ -> },
     )
 
     /**
@@ -119,7 +145,10 @@ public class DifficultyMenu(
             callArg(ProcArgFunc { speed, proc -> fade.newFadeIn(speed, proc); true }, 8),
             whileTrue(ProcBoolFunc { fade.exists() }),
             label(LABEL_LOOP),
-            repeat(ProcFunc { hooks.keyHandler.invoke(it) }),
+            repeat(ProcFunc { proc ->
+                val handler = hooks.keyHandler
+                if (handler != null) handler.invoke(proc) else difficultySelectLoopKeyHandler(proc)
+            }),
             label(LABEL_CONFIRM),
             sleep(10),
             label(LABEL_CANCEL),
@@ -218,11 +247,86 @@ public class DifficultyMenu(
     }
 
     /**
+     * Handles D-pad Up/Down selection changes (`repeatedKeys`), waits while the cursor animates
+     * (`flags1`), and confirms (`A`/`Start` -> `LABEL_CONFIRM`) or cancels (`B` -> `LABEL_CANCEL`)
+     * on `newKeys`.
+     *
+     * Transcribed from src/difficultymenu.c: DifficultySelect_Loop_KeyHandler (not verified:
+     * `DPAD_UP`, `2 -> 0` wrap, `sprites.flags1 == true` block, `START_BUTTON`, selections `0`
+     * and `2` confirm, `unk2c = 0` over already-zero `unk2c`, and `B_BUTTON` cancel are
+     * unexercised in `ram_trace_newgame`; `DPAD_DOWN` `0 -> 1` at `f1030` and selection `1`
+     * `A_BUTTON` confirm at `f1060` are verified)
+     */
+    public fun difficultySelectLoopKeyHandler(proc: Proc) {
+        val state = proc.state as DifficultyMenuState
+        var hasChanged = false
+
+        if (keys.repeatedKeys and DPAD_UP != 0) {
+            state.currentSelection =
+                if (state.currentSelection == 0) MAX_SELECTION else state.currentSelection - 1
+            hasChanged = true
+        } else if (keys.repeatedKeys and DPAD_DOWN != 0) {
+            state.currentSelection =
+                if (state.currentSelection == MAX_SELECTION) 0 else state.currentSelection + 1
+            hasChanged = true
+        }
+
+        val sprites = state.spritesProc?.state as? DifficultyMenuSpritesState
+        if (hasChanged) {
+            hooks.playSoundEffect(SONG_SE_SYS_CURSOR_UD1)
+            if (sprites != null) {
+                sprites.currentSelection = state.currentSelection
+                startDifficultyCursorMove(
+                    sprites,
+                    cursorTarget(state.currentSelection, 0),
+                    cursorTarget(state.currentSelection, 1),
+                )
+            }
+            drawDifficultyModeText(state)
+            putDifficultyModeText(state)
+            return
+        }
+
+        if (sprites?.flags1 == true) return
+
+        if (keys.newKeys and (A_BUTTON or KeyStatus.START_BUTTON) != 0) {
+            state.unk2c = 0
+            hooks.playSoundEffect(SONG_SE_SYS_WINDOW_SELECT1)
+            when (state.currentSelection) {
+                0, 1, MAX_SELECTION -> hooks.setDifficultyChoice(state.currentSelection, 0)
+            }
+            engine.goto(proc, LABEL_CONFIRM)
+        }
+
+        if (keys.newKeys and B_BUTTON != 0) {
+            state.unk2c = 0
+            hooks.playSoundEffect(SONG_SE_SYS_WINDOW_CANSEL1)
+            hooks.setDifficultyChoice(DIFFICULTY_CANCEL, 0)
+            engine.goto(proc, LABEL_CANCEL)
+        }
+    }
+
+    /**
+     * Begins a cursor move on [sprites] from its current `(unk2c, unk2e)` to `(x, y)`.
+     *
+     * Ported from src/difficultymenu.c: sub_80AC680
+     */
+    public fun startDifficultyCursorMove(sprites: DifficultyMenuSpritesState, x: Int, y: Int) {
+        sprites.unk30 = sprites.unk2c and U16_MASK
+        sprites.unk32 = sprites.unk2e and U16_MASK
+        sprites.unk34 = x and U16_MASK
+        sprites.unk36 = y and U16_MASK
+        sprites.flags0 = true
+    }
+
+    /**
      * Draws the description text of the current selection into the five strips (one per `[NL]`).
      *
      * Partially ported from src/difficultymenu.c: DrawDifficultyModeText (owned by `PC-9b`;
-     * verified: selection 0, as drawn at init, through the BG0 tilemap and text VRAM; not
-     * verified: selections 1 and 2)
+     * verified: selection 0 full text VRAM `0x1000..0x2180` at `f1020`, and selection 1 text VRAM
+     * `0x1280..0x2180` preserved at `f1100` after clearing and redrawing on `Down` at `f1030`;
+     * not verified: selection 1 prefix `0x1000..0x1280` overwritten by `SaveMenuInitSubBoxText`
+     * before `f1100`, and selection 2)
      */
     public fun drawDifficultyModeText(state: DifficultyMenuState) {
         for (i in 0 until DifficultyMenuState.TEXT_LINES) text.clearText(state.texts[i])
@@ -247,8 +351,9 @@ public class DifficultyMenu(
      * Clears the description box on BG0 and puts the five text strips on it.
      *
      * Partially ported from src/difficultymenu.c: sub_80AC034 (owned by `PC-9b`; verified: the
-     * five `PutText` calls for selection 0; not verified: the box clear, since BG0 is already
-     * blank when init calls it)
+     * five `PutText` calls at init and `BG0_SYNC_BIT` at `f1030`; not verified: the box clear,
+     * since BG0 is already `0` outside the columns overwritten by `PutText` both at init and at
+     * `f1030`)
      */
     public fun putDifficultyModeText(state: DifficultyMenuState) {
         val bg0 = hardware.mapBuffer(0)
@@ -311,6 +416,17 @@ public class DifficultyMenu(
 
         /** `gTextIds_DifficultyDescription`: three `u16` message ids. */
         public const val TEXT_IDS_DIFFICULTY_DESCRIPTION: Int = 0x08A20A08
+
+        private const val A_BUTTON = 1 shl 0
+        private const val B_BUTTON = 1 shl 1
+        private const val DPAD_UP = 1 shl 6
+        private const val DPAD_DOWN = 1 shl 7
+        private const val SONG_SE_SYS_CURSOR_UD1 = 0x66
+        private const val SONG_SE_SYS_WINDOW_SELECT1 = 0x6A
+        private const val SONG_SE_SYS_WINDOW_CANSEL1 = 0x6B
+        private const val MAX_SELECTION = 2
+        private const val DIFFICULTY_CANCEL = 3
+        private const val U16_MASK = 0xFFFF
 
         private const val CURSOR_TARGET_STRIDE = 4
         private const val OBJ_TILES_OFFSET = 0x10800

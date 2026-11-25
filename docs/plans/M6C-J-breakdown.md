@@ -1460,6 +1460,16 @@ unobserved. No new capture is needed for PC-9a itself. Not wired: the New Game s
 `Fe8Boot.newGameSaveMenu` still writes difficulty 1 directly; PC-9 WIRE calls
 `DifficultyMenu.newNewGameDifficultySelect(saveMenuProc)` (`ProcScr_SaveMenu` is not ported).
 
+PC-9b result (2026-11-25): `DifficultyMenuDifferentialTest` extended over `ram_trace_newgame` (real `inputs.bin`:
+`Down` at f1030, `A` at f1060). Ported: `sub_80AC680` (`startDifficultyCursorMove`; `unk_30..36` and `flags_0` match
+the capture's sprite proc at f1030; 5 break-checks killed). Transcribed (branches the capture does not run):
+`DifficultySelect_Loop_KeyHandler` (only `Down` 0 -> 1 and `A` on selection 1 observed; Up, wrap, Start, selections
+0/2, `flags_1` block and B cancel unexercised; 4 break-checks on the observed branch killed: selection step, cursor
+sound, choice value, `Proc_Goto` label) and `SaveMenu_SetDifficultyChoice`
+(`difficulty` 1 and `unk_3d` 0 match at f1060, 2 break-checks killed; `ProcScr_SaveMenu` is a stand-in until PC-9d).
+`DrawDifficultyModeText` and `sub_80AC034` stay Partially ported (selection 1 prefix and selection 2 unobserved).
+Remaining capture gap (PC-9cap): Up/wrap, Start, selection 0/2 confirm, B cancel, held-key repeat during the cursor move.
+
 ## EP-11f2 UI helper follow-up (2026-11-21)
 
 EP-11f2 evidence: event.c EventEngine_OnEnd -> ReadGameSaveCoreGfx (event type 5); bm.c ReadGameSaveCoreGfx -> ResetText; fontgrp.c ResetText -> InitTextFont -> InitSystemTextFont, ApplyPalette(Pal_Text, palid), color 0 zero. Capture f3720->3721 color 14 tested through production TalkScene host, full bank compared. Other event-end mid-frame VRAM timing exclusions remain as existing tests. Face fade uses default layout; other SetupFaceGfxData layouts remain unsupported. No new port tags or mutation checks.

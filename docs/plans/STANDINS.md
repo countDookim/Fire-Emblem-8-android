@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 254 across 58 Kotlin files.
+Total entries: 255 across 58 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -33,6 +33,7 @@ Total entries: 254 across 58 Kotlin files.
 | EP-7 | 2 |
 | IS-2 | 1 |
 | PC-4f | 1 |
+| PC-9d | 1 |
 | PC-cap1 | 2 |
 | PP-10 | 1 |
 | PP-17 | 1 |
@@ -349,6 +350,12 @@ Total entries: 254 across 58 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `getChapterIndexOnWmNode` | Stand-in (PC-4f) until ported. |
+
+## PC-9d (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `saveMenuSetDifficultyChoice` | Transcribed from src/savemenu.c: SaveMenu_SetDifficultyChoice (not verified: `ProcScr_SaveMenu` itself is `PC-9d`, so tests pass a stand-in `ProcScript`; the null-proc guard, `difficulty` values `0... |
 
 ## PC-cap1 (2)
 

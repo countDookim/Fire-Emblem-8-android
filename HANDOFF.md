@@ -24,10 +24,11 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-6e-c: Gemini owner PC, until ~04:44Z (`wip/pc6ec`, 2026-11-25).
 
 
 ## Current state
+
+- 2026-11-25 04:32Z owner PC Gemini (Pro agent): **PC-6e-c done (`997d7e4e`).** Extracted `gProcScr_TalkSkipListener` into `fe8.game.scene.TalkSkipListener` (`TalkScene`/`TalkRig` share it; `TalkSkipListener_OnIdle` Partially ported against `PC-cap1` `f10534..10820` & `f25390..25405`), verified `ProcScr_EventDisplayCursor` (`EventDisplayCursor_Loop`/`PutMapCursor`) across all 5 Ch1 cursor windows + `OAM[0..3]` (`f15600`, `f20300`), and wired `Fe8Boot.endEventTalk` (`endTalk`/`endCgText`/`endBoxDialogue`). `EndTalk`, `EndCgText`, `sub_808BB74`, `ResetBkselPalette`, `ResumeMenu`, and `ChangeUnitSpritePalette` stay Transcribed per Rule 4 (target procs never exist in `PC-cap1` `f10297..25580` and `mapSpritePalIdOverride == 0`; tail teardown `f25420 -> f25422` verified). `Chapter1TeardownDifferentialTest` (3 ok, 5 break-checks), `Chapter1*` (6 suites, 19 ok), `:game:jvmTest` (89 ok), `:game:dokkaGenerate`, `standins.py`/`unverified.py --check`, game-text guard green.
 
 - 2026-11-25 04:21Z owner PC Gemini (Pro agent): **PC-6l-a done (`a48d58b3`).** `ClearUnit` Ported (`UnitLoader.kt`, r10298 dirty Prologue red slots cleared); `EventLoadUnitWithMovement`, `ModifyMoveUnitFlag`, `TryPrepareEventUnitMovement`, `ShouldUNITBeLoaded`, `IsUnitSlotAvailable`, `LoadUnit_800F704`, and `sub_800F8A8` Partially ported (`EventUnitLoads.kt`/`UnitLoader.kt`; deduplicated shared helpers with `EventMoveUnit.kt`); `GenUnitDefinitionFinalPosition` stays Transcribed (mutation to `(0, 0)` survives W1). Verified in `Chapter1EnemyLoadDifferentialTest` (`PC-cap1` W1 `f10298..10378`, 18 break-check mutations); `Chapter1*` (16 ok), `EventUnitLoadsTest`/`MoveUnitDifferentialTest`/`UnitLoaderDifferentialTest` (16 ok), `:game:jvmTest` (89 ok), `:game:dokkaGenerate`, `standins.py`/`unverified.py --check`, game-text guard green.
 

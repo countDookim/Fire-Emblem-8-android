@@ -319,9 +319,20 @@ public class GameControl(
     }
 
     /**
+     * Starts the title-to-save-menu BGM volume change (`StartBgmVolumeChange(0x100, 0xC0, 0x20,
+     * 0)`: `sMusicProc2Script` in proc tree 3), which runs through the save menu's setup.
+     *
+     * Ported from src/gamecontrol.c: sub_8009AD8 (verified: proc fields and run length in
+     * `ram_trace_title_continue` f921..f975)
+     */
+    public fun sub8009AD8() {
+        sound.startBgmVolumeChange(0x100, 0xC0, 0x20, null)
+    }
+
+    /**
      * Branches after the op anim or the title screen on `nextAction`: title (op anim skipped),
      * title with flag (game played through), class reel or op anim (alternating on `idle_status`),
-     * save menu (event return; its `sub_8009AD8` music volume change is not modelled).
+     * save menu (event return, after [sub8009AD8]).
      *
      * Partially ported from src/gamecontrol.c: GameControl_PostIntro
      */
@@ -329,7 +340,10 @@ public class GameControl(
         val state = proc.state as State
         when (state.nextAction) {
             GAME_ACTION_USR_SKIPPED -> engine.goto(proc, LGAMECTRL_TITLE_DIRECT)
-            GAME_ACTION_EVENT_RETURN -> engine.goto(proc, LGAMECTRL_EXEC_SAVEMENU)
+            GAME_ACTION_EVENT_RETURN -> {
+                engine.goto(proc, LGAMECTRL_EXEC_SAVEMENU)
+                sub8009AD8()
+            }
             GAME_ACTION_CLASS_REEL -> {
                 val targetLabel = if (state.idleStatus and 1 == 0) {
                     LGAMECTRL_CLASS_REEL

@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 254 across 58 Kotlin files.
+Total entries: 256 across 59 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -38,7 +38,7 @@ Total entries: 254 across 58 Kotlin files.
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 33 |
+| unassigned | 35 |
 
 ## M6-B (13)
 
@@ -381,7 +381,7 @@ Total entries: 254 across 58 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (33)
+## unassigned (35)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -416,5 +416,7 @@ Total entries: 254 across 58 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `newGame` | Stand-in (not ported). |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `writeNewGame` | Stand-in (not ported). |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSlotFlip.kt` | `modifySaveSlot` | Stand-in (not ported). |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuStart.kt` | `getValidMenuAmt` | `SaveMenuGetValidMenuAmt(MAIN_MENU_OPTION_EXTRAS, proc)`, the number of valid Extras entries; a stand-in (returns 0) until the Extras return path is ported. |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuStart.kt` | `saveMenuLoadExtraMenuGraphics` | Partially ported from src/savemenu.c: SaveMenu_LoadExtraMenuGraphics (verified: the fresh-start branch (`main_sel_bitfile` 0x100) and the main loop label at f943 of the title runs; not verified: th... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `biosPlaySt` | Stand-in for the BIOS bytes `IsGameNotFirstChapter` reads: a non-zero `chapterIndex`. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `saveMenuInitSaveSlotData` | The port passes [biosPlaySt], a stand-in `PlaySt` that gives that answer, so bit 0 of `unk_3a` is always set for a valid game slot. |

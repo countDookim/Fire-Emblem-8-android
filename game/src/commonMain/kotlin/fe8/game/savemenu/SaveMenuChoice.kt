@@ -113,8 +113,9 @@ public class SaveMenuChoice(
          * The [number]th set bit of the low 8 bits of [bitfile] as a mask, or `0xFF` (the
          * original returns `-1` as `u8`).
          *
-         * Transcribed from src/savemenu.c: SaveMenuGetBitfile (not verified: no capture window
-         * calls it)
+         * Partially ported from src/savemenu.c: SaveMenuGetBitfile (verified: items 0 and 1 of
+         * options `0x2B` against the title runs; not verified: the `-1` result when [number] is
+         * past the last set bit, which no run reaches)
          */
         public fun saveMenuGetBitfile(bitfile: Int, number: Int): Int {
             var count = 0

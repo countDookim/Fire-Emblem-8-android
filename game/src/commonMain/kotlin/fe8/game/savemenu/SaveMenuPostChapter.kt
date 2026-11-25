@@ -368,6 +368,15 @@ public class SaveMenuPostChapter(
             }
         }
 
+        setupSaveMenuScreenLcd()
+    }
+
+    /**
+     * The tail shared by `SaveMenu_SetLcdChapterIdx` and `SaveMenu_Init`: resets the help text
+     * state, sets up the four backgrounds from `gBgConfig_SaveMenu`, hides every layer, sets
+     * mode 0, BG priorities 0..3 and the alpha blend setup.
+     */
+    public fun setupSaveMenuScreenLcd() {
         initSaveMenuHelpTextSt()
 
         hardware.setupBackgrounds(BG_CONFIG_SAVE_MENU)

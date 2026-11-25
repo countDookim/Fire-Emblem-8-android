@@ -150,8 +150,11 @@ public class EventUnitLoads(
     }
 
     /**
-     * Transcribed from src/eventscr.c: EventLoadUnitWithMovement (not verified: mocked MU capacity;
-     *   no trace comparison yet)
+     * Partially ported from src/eventscr.c: EventLoadUnitWithMovement (verified: non-skipping red
+     *   load loop in Ch1 W1 f10298..f10358, MU-throttle early return saving unitLoadCount and
+     *   retaining callback, count decrement, and completion clear of unitLoadCount/chance/callback;
+     *   not verified: EV_STATE_SKIPPING silent branch, !shouldUnitBeLoaded skip continue,
+     *   param == 2 summon, and count <= 0 early exit before charIndex == 0)
      *
      * The walking load, run once by [event2cLoadUnits] and then as the proc's callback each frame
      * until every definition is loaded;
@@ -188,20 +191,17 @@ public class EventUnitLoads(
     }
 
     /**
-     * Transcribed from src/eventscr.c: TryPrepareEventUnitMovement (not verified: mocked host; no
-     *   trace comparison yet)
-     *
      * Whether a unit may start walking in at ([x], [y]): with the unit camera on
      * (`EV_STATE_UNITCAM`), no camera move may exist or be started to show the tile, and an MU
      * slot must be free.
      */
-    public fun tryPrepareEventUnitMovement(proc: EventEngineProc, x: Int, y: Int): Boolean {
-        if (proc.evStateBits and EV_STATE_UNITCAM != 0) {
-            if (host.camMoveExists()) return false
-            if (host.ensureCameraOntoPosition(proc, x, y)) return false
-        }
-        return host.canStartMu()
-    }
+    public fun tryPrepareEventUnitMovement(proc: EventEngineProc, x: Int, y: Int): Boolean =
+        tryPrepareEventUnitMovement(
+            proc,
+            { host.camMoveExists() },
+            { host.ensureCameraOntoPosition(proc, x, y) },
+            { host.canStartMu() },
+        )
 
     /** Reads [count] `UnitDefinition`s (20 bytes each: 0x14) from ROM [address]. */
     private fun readDefs(address: Int, count: Int): List<UnitDef> =
@@ -227,8 +227,9 @@ public class EventUnitLoads(
         pid in SETH_LARACHEL_MYRRH_INNES
 
     /**
-     * Transcribed from src/bmunit.c: IsUnitSlotAvailable (not verified: synthetic slot fill; no
-     *   trace comparison yet)
+     * Partially ported from src/bmunit.c: IsUnitSlotAvailable (verified: free red slot scan
+     *   0x81..0xB2 returning true during Ch1 W1; not verified: full-table false return when all
+     *   50 red slots are occupied)
      *
      * Whether there is an available unit slot in [faction] (faction + 1 until faction + 0x40).
      */
@@ -240,8 +241,10 @@ public class EventUnitLoads(
     }
 
     /**
-     * Transcribed from src/eventscr.c: ShouldUNITBeLoaded (not verified: synthetic dead unit and
-     *   tile cases; no trace comparison yet)
+     * Partially ported from src/eventscr.c: ShouldUNITBeLoaded (verified: red allegiance acceptance
+     *   with REDA and available red slot in Ch1 W1; not verified: blue dead-unit skip/exemption
+     *   for param 0/1/2, non-red early return, occupied-tile check when !sumFlag && redaCount == 0,
+     *   and full red table rejection)
      *
      * Whether [def] is to be loaded for load parameter [param]: a player-allegiance (0) character
      * who is dead is skipped for parameter 0 and, unless Seth, L'Arachel, Innes or Myrrh, for 2
@@ -322,19 +325,12 @@ public class EventUnitLoads(
     }
 
     /**
-     * Transcribed from src/eventscr.c: ModifyMoveUnitFlag (not verified: test restates bit
-     *   combinations; no trace comparison yet)
-     *
      * The move flags for a load: bit 0 if [unk], bit 2 with the unit camera
      * (`EV_STATE_UNITCAM`), bit 3 with `EV_STATE_0040`. The decomp has a TODO for naming the
      * bits; their meaning is not documented there.
      */
-    public fun modifyMoveUnitFlag(proc: EventEngineProc, unk: Boolean): Int {
-        var result = if (unk) 1 else 0
-        if ((proc.evStateBits and EV_STATE_UNITCAM) != 0) result = result or 4
-        if ((proc.evStateBits and EV_STATE_0040) != 0) result = result or 8
-        return result
-    }
+    public fun modifyMoveUnitFlag(proc: EventEngineProc, unk: Boolean): Int =
+        fe8.game.event.modifyMoveUnitFlag(proc, unk)
 
     private companion object {
         /** `US_DEAD`: the unit is dead. */
@@ -343,4 +339,39 @@ public class EventUnitLoads(
         /** Character ids of Seth, L'Arachel, Innes and Myrrh. */
         val SETH_LARACHEL_MYRRH_INNES = intArrayOf(0x02, 0x19, 0x0B, 0x1E)
     }
+}
+
+/**
+ * Partially ported from src/eventscr.c: TryPrepareEventUnitMovement (verified: CanStartMu
+ *   throttling at 4 MU slots releasing on f10347, f10352, f10358 with EV_STATE_UNITCAM clear;
+ *   not verified: EV_STATE_UNITCAM camera-move check and wait)
+ *
+ * Shared by [EventUnitLoads] and [EventMoveUnit]: whether a unit walk may start on this frame.
+ */
+internal inline fun tryPrepareEventUnitMovement(
+    proc: EventEngineProc,
+    camMoveExists: () -> Boolean,
+    ensureCameraOntoPosition: () -> Boolean,
+    canStartMu: () -> Boolean,
+): Boolean {
+    if (proc.evStateBits and EV_STATE_UNITCAM != 0) {
+        if (camMoveExists()) return false
+        if (ensureCameraOntoPosition()) return false
+    }
+    return canStartMu()
+}
+
+/**
+ * Partially ported from src/eventscr.c: ModifyMoveUnitFlag (verified: unk == true bit 0 passed to
+ *   LoadUnit_800F704 and MuCtrlProc.flags in Ch1 W1 f10298..f10378; not verified: unk == false,
+ *   EV_STATE_UNITCAM bit 2, and EV_STATE_0040 bit 3)
+ *
+ * Shared by [EventUnitLoads] and [EventMoveUnit]: builds the MU movement flags from [unk] and
+ * `proc.evStateBits` (`EV_STATE_UNITCAM` -> bit 2, `EV_STATE_0040` -> bit 3).
+ */
+internal fun modifyMoveUnitFlag(proc: EventEngineProc, unk: Boolean): Int {
+    var result = if (unk) 1 else 0
+    if ((proc.evStateBits and EV_STATE_UNITCAM) != 0) result = result or 4
+    if ((proc.evStateBits and EV_STATE_0040) != 0) result = result or 8
+    return result
 }

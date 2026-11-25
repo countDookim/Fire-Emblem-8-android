@@ -1743,7 +1743,14 @@ Functions entered (decomp chains; `Ported` / `Transcribed` per `Ported from`/`Tr
   `StartMuExt`/`MuExists`: `Transcribed`.
 - `Event2F_MoveUnit`, `Event30_ENUN`: `Ported` but verified for end tiles only; `Event30` also runs
   `RefreshEntityBmMaps`, `RefreshUnitSprites`, `RenderBmMap` (`Ported`). `Event34` (`DISA`/`KILL`/`DISA_IF`) is
-  owned by `PC-6e-a`; `ClearUnit` `Transcribed`; `UnitKill` `Ported`.
+  owned by `PC-6e-a`; `ClearUnit` `Ported` (`PC-6l-a`); `UnitKill` `Ported`.
+- `PC-6l-a` W1 (`f10298..10378`, `Chapter1EnemyLoadDifferentialTest`): `ClearUnit` `Ported`;
+  `EventLoadUnitWithMovement`, `ModifyMoveUnitFlag`, `TryPrepareEventUnitMovement`, `ShouldUNITBeLoaded`,
+  `IsUnitSlotAvailable`, `LoadUnit_800F704`, and `sub_800F8A8` `Partially ported` (VBlank frames
+  `10299/10300` overrun `Event2C_LoadUnits` and `10347/10352/10358` overrun `gBmSt.mainLoopEnded == 0`;
+  `r10298` `gUnitArrayRed[0..6]` holds dirty Prologue bytes so `ClearUnit` is exercised; Ch1 applies
+  `easyModeLevelMalus == 0` / bonus 0; `sub_800F8A8` takes `MuCtr_StartDefinedMove` with `MoveUnit_`/`MoveUnitExt`
+  unentered); `GenUnitDefinitionFinalPosition` stays `Transcribed` (mutation to `(0, 0)` survives W1).
 
 PORT rows (each one window, <= 8 functions; verify-or-port against the `f`-windows above):
 `PC-6l-a` W1 load path (`EventLoadUnitWithMovement`, `ModifyMoveUnitFlag`, `TryPrepareEventUnitMovement`,

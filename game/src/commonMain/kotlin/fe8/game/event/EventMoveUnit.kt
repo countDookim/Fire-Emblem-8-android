@@ -9,9 +9,7 @@ import fe8.game.event.EventConst.EVC_ADVANCE_CONTINUE
 import fe8.game.event.EventConst.EVC_ADVANCE_YIELD
 import fe8.game.event.EventConst.EVC_ERROR
 import fe8.game.event.EventConst.EVC_STOP_YIELD
-import fe8.game.event.EventConst.EV_STATE_0040
 import fe8.game.event.EventConst.EV_STATE_SKIPPING
-import fe8.game.event.EventConst.EV_STATE_UNITCAM
 
 /**
  * What the unit move commands reach outside the MU (movement unit: the walking map sprite) and
@@ -44,8 +42,9 @@ public interface EventMoveUnitHost {
  * `TryPrepareEventUnitMovement` and `ModifyMoveUnitFlag`.
  *
  * Verification: `MoveUnitDifferentialTest` compares the blue units' end tiles after the opening
- * moves with `ram_trace_first_phase` r19400 (not the per-frame walk). The helpers and [MuCtrl]
- * are untagged.
+ * moves with `ram_trace_first_phase` r19400 (not the per-frame walk). `TryPrepareEventUnitMovement`
+ * and `ModifyMoveUnitFlag` share the implementations in [EventUnitLoads] (`EventUnitLoads.kt`);
+ * [MuCtrl] is untagged.
  *
  * @param state the event slots (`gEventSlots[0xD]` and the slot queue hold the defined moves).
  * @param memory script words (the command arguments).
@@ -73,40 +72,28 @@ public class EventMoveUnit(
         engine.register(0x30, event30Enun)
     }
 
-    /**
-     * Transcribed from src/eventscr.c: TryPrepareEventUnitMovement (not verified: no @VerifiesPort
-     * test names it).
-     *
-     * Whether the walk may start now. With the unit camera on (`EV_STATE_UNITCAM`, "camera
-     * follows unit movement") no camera scroll may be running, and starting one towards the
-     * unit's tile ([x], [y]) counts as not ready (the command is retried next frame). Then an MU
-     * slot must be free (`CanStartMu`: some `sMuConfig` entry has `slot == 0`).
-     */
-    private fun tryPrepare(proc: EventEngineProc, x: Int, y: Int): Boolean {
-        if (proc.evStateBits and EV_STATE_UNITCAM != 0) {
-            if (host.camMoveExists()) return false
-            if (host.ensureCameraOntoPosition(proc, x, y)) return false
-        }
-        return mu.configs.any { it.slot == 0 }
-    }
+    /** Delegates to [tryPrepareEventUnitMovement] using [host] and [mu]. */
+    private fun tryPrepare(proc: EventEngineProc, x: Int, y: Int): Boolean =
+        tryPrepareEventUnitMovement(
+            proc,
+            { host.camMoveExists() },
+            { host.ensureCameraOntoPosition(proc, x, y) },
+            {
+                val configs = mu.configs
+                var free = false
+                for (i in 0 until configs.size) {
+                    if (configs[i].slot == 0) {
+                        free = true
+                        break
+                    }
+                }
+                free
+            },
+        )
 
-    /**
-     * Transcribed from src/eventscr.c: ModifyMoveUnitFlag (not verified: no @VerifiesPort test
-     * names it).
-     *
-     * The flags word passed to the MU control walk and [MuCtrl.moveUnit] (`flagsB` in
-     * src/muctrl.c). Bit 0 is [unk], the command's `modify` sub-command bit: the walk may
-     * relocate the destination (`AiGetUnitClosestValidPosition`, src/muctrl.c:526-532). Bit 2
-     * (value 4) with `EV_STATE_UNITCAM`: the MU drags the camera along (`EnableMuCamera`,
-     * src/muctrl.c:448). Bit 3 (value 8) with `EV_STATE_0040` (set by `EVBIT_MODIFY`): the MU
-     * config gets `0x40` (src/muctrl.c:441; that config bit's meaning is not known).
-     */
-    private fun moveFlags(proc: EventEngineProc, unk: Boolean): Int {
-        var result = if (unk) 1 else 0
-        if (proc.evStateBits and EV_STATE_UNITCAM != 0) result = result or 4
-        if (proc.evStateBits and EV_STATE_0040 != 0) result = result or 8
-        return result
-    }
+    /** Delegates to [modifyMoveUnitFlag]. */
+    private fun moveFlags(proc: EventEngineProc, unk: Boolean): Int =
+        modifyMoveUnitFlag(proc, unk)
 
     /**
      * Ported from src/eventscr.c: Event2F_MoveUnit (verified: end tiles only, see

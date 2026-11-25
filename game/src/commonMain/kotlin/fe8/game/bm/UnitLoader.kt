@@ -592,26 +592,21 @@ public class UnitLoader(
         StructCodec.u16(table.bytes, o + OFF_ITEMS + 2 * slot)
 
     /**
-     * Transcribed from src/eventscr.c: LoadUnit_800F704 (not verified: b is a guess and terrain is
-     *   stubbed)
-     * Transcribed from src/eventscr.c: sub_800F8A8 (not verified: no test checks it against a trace
-     *   yet)
-     * Transcribed from src/muctrl.c: MoveUnit_, MoveUnitExt (not verified: no test checks it
-     *   against a trace yet)
-     * Transcribed from src/bmunit.c: GetUnitFromCharIdAndFaction, UnitChangeFaction, CopyUnit (not
-     *   verified: no test checks it against a trace yet)
+     * Partially ported from src/eventscr.c: LoadUnit_800F704 (verified: new red-unit load in Ch1 W1
+     *   with real Chapter 1 terrain, def.x/def.y position overwrite, b = 1 forwarding, and
+     *   chapterLevelBonus call with Ch1 Normal bonus 0; not verified: existing blue-unit reload /
+     *   US_BIT22 / final-position bit-0 clear, UnitChangeFaction, and non-zero chapterLevelBonus)
      *
      * partial: the event engine's unit load. Finds the definition's character among the blue
      * units (moving it to the definition's faction if that is not blue), loads a new unit
      * otherwise, and sets its state bits and position. [b] are the move flags (bit 0 is cleared
      * when an existing blue unit already stands at its target), [quiet] the silent-load flag,
      * [d] the `load_unit2` flag (sets or clears `US_BIT22` of blue units). Not ported (throw
-     * [UnsupportedOperationException]): red characters from 0x3C on (`UnitApplyBonusLevels`
-     * with chapter data), `sumFlag` definitions, a non-zero terrain under a [b] bit 0 target
-     * (`AiGetUnitClosestValidPosition`), units rescuing or in a ballista (`UnitFinalizeMovement`)
-     * and, for a definition with REDAs, the non-quiet walk (`MuCtr_StartDefinedMove`). The
-     * `gActiveUnit` update of `UnitChangeFaction`, and the `RefreshEntityBmMaps` /
-     * `RefreshUnitSprites` after the move, are left to the caller. Returns the unit's id.
+     * [UnsupportedOperationException]): `sumFlag` definitions, a non-zero terrain under a [b] bit
+     * 0 target (`AiGetUnitClosestValidPosition`), and units rescuing or in a ballista
+     * (`UnitFinalizeMovement`). The `gActiveUnit` update of `UnitChangeFaction`, and the
+     * `RefreshEntityBmMaps` / `RefreshUnitSprites` after the move, are left to the caller. Returns
+     * the unit's id.
      */
     public fun loadUnitForEvent(
         defAddress: Int,
@@ -649,8 +644,9 @@ public class UnitLoader(
             }
             table.setState(id, state)
             val o = table.unitOffset(id)
-            val x = if (def.redaCount != 0) lastReda(def) and 0x3F else def.x
-            val y = if (def.redaCount != 0) (lastReda(def) shr 6) and 0x3F else def.y
+            val finalPos = finalPositionOf(def)
+            val x = finalPos and 0xFF
+            val y = finalPos ushr 8
             if (s8(table.bytes, o + OFF_X) == x && s8(table.bytes, o + OFF_Y) == y) {
                 flags = flags and 1.inv()
             }
@@ -673,6 +669,12 @@ public class UnitLoader(
     private fun lastReda(def: UnitDef): Int = rom.u32(def.redas + 8 * (def.redaCount - 1))
 
     /**
+     * Partially ported from src/eventscr.c: sub_800F8A8 (verified: non-quiet REDA walk start via
+     *   MuCtr_StartDefinedMove with flags in Ch1 W1; not verified: sumFlag bit 1, redaCount == 0
+     *   MoveUnit_, quiet == true, and US_UNDER_A_ROOF MoveUnitExt)
+     * Transcribed from src/muctrl.c: MoveUnit_, MoveUnitExt (not verified: W1 uses REDA walks via
+     *   MuCtr_StartDefinedMove, never reaching the immediate-move branch)
+     *
      * The placement step of the event unit load: `sub_800F8A8` (src/eventscr.c) with `MoveUnit_` /
      * `MoveUnitExt` (src/muctrl.c) for the unit [id], without `RefreshEntityBmMaps` and
      * `RefreshUnitSprites`. Starts the REDA walk where the C does (a definition with REDAs, not
@@ -854,8 +856,7 @@ public class UnitLoader(
     }
 
     /**
-     * Transcribed from src/bmunit.c: ClearUnit (not verified: the traced loads fill slots that are
-     * already zero, so a skipped clear survives)
+     * Ported from src/bmunit.c: ClearUnit
      *
      * Zeroes the unit at byte offset [o] of the unit arrays but keeps its `index`.
      */
@@ -920,8 +921,9 @@ public class UnitLoader(
     }
 
     /**
-     * Transcribed from src/muctrl.c: GenUnitDefinitionFinalPosition (not verified: no test checks
-     *   it against a trace yet)
+     * Transcribed from src/muctrl.c: GenUnitDefinitionFinalPosition (not verified: LoadUnit_800F704
+     *   immediately overwrites xPos/yPos with def.x/def.y and no Chapter 1 tile is TERRAIN_ROOF,
+     *   so writing (0, 0) survives PC-cap1 W1 and RamTraceNewgameBm)
      *
      * partial: called with `findNearest == FALSE`. With `redaCount != 0` the position is the last
      * REDA's x/y (`AdjustNewUnitPosition` with flags 0 does nothing); a `sumFlag` definition
@@ -929,6 +931,13 @@ public class UnitLoader(
      * Otherwise the definition's own x/y; both are written to the unit at [o].
      */
     internal fun genUnitDefinitionFinalPosition(def: UnitDef, o: Int) {
+        val pos = finalPositionOf(def)
+        put8(table.bytes, o + OFF_X, pos and 0xFF)
+        put8(table.bytes, o + OFF_Y, pos ushr 8)
+    }
+
+    /** Computes `GenUnitDefinitionFinalPosition(def, &x, &y, FALSE)` as `x or (y shl 8)`. */
+    private fun finalPositionOf(def: UnitDef): Int {
         var x = def.x
         var y = def.y
         if (def.redaCount != 0) {
@@ -937,12 +946,11 @@ public class UnitLoader(
                     "GenUnitDefinitionFinalPosition: sumFlag (AdjustNewUnitPosition) not ported",
                 )
             }
-            val reda = rom.u32(def.redas + 8 * (def.redaCount - 1))
+            val reda = lastReda(def)
             x = reda and 0x3F
             y = (reda shr 6) and 0x3F
         }
-        put8(table.bytes, o + OFF_X, x)
-        put8(table.bytes, o + OFF_Y, y)
+        return (x and 0xFF) or ((y and 0xFF) shl 8)
     }
 
     /**

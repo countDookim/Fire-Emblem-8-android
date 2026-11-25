@@ -54,7 +54,7 @@ public class SaveMenuState : SaveDrawSlotsParent {
     public var difficulty: Int = 0
 
     /** `main_select` (u8, 0x2B): current index in the main menu list. */
-    public var mainSelect: Int = 0
+    public override var mainSelect: Int = 0
 
     /** `sus_slot` (u8, 0x2C): selected save slot index (0..2). */
     public override var susSlot: Int
@@ -73,10 +73,10 @@ public class SaveMenuState : SaveDrawSlotsParent {
     public override var unk2f: Int = 0
 
     /** `main_options` (u8, 0x30): bitfield of active main menu options (`MAIN_MENU_OPTION_*`). */
-    public var mainOptions: Int = 0
+    public override var mainOptions: Int = 0
 
     /** `unk_31` (u8, 0x31): number of visible main menu options. */
-    public var unk31: Int = 0
+    public override var unk31: Int = 0
 
     /** `extra_options` (u8, 0x32): bitfield of enabled Extras options (`EXTRA_MENU_OPTION_*`). */
     public var extraOptions: Int = 0

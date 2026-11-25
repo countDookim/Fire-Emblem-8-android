@@ -55,6 +55,9 @@ class SaveDrawSlotsDifferentialTest {
         override var approc: Proc? = null
         override var jumpLabel = 0
         override var unk2f = 0
+        override var mainSelect = 0
+        override var mainOptions = 0
+        override var unk31 = 0
         override var cursorSlot = 0
         override var cursorConfig = 0
         override var unk44 = 0

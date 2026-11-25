@@ -18,6 +18,15 @@ public interface SaveDrawSlotsParent : SaveMenuParent {
     /** `unk_2f` (+0x2F, `u8`): horizontal menu offset (`0xDC` once the slots are shown). */
     public val unk2f: Int
 
+    /** `main_select` (+0x2B, `u8`): index of the highlighted main menu option. */
+    public val mainSelect: Int
+
+    /** `main_options` (+0x30, `u8`): bitfield of the main menu options. */
+    public val mainOptions: Int
+
+    /** `unk_31` (+0x31, `u8`): number of main menu options. */
+    public val unk31: Int
+
     /** `cursor_slot` (+0x2D, `u8`): static cursor slot, `0xFF` when none is shown. */
     public val cursorSlot: Int
 
@@ -59,13 +68,10 @@ public class SaveDrawSlots(
     private val clock: () -> Int,
 ) {
     /**
-     * Stand-ins for the parts of `sub_80AAE90` / `sub_80AAF6C` that no capture runs (the option
-     * lists, which need `sub_80AABC4` / `sub_80AAC40`) and for `sub_80AB514`; each fails loudly
-     * until ported.
+     * Stand-ins for the part of `sub_80AAF6C` that no capture runs (the extras option list,
+     * which needs `sub_80AAC40`) and for `sub_80AB514`; each fails loudly until ported.
      */
     public class Hooks(
-        /** `sub_80AAE90` past its early exit (main menu option boxes). */
-        public var mainOptions: (Proc) -> Unit = { error("sub_80AAE90 body not ported") },
         /** `sub_80AAF6C` past its early exit (extras option boxes). */
         public var extraOptions: (Proc) -> Unit = { error("sub_80AAF6C body not ported") },
         /** `sub_80AB514(1, y, proc)`: the static second cursor. */
@@ -161,15 +167,39 @@ public class SaveDrawSlots(
     }
 
     /**
-     * Draws the main menu option boxes, which exist only while the menu is not fully scrolled to
-     * the slot list.
+     * Draws one main menu option box: the box frame on layer 4 at ([x], [y]) with palette
+     * [palIdA], then the option label [spriteIdx] 8 pixels right and down with palette [palIdB].
      *
-     * Transcribed from src/savedraw.c: sub_80AAE90 (not verified: early exit only,
-     * `unk_2f + unk_46 >= 220` is the only case PC-cap1 runs; the rest runs [Hooks.mainOptions])
+     * Ported from src/savedraw.c: sub_80AABC4
+     */
+    public fun sub80AABC4(x: Int, y: Int, spriteIdx: Int, palIdA: Int, palIdB: Int) {
+        layers.putExt(4, x and OAM1_X_MASK, y, sprite(SPRITE_BANNER), pal(palIdA))
+        layers.putExt(
+            4, (x + 8) and OAM1_X_MASK, y + 8, sprite(LABEL_TABLE, spriteIdx and 0xFF), pal(palIdB),
+        )
+    }
+
+    /**
+     * Draws the main menu option boxes, which exist only while the menu is not fully scrolled to
+     * the slot list, and moves the cursor onto the highlighted one while the main loop runs.
+     *
+     * Ported from src/savedraw.c: sub_80AAE90
      */
     public fun sub80AAE90(proc: Proc) {
         val menu = parent(proc)
-        if (menu.unk2f + menu.unk46 < 220) hooks.mainOptions(proc)
+        val xOffset = menu.unk2f + menu.unk46
+        if (xOffset >= 220) return
+        var y = 68 - ((menu.unk31 * 25) shr 1)
+        if (y < 2) y = 2
+        for (i in 0 until menu.unk31) {
+            val spriteIdx =
+                bitfileToIndex(SaveMenuChoice.saveMenuGetBitfile(menu.mainOptions, i))
+            val palA = if (i == menu.mainSelect) 1 else 6
+            sub80AABC4(48 - xOffset, y + i * 25, spriteIdx, palA, 4)
+        }
+        if (menu.jumpLabel == PL_SAVEMENU_MAIN_LOOP) {
+            cursor.sub80AB4F4(0, 28, y + menu.mainSelect * 25, proc)
+        }
     }
 
     /**
@@ -296,6 +326,8 @@ public class SaveDrawSlots(
         const val FRAMES_PER_MINUTE = 3600u
         const val FRAMES_PER_HOUR = 216000u
         const val EXTRA_MENU_OPTION_MAP = 1 shl 4
+        const val OAM1_X_MASK = 0x1FF
+        const val PL_SAVEMENU_MAIN_LOOP = 2
         const val PL_SAVEMENU_SAVE_SLOT_SEL = 5
         const val PL_SAVEMENU_SLOT_SELECTED = 6
 

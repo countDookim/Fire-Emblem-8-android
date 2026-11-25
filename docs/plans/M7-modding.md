@@ -182,3 +182,70 @@ code before deciding an interface. Each brief names files, signatures, semantics
 
 Publish author-facing API documentation and minimal original examples for each capability. No ROM-derived
 content goes into public examples. A texture/stat/script mod remains an early check, not milestone completion.
+
+### M7-24 result (boundary audit, 2026-11-25; code read only, no behaviour change)
+
+Paths: `game/.../fe8/game/` (`bm/` unless noted). "Hook" = a nullable `hooks.*` field or a `var` the boot code
+sets; none of the hooks below is a mod boundary today: they stand in for unported or cross-module services.
+
+**A. One enemy turn** (wired in `Fe8Boot.wirePlayerPhase`, ~l.1476-1520)
+
+| Step | Kotlin owner | Owned / shared state | Current hook | Proposed boundary |
+|---|---|---|---|---|
+| phase start, unit list | `CpPhase.aiPhaseInit/buildAiUnitList/sortAiUnitList` | `AiState` (owned); `UnitTable`, `PlaySt` (shared) | none (priority via `getUnitAiPriority`, plain fn) | `OrderPolicy`: ordered unit ids from a read-only state view; vanilla = current sort |
+| order loop | `CpPhase.cpOrderMain` -> `startCpDecide` | `AiState.orderState/unitIt` | none | stays engine-owned; mod only supplies the list above |
+| per-unit setup | `CpDecide.cpDecideMain` | writes `ActiveUnit` (shared with player phase), `AiState.unitIt/decideState`, `UnitTable` state bit US_HAS_MOVED_AI | `hooks.renderBmMap`, `refreshUnitSprites` (render only) | keep; setup is engine bookkeeping, not policy |
+| decide | `CpDecide.aiDecideMainFunc` (var, default `decideMainStep`) | `AiDecision` (owned, shared by reference with `CpPerform`/`CpEquip`), `AiState` | **only existing whole-decision seam**; also `tryExecScriptA/B`, `decideScriptA/B`, `specialItemFunc` | `AiStrategy.decide(view, out: AiDecision)`: whole-decision replacement writing `AiDecision` through `aiSetDecision`-style validated setter (M7-26) |
+| scripts | `CpScript` (`AiTry` hooks into `CpBattle`/`CpUtility`) | `AiState`, `cmdResult`; draws from `RngService` (shared global stream) | `CpScript.hooks.attemptOffensiveAction/tryDoStaff/moveTowardsEnemy` set in `CpPhase` init | targeting / movement / scoring strategies behind these three; mods must draw RNG only via the service so call order stays replayable |
+| scoring | `CpBattle.aiAttemptOffensiveAction`, `CpUtility` | `AiCombatSimulationSt` (owned), `BmBattle.battleUnits` (a var set by boot: shared scratch), `BmMap` danger/range maps (shared, written by `AiInitDangerMap`) | `hooks.battleGenerateSimulation` etc. (EP-12 stand-ins) | `ScoreFn(candidate) -> int`; simulation stays engine side, mod reads result only |
+| legality | none: `aiSetDecision` stores unchecked fields; `CpPerform` trusts `AiDecision` | - | none | validate decision (reachable tile, target in range, item owned) before `startCpPerform`; reject falls back to vanilla or wait |
+| perform | `CpPerform.script` via `decide.hooks.startCpPerform` | `CpPerformState`, `AiTargetCursorState`, `ActiveUnit.action` (`ActionData`, shared with player phase), `Mu`, `CamMove.fields` | `perform.hooks.*` (render, music, MU, fade) | keep engine side; actions go through `PlayerPhase.applyUnitAction` (see C) |
+| phase end | `CpPhase.aiPhaseCleanup`, `PhaseStartEnd` | `PlaySt.faction`, unit state bits | `main.hooks.cpPhase/berserkCpPhase` (proc scripts) | turn policy: M7-29 |
+
+Blockers: `ActiveUnit`/`ActionData`, `AiDecision` and `BmMap` are single shared mutable instances (no per-call
+view); `CpPhase`/`CpDecide` take 8-9 constructor collaborators and `CpPhase.utility/battle` are null unless
+loader+map+entity maps exist (partial wiring is possible only in tests); `CpEquip`, `CpPerform` and `CpUtility`
+keep references to the same `AiDecision`, so replacing the object, not its contents, breaks them.
+`CpPerform` handles only move-only and combat actions (others throw/skip), so a custom AI action has nowhere to land.
+
+**B. One camera scroll** (`Camera` object, `CamMove`, `BmSt`)
+
+| Step | Kotlin owner | Owned / shared state | Current hook | Proposed boundary |
+|---|---|---|---|---|
+| target from tile | `Camera.getCameraAdjustedX/Y`, `getCameraCenteredX/Y`, `storeAdjustedCameraPosition*` | stateless `object`; reads `BmSt.cameraX/Y/cameraMax*` | none (constants `MARGIN_*`, 15x10 window, hard-coded) | `CameraPolicy.target(bm view, tileX, tileY)`; margins/window as data |
+| scripted ease | `CamMove` (`ensureCameraOntoPosition`, `startCameraOntoPositionCentred`, `onInit/onLoop`) | `CamMove.fields` (one set shared by every `ProcScr_CamMove` proc, like the C), `animTable`; writes `BmSt.cameraX/Y` | boot injects the single instance into `PlayerPhase`, `CpPerform`, `PlayerPhaseWiring`, event code, `AttackMapSelect`, `EfxHpBar`, `MapAnimApi`; `camMoveExists` probes by `engine.find(script)` | one `CameraService` facade over `CamMove`; callers stop probing the proc |
+| cursor-follow scroll | `PlayerPhase.handleMoveCameraWithMapCursor/handleMoveMapCursor` (inside the player phase, steps 4/8 px) | writes `BmSt.cameraX/Y`, `unk32/34/36/37`, `playerCursorDisplayX/Y` | none | move out of `PlayerPhase` behind `CameraPolicy.follow`; biggest coupling |
+| apply to display | `BmMapRender`, `MapCursor`, sprites read `bm.cameraX/Y` directly | `BmSt` (single global, `loop.bmSt`) | none | `Viewport` transform (world->screen) read by renderers and hit-testing (M7-27) |
+
+Blockers: camera position is the shared `BmSt` fields in pixels, read directly by menus (`cursorScreenX =
+cursorTargetX - cameraX`), renderers and MU code, so a zoom or non-integer camera needs every reader moved to a
+transform first. `CamMove.fields` is global per script, so two simultaneous moves are impossible. The
+original-frame easing (`animTable`, `onLoop`) is ported and verified (`CamMoveDifferentialTest`,
+`CameraScrollDifferentialTest`); a replacement must keep vanilla as the default implementation of the same interface.
+
+**C. One player action** (select, move, choose action, apply)
+
+| Step | Kotlin owner | Owned / shared state | Current hook | Proposed boundary |
+|---|---|---|---|---|
+| read input | `PlayerPhase.playerPhaseMainIdle`, `handlePlayerCursorMovement`, `handleMapCursorInput` read `KeyStatus` (`newKeys`, `repeatedKeys`) and mask `A/B/L/R/START` back | `KeyStatus` (shared, mutated by the phase), `BmSt.playerCursor*`, `cursorTarget*` | `hooks.lButton/rButton/startButton/unitSelectEnabled` | `PlayerIntent` (select tile, confirm, cancel, menu item); a key adapter produces it; touch gives a tile directly |
+| select | `getPlayerSelectKind`, `unitBeginAction` | `ActiveUnit` (`unit`, `unitId`, move origin), `BmMap.unit/movement` | `hooks.canCharacterBePrepMoved` only | selectability predicate in the rules layer (M7-29) |
+| move range / path | `playerPhaseInitUnitMovementSelect`, `playerPhaseRangeDisplayIdle` (cursor-driven), `canMoveActiveUnitTo`, `MovementMap`, `PathArrow` | `BmMap.movement`, `workingMovementScript` (shared array; `CpPerform` reuses it) | `unitMenu.hooks.displayMoveRangeGraphics` etc. | `canMoveTo(x,y)` + path result; direct-tap destination needs no cursor stepping but today the range proc reads the cursor tile each frame |
+| action menu | `UnitActionMenu` + `MenuTargets` (`PlayerPhaseWiring.wireMenus`, ~25 `unitMenu.hooks.*` lambdas) | menu proc state, `SelectTargets` (player's own list) | per-entry `*TargetCount` hooks, `unportedUsability` | registered action list (id, availability, target lister, execute) replacing the fixed menu table |
+| prepare / apply | `playerPhasePrepareAction`, `applyUnitAction` (only COMBAT, WAIT, TRAPPED; others `check` fail), `CombatAction.actionCombat` | `ActionData.unitActionType`, `RngService` (call order is part of replay) | `hooks.applyUnitAction`, `hooks.actionCombat` (`ProcBoolFunc`) | `ActionRegistry[type] -> execute(proc)`; same entry used by `CpPerform` |
+| finish | `playerPhaseFinishAction`, `handlePostActionTraps`, `runPotentialWaitEvents` | unit state bits, event engine | `hooks.execTrap` | rules layer / turn policy (M7-29) |
+
+Blockers: input is polled inside the phase procs, so direct touch has to fake `newKeys`/cursor stepping today;
+the unit-action id space is an Int with `check` on unknown values (no registration); `PlayerPhase` has ~40 `hooks`
+and a 1600-line body mixing input, cursor, camera and rules.
+
+**Coupling summary.** Hard: `BmSt` camera/cursor fields (B, C), one shared `ActiveUnit`/`ActionData` and
+`AiDecision` (A, C), polled `KeyStatus` (C), `RngService` order (A, C). Soft (already an interface): `aiDecideMainFunc`,
+`CpScript.hooks.*`, `PlayerPhase.hooks.applyUnitAction/actionCombat`.
+
+**Follow-up rows (small, each one system; to add to TASKS when scheduled).**
+1. M7-26a: validate `AiDecision` before `startCpPerform` (legality), vanilla no-op test.
+2. M7-26b: `AiStrategy` interface over `aiDecideMainFunc`, vanilla default, replay test of one enemy turn.
+3. M7-27a: `CameraService` facade for the 9 `CamMove` callers; move cursor-follow scroll out of `PlayerPhase`.
+4. M7-27b: `Viewport` transform read by `BmMapRender`, `MapCursor`, menu cursor x.
+5. M7-28a: `PlayerIntent` input layer that `playerPhaseMainIdle` consumes; key adapter reproduces vanilla.
+6. M7-28b: `ActionRegistry` behind `applyUnitAction`/`CpPerform`; menu entries from the registry.

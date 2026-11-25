@@ -2232,3 +2232,36 @@ Proposed rows:
 | BA-p9b | PORT | `ekrGaugeMain` (control: `battle_init`/`valid`/hide arms, `hp_changed` and `gEkrGaugeHpBak` copy, x/y selection for CLOSE, rotate-scale arm select; OAM/VRAM/BG0 writes behind hooks), `EkrGauge_Setxy323A` | f1480..1993 `gEkrGaugeHpBak`, `x`/`y` per step (incl. 24 quake steps), hook call order per step equal the dumps; mutated `hp_changed` fails | BA-p9a | todo |
 | BA-p9c | PORT | `NewEkrDispUP`, `EkrDispUpClear4C50`, `EkrDispUP_SetPositionSync`/`Unsync`, `SyncEkrDispUP`/`UnsyncEkrDispUP`/`UnAsyncEkrDispUP`, `ekrDispUPMain` (sync/asnyc early returns; panel tilemap copy behind a hook) | f1480..1993 `sync`, `y`, hook calls (only while `sync == 0`) equal the dumps | BA-i5 | todo |
 | BA-p9d | PORT | `NewEfxWeaponIcon`, `sub_8054F10` (eff = 0 arm), `EndProcEfxWeaponIcon`, `NewEfxHpBarColorChange`, `EfxHPBarColorChangeMain` (HP <= 80 arm), `EndEfxHPBarColorChange`, `EfxAdvanceFrameLut` (LUT data read from the ROM loader) | f1505..1985 `timer`, `frame`, value fields, gone step and `gp*` pointers equal the dumps (no-run steps skipped); mutated `dur - 1` fails | BA-i5 | todo |
+
+## EP-12 result (source audit; no game code)
+
+Method: stand-in `Hooks` and "not verified" KDoc of `CpScript`, `CpDecide`, `CpBattle`, `CpPerform`, `CpEquip`, `CpUtility`,
+`CpPhase` (`game/.../fe8/game/bm/`). The checkout's `.assets/decomp/src` holds no `cp_*.c`, so command names below are the
+`AI_CMD_*` indices the port uses; decomp function names are as in the KDoc. Retail scenarios are by behaviour (who does it);
+chapter/unit pairs are "unconfirmed" until the CAP's ROM-side scan (find the AI script/flag in the chapter unit tables)
+names one. Written: commands 05, 06, 0E, 12, 03 only (03 has D23-cap).
+
+| Behaviour | Function / hook | Retail scenario | CAP row |
+|---|---|---|---|
+| Script commands 00..02, 04, 07..0D, 0F..11, 13..1B (move to coordinate/unit/character, action variants, flag/turn tests) | `CpScript.Hooks.unportedCommand` | Any enemy whose AI script byte is not the default attack-and-approach: e.g. a stationary or "move to point" boss/guard in Ch1..Ch5 (unconfirmed) | EP12-script-cap |
+| Script label 1C (C reads past the LUT) | `unportedCommand` 1C arm | Any script with a label; unconfirmed | EP12-script-cap |
+| Action command 05 with an ignore list; `AiIsUnitEnemyOrInScrList`, `AiIsUnitEnemyAndNotInScrList`, `AiIsInShortList` | `CpScript.cmdDoStandardAction` else-arm, 3 predicates | A unit that attacks only listed targets (e.g. a guard that ignores all but one character); unconfirmed | EP12-script-cap |
+| Fallback scripts | `AiExecFallbackScriptA/B` (`CpDecide.Hooks`) | An enemy whose script A/B tries all fail (e.g. a boxed-in unit); unconfirmed | EP12-script-cap |
+| Self heal / move to heal point | `DecideHealOrEscape` heal branch (`AiTryHealSelf`, `AiTryGetNearestHealPoint`, `AiTryMoveTowards`, `AiTryActionAfterMove`) | Wounded enemy with a healing item or near healing terrain, below its heal threshold | EP12-heal-cap |
+| Escape | `DecideHealOrEscape` escape branch (`AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove`) | Enemy with `AI_UNIT_FLAG_3` (escape) reaching its escape point; one with the point unreachable | EP12-escape-cap |
+| Berserk | `AiDoBerserkAction` / `AiDoBerserkMove`, `DecideScriptA/B` berserk arms | Enemy hit by a berserk staff or item (player Berserk staff on an enemy; late chapters, unconfirmed) | EP12-berserk-cap |
+| Ballista | `GetRiddenBallistaAt`, `TryRemoveUnitFromBallista`, `AiAttemptBallistaCombat`, `BattleGenerateBallistaSimulation`, `RideBallista` (`CpPerform`), `DecideScriptB` ballista arm | Enemy on or next to a ballista in a chapter with ballistae (unconfirmed); the no-ballista weapon loop is in the same CAP | EP12-ballista-cap |
+| Door key / lockpick, rogue special items | `specialItemFunc` (`AiSpecialItemDoorKey`, `Lockpick`), `rogueSpecialItems` (`sub_8040C5C`, `sub_8040B38/BB4/B8C`) | Thief/rogue enemy with a key or lockpick next to a door/chest (unconfirmed) | EP12-rogue-cap |
+| Antitoxin | `specialItemFunc` (`AiSpecialItemAntitoxin`) | Poisoned enemy holding Antitoxin (needs a poison source; unconfirmed) | EP12-antitoxin-cap |
+| Special item index lookup | `GetSpecialItemFuncIndex`, `AiTryDoSpecialItems`, `DecideSpecialItems` (seen once, no item) | Same as rogue/antitoxin | EP12-rogue-cap, EP12-antitoxin-cap |
+| Enemy staff use | `staffFunc` (`sAiStaffFuncLut`), `AiTryDoStaff`, `sub_803EC18`, `SetupUnitStatusStaffAIFlags`, `SetupUnitHealStaffAIFlags` | Enemy priest/shaman/cleric with a heal or status staff and a wounded ally (unconfirmed chapter) | EP12-staff-cap |
+| Magic seal | `magicSealMap` (`UnitHasMagicRank`, `GenerateMagicSealMap`) | Magic user enemy near a player unit that sealed magic (needs a Seal user; unconfirmed) | EP12-seal-cap |
+| Steal | `stealAction` (`AiAttemptStealActionWithinMovement`, `MarkMovementMapEdges`), `CA_STEAL` block | Enemy thief with `CA_STEAL` next to a player with a stealable item (unconfirmed) | EP12-steal-cap |
+| Score components | `AiGetOpponentLowHpScoreComponent`, `FriendZone*`, `TargetClass*`, `Turn*`, `DamageTaken*`, `Danger*`, `LowHp*`, `InRange*`, `Terrain*` and `AiGetCombatPositionScore` | An enemy choosing between 2+ targets/tiles with differing HP, terrain and friends (any Ch2+ phase with several player units in reach) | EP12-score-cap |
+| Equip choice | `AiEquipBestConsideringDanger`, `AiEquipBestMatch`, `CpPerform_EquipBest` | Enemy with 2+ weapons choosing by danger (same window as score) | EP12-score-cap |
+| Danger/reach helpers | `AiCheckDangerAt`, `AiReachesByBirdsEyeDistance`, `AiCouldReachByBirdsEyeDistance` | Same window as score (danger arms) | EP12-score-cap |
+| Order / priority | `GetUnitBattleAiPriority`, `GetUnitAiPriority`, `SortAiUnitList` (equal priorities in the Prologue) | An enemy phase with units of different classes/AI priority (Ch1+) | EP12-score-cap |
+| Music/camera in perform | `CpPerform_UpdateMapMusic`, `CpPerform_MoveCameraOntoUnit` | Display only; no capture needed beyond any enemy phase with camera movement (EP-cap2 has it) | none (covered) |
+
+Existing rows kept: heal, escape, berserk, ballista, rogue, staff, seal, antitoxin. New: EP12-script-cap, EP12-steal-cap,
+EP12-score-cap. Gaps not assigned: none; scenarios marked unconfirmed need a ROM-side scan of the chapter unit/AI tables first.

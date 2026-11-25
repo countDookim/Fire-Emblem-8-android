@@ -36,7 +36,7 @@ EP-cap1/2.
 |---|---|---|---|---|---|
 | EP-10 | PORT | Phase end, split EP-10a..c: traps (bmtrick.c), trap display and post-battle counts, turn support exp. Also the event that starts f2403 (dialogue, waits for A) is EP-11 | See EP-10a..c; the proc tree rows of `EnemyPhaseInventoryTest` f2747..2851 and `EnemyPhaseInventory2Test` b | EP-1, EP-9 | todo |
 | D23-cap | CAP | Enemy acts in enemy phase 1, survives, acts again in phase 2 (gives `AiScriptCmd_03_Goto` its ground truth) | Run published; `CpScript.cmdGoto` verified | D-23 | todo |
-| EP-12 | INV | Map unentered AI hooks/commands to retail scenarios; source audit only | Coverage matrix by behavior; each gap assigned to one CAP below | EP-cap2 | todo |
+| EP-12 | INV | Map unentered AI hooks/commands to retail scenarios; source audit only | Coverage matrix by behavior; each gap assigned to one CAP below | EP-cap2 | partial: matrix in EP-12 result; confirm against decomp `src/cp_*.c` (git show) |
 | EP12-heal-cap | CAP | Enemy below heal threshold: one item heal and one turn moving to terrain healing | Heal choice, target tile, inventory/HP and action state at entry/return | EP-12 | todo |
 | EP12-escape-cap | CAP | One enemy escape action, including a turn with the escape point unreachable | Escape target, fallback action and movement map | EP-12 | todo |
 | EP12-berserk-cap | CAP | One berserk unit turn with attack, then no reachable target | Decision, faction filtering, move/attack state and RNG | EP-12 | todo |
@@ -45,6 +45,9 @@ EP-cap1/2.
 | EP12-staff-cap | CAP | One enemy healing-staff use; record nearest reachable valid target and no-target turn | Staff score, target, action, uses and HP | EP-12 | todo |
 | EP12-seal-cap | CAP | Enemy weapon selection inside and outside magic-seal range | Seal map, weapon usability and attack choice | EP-12 | todo |
 | EP12-antitoxin-cap | CAP | Poisoned enemy uses Antitoxin; observe following decision | Status, item consumption, action and proc state | EP-12 | todo |
+| EP12-script-cap | CAP | One enemy per unwritten script command group (move to point/unit, ignore list, fallback script), found by ROM-side scan of chapter AI scripts | Command index, predicate results, fallback taken and decision per step | EP-12 | todo |
+| EP12-steal-cap | CAP | One enemy thief turn with a stealable player item in movement range | Steal target, movement map, action and inventory | EP-12 | todo |
+| EP12-score-cap | CAP | One enemy phase choosing between 2+ targets/tiles and weapons (HP, terrain, friends differ) | Score components, chosen tile/target/weapon, priority order | EP-12 | todo |
 | EP12-heal-inv | INV | Inventory the heal AI scenario; only entered hooks and commands | Observed commands/callers and nondefault outcomes; add bounded PORT/WIRE rows | EP12-heal-cap | todo |
 | EP12-escape-inv | INV | Inventory the escape AI scenario; only entered hooks and commands | Observed commands/callers and nondefault outcomes; add bounded PORT/WIRE rows | EP12-escape-cap | todo |
 | EP12-berserk-inv | INV | Inventory the berserk AI scenario; only entered hooks and commands | Observed commands/callers and nondefault outcomes; add bounded PORT/WIRE rows | EP12-berserk-cap | todo |
@@ -324,7 +327,6 @@ Scenario scopes and stop conditions: [M6 task scopes](plans/M6-task-scopes.md).
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
 | M7 | — | Extensive data and executable logic mods; [scope and decisions](plans/M7-modding.md) | Complete all required capabilities, not just a texture/stat/script example | Reviewed design and implementation rows | staged; implementation choices remain open |
-| M7-24 | INV | Boundary audit of one enemy turn, one camera scroll and one player action; [details](plans/M7-modding.md#5-bounded-design-tasks-no-implementation-in-this-planning-revision) | Actual callers/ownership in CpDecide/CpBattle/CpUtility, BmSt/camera and PlayerPhaseWiring/input; identify hard coupling; small per-system follow-up rows | — | todo |
 | M7-25 | INV | Executable logic options only; `.fe8s` remains the event-script format; [details](plans/M7-modding.md#5-bounded-design-tasks-no-implementation-in-this-planning-revision) | Compare JVM/Android feasibility, author workflow, API access, determinism, cost/allocation, failure behavior and distribution constraints; one recommended D10 ADR proposal for owner review; no runtime code | M7-24 | todo |
 | M7-26 | INV | Enemy AI replacement contract for one enemy turn; [details](plans/M7-modding.md#5-bounded-design-tasks-no-implementation-in-this-planning-revision) | State view, targeting/movement/scoring and whole-decision boundaries; legality/ownership, RNG call order, custom state, conflict policy; split adapter/strategy/loader tasks and vanilla/mod tests | M7-24 | todo |
 | M7-27 | INV | Camera tracking and viewport contract for one map scene; [details](plans/M7-modding.md#5-bounded-design-tasks-no-implementation-in-this-planning-revision) | Separate logical world, camera, viewport and UI transforms; scope tracking, zoom and viewport implementation separately; original-frame parity and transformed hit-test cases | M7-24 | todo |
@@ -353,6 +355,7 @@ Readability remains owner-paused until ~2026-11-17 (HANDOFF).
 
 ## Done
 
+- **Claude 2026-11-25 (17:15Z, scheduled):** M7-24 (boundary audit of enemy turn, camera scroll, player action; [M7-modding](plans/M7-modding.md) "M7-24 result"; candidate rows M7-26a/b, M7-27a/b, M7-28a/b listed there, not yet in TASKS).
 - **Claude 2026-11-25 (17:10Z, scheduled):** PC-6e-c-speed (`Chapter1TeardownDifferentialTest` teardown 153 s -> 1.3 s: symbol lookups hoisted out of the f10297..25580 loop; same assertions; break-check `resumeGameplay` removal fails; `@Timeout(120)`).
 - **Claude 2026-11-25 (14:05Z, scheduled):** PC-9d (`fe8.game.savemenu.SaveMenuNewGame`, `NewGameSaveMenuDifferentialTest` on `ram_trace_newgame`: `SaveMenu_NewGame`, `_ResetLcdFormDifficulty`, `_PostDifficultHandler` Ported; `SaveMenuWriteNewGame`, `SaveMenu_SetDifficultyChoice` Partially (difficulty 1 only); `SaveMenu_ReloadScreenFormDifficulty` Transcribed; 7 break-checks). BUG-deadmovestat (dead actor's NULL char read = BIOS open-bus pid 4; capture shows pid 4 favval +2 at f2018/f2723; asserted in `CpPerformActionDifferentialTest`, break-checked).
 - **Gemini 2026-11-25 (12:53Z):** EP-11 (Prologue Normal-mode events & boss AI verified end-to-end in `PrologueBossEventWireTest` over `Fe8Boot`: one-enemy-left event `0x089EF0D8` at `f2386` -> flag `7`, Turn 2 boss turn event `0x089EF12C` at `f2964..3721` -> `CHAI` AI `[6,1,3,1]->[0,0,0,0]` at `f3719`, boss moves `(10,8)->(9,6)` in EP2 & moves `(9,6)->(8,5)` + attacks Eirika with combat/battle quote in EP3, clear replay reaches `EventScr_Prologue_EndingScene` with 0 `onEventStub` calls; `EP-11g` audio CAPs & `MANUAL_TEST` check remain open).

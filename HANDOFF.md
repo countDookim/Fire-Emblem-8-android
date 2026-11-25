@@ -25,7 +25,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 ## In progress
 
 - PC-8: owner PC, until ~09:00Z
-- PC-6l-d: owner PC (finishing `origin/wip/pc6ld`), until ~08:00Z
+- PC-6l-c: owner PC, until ~09:00Z
 
 
 ## Current state

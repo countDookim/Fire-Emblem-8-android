@@ -24,6 +24,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- PC-9d: owner PC, until ~14:38Z
+- BUG-deadmovestat: owner PC, until ~14:38Z
 
 ## Current state
 

@@ -2236,8 +2236,11 @@ Proposed rows:
 ## EP-12 result (source audit; no game code)
 
 Method: stand-in `Hooks` and "not verified" KDoc of `CpScript`, `CpDecide`, `CpBattle`, `CpPerform`, `CpEquip`, `CpUtility`,
-`CpPhase` (`game/.../fe8/game/bm/`). The checkout's `.assets/decomp/src` holds no `cp_*.c`, so command names below are the
-`AI_CMD_*` indices the port uses; decomp function names are as in the KDoc. Retail scenarios are by behaviour (who does it);
+`CpPhase` (`game/.../fe8/game/bm/`). Unwritten script commands (decomp `cp_script.c` `sAiScriptCmdTable`, checked by the parent): 00 `ConditionalGoto`,
+01 `FunctionCall`, 02 `ChangeAi`, 04 `ActionOnSelectedCharacter`, 07 `DoStandardActionNoMove`, 08 `DoStandardActionAgainstClass`,
+09/0A/0B `DoStaffAction`, 0C `MoveTowardsSetPoint`, 0D `MoveTowardsCharacterUntilInRange`, 0F `MoveTowardsUnitWithClass`,
+10 `DoLooting`, 11 `MoveTowardsSafety`, 13 (`AI_CMD_MOVE_TO_ENEMY_2`), 14/15 `DoNothing`, 16 `RandomMovement`, 17 `DoEscape`, 18 `TryAttackSnagWall`,
+19/1A `MoveTowardsTerrain`, 1B `NoOp` (all `AiScriptCmd_XX_*`). Other function names are as in the KDoc. Retail scenarios are by behaviour (who does it);
 chapter/unit pairs are "unconfirmed" until the CAP's ROM-side scan (find the AI script/flag in the chapter unit tables)
 names one. Written: commands 05, 06, 0E, 12, 03 only (03 has D23-cap).
 

@@ -36,7 +36,7 @@ EP-cap1/2.
 |---|---|---|---|---|---|
 | EP-10 | PORT | Phase end, split EP-10a..c: traps (bmtrick.c), trap display and post-battle counts, turn support exp. Also the event that starts f2403 (dialogue, waits for A) is EP-11 | See EP-10a..c; the proc tree rows of `EnemyPhaseInventoryTest` f2747..2851 and `EnemyPhaseInventory2Test` b | EP-1, EP-9 | todo |
 | D23-cap | CAP | Enemy acts in enemy phase 1, survives, acts again in phase 2 (gives `AiScriptCmd_03_Goto` its ground truth) | Run published; `CpScript.cmdGoto` verified | D-23 | todo |
-| EP-12 | INV | Map unentered AI hooks/commands to retail scenarios; source audit only | Coverage matrix by behavior; each gap assigned to one CAP below | EP-cap2 | partial: matrix in EP-12 result; confirm against decomp `src/cp_*.c` (git show) |
+| EP-12 | INV | Map unentered AI hooks/commands to retail scenarios; source audit only | Coverage matrix by behavior; each gap assigned to one CAP below | EP-cap2 | partial: command names checked; chapter scenarios unconfirmed (ROM scan in EP12-script-cap) |
 | EP12-heal-cap | CAP | Enemy below heal threshold: one item heal and one turn moving to terrain healing | Heal choice, target tile, inventory/HP and action state at entry/return | EP-12 | todo |
 | EP12-escape-cap | CAP | One enemy escape action, including a turn with the escape point unreachable | Escape target, fallback action and movement map | EP-12 | todo |
 | EP12-berserk-cap | CAP | One berserk unit turn with attack, then no reachable target | Decision, faction filtering, move/attack state and RNG | EP-12 | todo |

@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-24 23:28Z (scheduled: PC-8b, BA-p8a, BA-p8b); earlier 2026-11-24 22:40Z (owner PC: PC-7b, PC-6e-a, PC-8a, PC-6e-b); earlier 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-25 05:35Z (scheduled: BA-i1, BA-i5); earlier 2026-11-24 23:28Z (scheduled: PC-8b, BA-p8a, BA-p8b); earlier 2026-11-24 22:40Z (owner PC: PC-7b, PC-6e-a, PC-8a, PC-6e-b); earlier 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -24,14 +24,17 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- BA-i1: scheduled, until ~05:40Z.
-- BA-i5: scheduled, until ~05:40Z.
 - PC-8h: Gemini owner PC, until ~05:59Z (`wip/pc8h`, 2026-11-25).
 - PC-6l-d: Gemini owner PC, until ~05:59Z (`wip/pc6ld`, 2026-11-25).
 
 
 ## Current state
 
+- 2026-11-25 ~05:35Z scheduled (Sonnet agents): **BA-i1, BA-i5 done (inventories only).** `BattleEntryInventoryTest`
+  (attack f1463..1500, scripted f14429..14469; "BA-i1 result"; rows BA-p1a..c) and `BattlePanelsInventoryTest` (f1478..1993:
+  gauge/dispup/weapon-icon/HP-colour procs; "BA-i5 result"; rows BA-p9a..d). Control state complete, so the PORT rows need no
+  CAP; pixels (VRAM/OAM/palette) stay unverified without BA-cap1. New whole-screen no-run step f1752 (besides f1582/f1789,
+  BA-cap3). Full jvmTest: only `Chapter1TeardownDifferentialTest` f25419 hit its 120 s `@Timeout` under load (green alone; raise it?). Next: BA-p1a, BA-p9a.
 - 2026-11-25 05:40Z owner PC Gemini (Pro agent): **PC-6l-b done (`93d3262a`).** Extracted `sub_807A300` / `sub_807A324` (`canStartAfter`) and fixed `s8`/`s16` truncations in `MuCtrl.kt`; `MuCtr_StartDefinedMove` and `sub_807A300` Ported; `MuCtr_InitDefinedMove`, `sub_807A0E4`, `sub_807A194`, `sub_807A294`, `sub_807A324`, `MuCtr_ExecREDA_807A358`, `MuCtr_OnEnd`, and `IsMuActive` Partially ported across `PC-cap1` W1/W2/W4 (`Chapter1MuCtrlDifferentialTest`, 3 ok, 36 killed / 19 survived of 55 mutations); `Chapter1*` & `MoveUnitDifferentialTest` (24 ok), `:game:jvmTest` (89 ok), `:game:dokkaGenerate`, `standins.py`/`unverified.py --check`, game-text guard green.
 
 - 2026-11-25 05:10Z owner PC Gemini (Pro agent): **PC-cap2b captured (`assets-8ddc758`).** Patched `mgba-harness` (`ARMStep` + `ThumbStep` hooks and ARM/Thumb `ARM_PC` offset) so `tracecall` captures Thumb HBlank callbacks returning to `IrqMain` (`ram_trace_fade_start` unchanged), captured `ram_trace_prologue_gameover_hblank` (`PRO_GAMEOVER` `f6130..6133`, `912/912` `GameOverScreenHBlank` calls matching `VCOUNT` `0..227` and exit `BLDALPHA`), preserved all `65,170` baseline archive files, published ROM repo `8ddc758` / `assets-8ddc758`, refreshed `.assets/`, added run to `M4aRuns.kt` (`M4a*` 13 suites / 19 ok).

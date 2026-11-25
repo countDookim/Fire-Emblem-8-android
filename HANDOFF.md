@@ -26,10 +26,13 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 - BA-i1: scheduled, until ~05:40Z.
 - BA-i5: scheduled, until ~05:40Z.
-- PC-6l-b: Gemini owner PC, until ~05:25Z (`wip/pc6lb`, 2026-11-25).
+- PC-8h: Gemini owner PC, until ~05:59Z (`wip/pc8h`, 2026-11-25).
+- PC-6l-d: Gemini owner PC, until ~05:59Z (`wip/pc6ld`, 2026-11-25).
 
 
 ## Current state
+
+- 2026-11-25 05:40Z owner PC Gemini (Pro agent): **PC-6l-b done (`93d3262a`).** Extracted `sub_807A300` / `sub_807A324` (`canStartAfter`) and fixed `s8`/`s16` truncations in `MuCtrl.kt`; `MuCtr_StartDefinedMove` and `sub_807A300` Ported; `MuCtr_InitDefinedMove`, `sub_807A0E4`, `sub_807A194`, `sub_807A294`, `sub_807A324`, `MuCtr_ExecREDA_807A358`, `MuCtr_OnEnd`, and `IsMuActive` Partially ported across `PC-cap1` W1/W2/W4 (`Chapter1MuCtrlDifferentialTest`, 3 ok, 36 killed / 19 survived of 55 mutations); `Chapter1*` & `MoveUnitDifferentialTest` (24 ok), `:game:jvmTest` (89 ok), `:game:dokkaGenerate`, `standins.py`/`unverified.py --check`, game-text guard green.
 
 - 2026-11-25 05:10Z owner PC Gemini (Pro agent): **PC-cap2b captured (`assets-8ddc758`).** Patched `mgba-harness` (`ARMStep` + `ThumbStep` hooks and ARM/Thumb `ARM_PC` offset) so `tracecall` captures Thumb HBlank callbacks returning to `IrqMain` (`ram_trace_fade_start` unchanged), captured `ram_trace_prologue_gameover_hblank` (`PRO_GAMEOVER` `f6130..6133`, `912/912` `GameOverScreenHBlank` calls matching `VCOUNT` `0..227` and exit `BLDALPHA`), preserved all `65,170` baseline archive files, published ROM repo `8ddc758` / `assets-8ddc758`, refreshed `.assets/`, added run to `M4aRuns.kt` (`M4a*` 13 suites / 19 ok).
 

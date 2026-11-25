@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1476,
+    "verified": 1477,
     "implemented_unverified": 144
   },
   "functions": {
@@ -7180,6 +7180,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramSaveBlockReferenceTest#invalidating the suspend save writes the entries the game wrote"
+      ]
+    },
+    "IsExtraSoundRoomEnabled": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/SaveExtras.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleSaveMenuExtrasDifferentialTest#continue fixture gives the extras 3 and main options 0x2B",
+        "fe8.testing.TitleSaveMenuExtrasDifferentialTest#menu items fixture gives the extras 3 and main options 0x3F"
       ]
     },
     "IsGmAutoMuActiveFor": {

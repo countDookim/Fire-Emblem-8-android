@@ -64,6 +64,7 @@ import fe8.game.bm.UnitSpriteHandles
 import fe8.game.bm.UnitSprites
 import fe8.game.bm.UnitSpritesOam
 import fe8.game.bm.UnitTable
+import fe8.game.event.ActiveEventRegistry
 import fe8.game.event.EventConst
 import fe8.game.event.EventEngine
 import fe8.game.event.EventEngineHooks
@@ -72,6 +73,7 @@ import fe8.game.event.EventChangeAi
 import fe8.game.event.EventChangeAiHooks
 import fe8.game.event.EventAsmCall
 import fe8.game.event.EventGiveItem
+import fe8.game.event.EventScrHooks
 import fe8.game.event.bmGuideTextSetAllGreen
 import fe8.game.event.EventFade
 import fe8.game.event.EventHandler
@@ -359,6 +361,9 @@ public class Fe8Boot(
         )
     }
 
+    /** `gActiveEventRegistry` of the chapter event lists, set when the event lists are wired. */
+    private var activeEventRegistry: ActiveEventRegistry? = null
+
     /** The units the battle map start path touches (raw unit bytes). */
     public val units: UnitTable by lazy { UnitTable(rom) }
 
@@ -484,6 +489,29 @@ public class Fe8Boot(
         EventEngine(engine, state, memory, hooks).also {
             EventScrCore(
                 state, memory, flags = flags, rng = rng, playSt = control.playSt, keys = keys,
+                hooks = object : EventScrHooks {
+                    override fun tutorialEvent(chapterIndex: Int, index: Int): Int {
+                        if (!rom.isWholeRom) return 0
+                        val group = battleChapters.getChapterEventDataPointer(chapterIndex)
+                        val list = rom.u32(group + TUTORIAL_EVENTS_OFFSET)
+                        return if (list == 0) 0 else rom.u32(list + 4 * index)
+                    }
+
+                    override fun countRedUnits(): Int = units.countRedUnits()
+
+                    override fun countGreenUnits(): Int = units.countGreenUnits()
+
+                    override fun battleMapKind(): Int = battleMap.hooks.getBattleMapKind()
+
+                    // `GetEventTriggerId`: the list flag that started the script.
+                    override fun eventTriggerId(script: Int): Int {
+                        val registry = activeEventRegistry ?: return 0
+                        for (i in 0 until minOf(registry.idx, ActiveEventRegistry.CAPACITY)) {
+                            if (registry.scripts[i] == script) return registry.flags[i]
+                        }
+                        return 0
+                    }
+                },
             ).registerAll(it)
             val loader = UnitLoader(
                 units, rom,
@@ -1252,6 +1280,7 @@ public class Fe8Boot(
             eventEngine.callEvent(events, execType)
         }
         val eventInfos = EventInfos(eventEngine.memory, flags, control.playSt)
+        activeEventRegistry = eventInfos.registry
         eventInfos.hooks = object : EventInfoHooks {
             override fun callEvent(script: Int, execType: Int) {
                 eventEngine.callEvent(script, execType)
@@ -1898,6 +1927,8 @@ private val NO_WORLD_MAP_NODES = object : BattleMapNodes {
 /** Offset of `goalWindowDataType` in `struct ChapterData` (the ROM chapter struct). */
 private const val GOAL_WINDOW_DATA_TYPE_OFFSET = 0x8C
 
+/** Offset of `tutorialEvents` in `ChapterEventGroup`. */
+private const val TUTORIAL_EVENTS_OFFSET = 0x1C
 
 /** Offset of `protectCharacterIndex` in `struct ChapterData`. */
 private const val OFF_PROTECT_CHARACTER = 0x8E

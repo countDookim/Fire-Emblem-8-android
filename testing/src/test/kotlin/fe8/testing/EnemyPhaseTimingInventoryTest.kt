@@ -15,19 +15,19 @@ import org.junit.jupiter.api.Timeout
 
 /**
  * Inventory (EP-drift, no port claim): where the port's Prologue replay of
- * `ram_trace_prologue_gameover` (PC-cap2; same inputs as `ram_trace_prologue_enemy_phase`) first
- * leaves the capture's timing. The boot resumes the Prologue save and replays the captured keys
- * from the first idle frame, as [GameOverWireTest] does. The test asserts the CURRENT gaps, so
- * fixing one fails it on purpose (update the numbers then):
+ * `ram_trace_prologue_gameover` (PC-cap2; same inputs as `ram_trace_prologue_enemy_phase`) leaves
+ * the capture's timing. The boot resumes the Prologue save and replays the captured keys from the
+ * first idle frame, as [GameOverWireTest] does. The test asserts the CURRENT state so regressions
+ * fail on purpose:
  *
  * 1. `f1340`: the capture opens the Options screen (`ProcScr_Config_Field`, `f1340..1449`) from
  *    the map menu; the port's Options item does nothing (MANUAL_TEST known gap), so the menu
- *    stays open (`sProc_Menu`) and the idle edge comes about 20 frames earlier.
- * 2. `f2403`: after the second Soldier's death the capture starts the event at `0x089EF0D8`
- *    (`ProcScr_EventDisplayCursor`, `gProcScr_Talk`, `f2403..2721`, 318 frames, flag 262); the
- *    port starts no event there, and its first event (`f2005`) sets flags 7 and 363, which the
- *    capture's does not. `gProcScr_CpPhase` is present 1137 frames in the capture, 801 in the
- *    port.
+ *    stays open (`sProc_Menu`) and the idle edge comes earlier.
+ * 2. `f2386` (capture `f2403`): with `EventScrHooks` wired (`EP-11-hooks`), the first kill event
+ *    (`f2005`, capture `f2014`) clears its trigger flag (`7`, bit `262` / `363`) and skips
+ *    dialogue (`countRedUnits == 2`), and after the second Soldier's death the port now runs the
+ *    one-enemy-left event at `0x089EF0D8` (`f2386..2720`, capture `f2403..2721`), setting flag `7`
+ *    (`262` / `363`). `gProcScr_CpPhase` is present `1137` frames in both capture and port.
  */
 @Timeout(180)
 class EnemyPhaseTimingInventoryTest {
@@ -37,7 +37,7 @@ class EnemyPhaseTimingInventoryTest {
     )
 
     @Test
-    fun `replay leaves the capture at the Options screen and loses the second kill event`() {
+    fun `replay leaves the capture at the Options screen and runs the second kill event`() {
         val romFile = File(assets, "baserom.gba")
         assumeTrue(ref.available && romFile.isFile, "reference data / ROM")
         val names = ProcArrayDump.romNames()
@@ -121,14 +121,15 @@ class EnemyPhaseTimingInventoryTest {
             "flag363 our f$ourFlag363")
         assertEquals(1340, firstDivergence, divergence)
         assertTrue(divergence.contains("ProcScr_Config_Field"), divergence)
-        // The capture starts the dialogue event of the second kill, the port does not.
+        // Both capture and port run the second-kill event (`0x089EF0D8`) and set chapter flag 7
+        // (bit 262 in gPermanentFlagBits + gChapterFlagBits, flag 363 in EventFlags); the 17-frame
+        // lead (f2386 vs f2403) comes from the earlier Options-screen divergence and minor drift.
         assertTrue(capEvents.any { it.startsWith("2403:0x89ef0d8") }, "$capEvents")
-        assertTrue(
-            ourEvents.none { it.endsWith(":0x89ef0d8") && it.substringBefore(':').toInt() > 2100 },
-            "$ourEvents",
-        )
+        assertTrue(ourEvents.any { it.startsWith("2386:0x89ef0d8") }, "$ourEvents")
         assertEquals(2403, capFlag262)
-        assertTrue(capCp - ourCp in 300..360, "CpPhase frames cap $capCp our $ourCp")
+        assertEquals(2386, ourFlag363)
+        assertEquals(1137, capCp, "capture CpPhase frames")
+        assertEquals(capCp, ourCp, "CpPhase frames cap $capCp our $ourCp")
     }
 
     private companion object {

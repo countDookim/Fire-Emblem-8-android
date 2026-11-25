@@ -15,7 +15,8 @@ import org.junit.jupiter.api.Test
  * Zero bytes per frame across the steady enemy-phase windows of `ram_trace_prologue_enemy_phase`
  * (see [EnemyPhaseReplayTest]) through the production [Fe8Boot.frame] and GPU [Fe8Boot.pack]
  * path: phase banners, AI unit walks, target cursors, map battles (including MISS AP hold, hit
- * flash, death fade, and EXP bar), map fades, green phase, and turn-2 idle.
+ * flash, death fade, and EXP bar), the one-enemy-left event, map fades, green phase, and turn-2
+ * idle.
  */
 class EnemyPhaseAllocationTest {
     private val assets = File(
@@ -140,10 +141,15 @@ class EnemyPhaseAllocationTest {
             Window("soldier 2 battle", 952, 1073, 90),
             Window("soldier 2 death fade", 1075, 1107, 25),
             Window("soldier 2 exp bar", 1110, 1210, 80),
-            Window("soldier 2 map fade", 1215, 1230, 12),
-            Window("green phase", 1239, 1250, 10),
-            Window("turn 2 player phase banner", 1263, 1331, 50),
-            Window("turn 2 idle map", 1361, 1452, 60),
+            // Prologue one-enemy-left event (`0x089EF0D8`, EP-11-hooks) runs f1214..1549, shifting
+            // the remaining windows by +336 frames.
+            Window("one-enemy-left cursor", 1215, 1275, 50),
+            Window("one-enemy-left talk", 1293, 1454, 120),
+            Window("one-enemy-left talk wait", 1464, 1533, 50),
+            Window("soldier 2 map fade", 1551, 1566, 12),
+            Window("green phase", 1575, 1586, 10),
+            Window("turn 2 player phase banner", 1599, 1667, 50),
+            Window("turn 2 idle map", 1697, 1788, 60),
         )
     }
 }

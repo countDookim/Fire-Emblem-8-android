@@ -41,24 +41,43 @@ class PlayerPhaseBootTest {
         override fun store(src: ByteArray) {}
     }
 
-    /** One boot driven to the idle phase, then by the captured keys. */
-    private inner class Rig(runName: String) {
+    /**
+     * One boot driven to the idle phase, then by the captured keys. When [pulseEventsAfter] is
+     * below [Int.MAX_VALUE], frames past that capture frame pulse A while the event engine runs
+     * (used when a capture ends before a post-battle event dialogue).
+     */
+    private inner class Rig(
+        runName: String,
+        private val pulseEventsAfter: Int = Int.MAX_VALUE,
+    ) {
         val run = ref.run(runName)
         val trace = run.watch("procs")
         private val captured = Array<Any>(2400) { if (it < run.inputs.size) run.inputs[it] else 0 }
         private val pulse = arrayOf<Any>(0, 1)
         var frame = 0
         private var idleAt = -1
-        val boot = Fe8Boot(
-            RomView.ofRom(File(assets, "baserom.gba").readBytes()),
-            @Suppress("UNCHECKED_CAST")
-            ({
-                if (idleAt < 0) pulse[if (frame % 20 in 5..8) 1 else 0]
-                else captured[(frame - idleAt + IDLE_FRAME).coerceIn(0, 2399)]
-            } as () -> Int),
-            RngService(),
-            saveStorage = Image(ref.run("ram_trace_prologue_resume").sram("s01001")),
-        )
+        lateinit var boot: Fe8Boot
+
+        init {
+            boot = Fe8Boot(
+                RomView.ofRom(File(assets, "baserom.gba").readBytes()),
+                @Suppress("UNCHECKED_CAST")
+                ({
+                    if (idleAt < 0) {
+                        pulse[if (frame % 20 in 5..8) 1 else 0]
+                    } else {
+                        val f = frame - idleAt + IDLE_FRAME
+                        if (f > pulseEventsAfter && boot.eventEngine.eventEngineExists()) {
+                            pulse[if (frame % 20 in 5..8) 1 else 0]
+                        } else {
+                            captured[f.coerceIn(0, 2399)]
+                        }
+                    }
+                } as () -> Int),
+                RngService(),
+                saveStorage = Image(ref.run("ram_trace_prologue_resume").sram("s01001")),
+            )
+        }
 
         /** The capture frame the boot is at, or -1 before the idle phase. */
         val captureFrame: Int get() = if (idleAt < 0) -1 else frame - idleAt + IDLE_FRAME
@@ -141,7 +160,10 @@ class PlayerPhaseBootTest {
     @Test
     fun `cancels and End turn in the boot follow cancel_end then the turn 2 player phase`() {
         assumeInputs()
-        val rig = Rig("ram_trace_prologue_cancel_end")
+        // `ram_trace_prologue_cancel_end` stops at f1650; in enemy phase 1 both Soldiers fight and
+        // die, triggering the one-enemy-left talk event (`0x089EF0D8`), so pulse A past f1650
+        // while the event engine runs.
+        val rig = Rig("ram_trace_prologue_cancel_end", pulseEventsAfter = 1650)
         while (rig.captureFrame < 0) rig.step()
         val eirika = rig.boot.units.getUnitFromCharId(1)
         val x0 = rig.boot.units.xPos(eirika)
@@ -197,7 +219,7 @@ class PlayerPhaseBootTest {
         assertEquals(2, rig.boot.control.playSt.chapterTurnNumber, "turn 2")
         assertEquals(0, rig.boot.control.playSt.faction, "player phase")
         assertEquals(0, rig.boot.units.state(eirika) and 0x42, "units are not greyed again")
-        // The enemies did not act.
+        // Surviving enemies (O'Neill, 0x81) stayed in place.
         for (id in 0x81..0xB2) {
             if (!rig.boot.units.isValid(id)) continue
             assertEquals(

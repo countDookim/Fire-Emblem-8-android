@@ -25,7 +25,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-11cap, PC-cap3: owner PC, until ~21:30Z
+- PC-11i, PC-10i-input: owner PC, until ~21:30Z (PC-11cap, PC-cap3 done: assets-19a9b91, assets-a3ab882)
 
 ## Current state
 

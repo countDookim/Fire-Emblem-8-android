@@ -25,8 +25,8 @@ public class SaveMenuMainLoop(
         /** `StartBgmVolumeChange(volume, end, time, 0)`, run when New Game is chosen. */
         public var startBgmVolumeChange: (Int, Int, Int, Int) -> Unit = { _, _, _, _ -> },
         /**
-         * `StartHelpPromptSprite(x, y, z, proc)` (`src/statscreen.c`); a stand-in (`PC-11d`: does
-         * nothing until the prompt sprite is ported).
+         * `StartHelpPromptSprite(x, y, z, proc)` (`src/statscreen.c`), a no-op until
+         * [SaveMenuAssembly.wireNewGame] sets [fe8.game.ui.HelpPromptSprite.startHelpPromptSprite].
          */
         public var startHelpPromptSprite: (x: Int, y: Int, z: Int, parent: Proc) -> Unit =
             { _, _, _, _ -> },
@@ -124,8 +124,7 @@ public class SaveMenuMainLoop(
      *
      * Partially ported from src/savemenu.c: SaveMenuSlotSelDrawSprite (verified: invokes the
      * prompt sprite hook for Resume and Restart in the title runs and skips it for New Game in
-     * `ram_trace_newgame`; not verified: the sprite arguments, since the prompt sprite itself is
-     * the [Hooks.startHelpPromptSprite] stand-in)
+     * `ram_trace_newgame`; not verified: the sprite arguments, which the hook receives)
      */
     public fun saveMenuSlotSelDrawSprite(proc: Proc) {
         val state = proc.state as SaveMenuState

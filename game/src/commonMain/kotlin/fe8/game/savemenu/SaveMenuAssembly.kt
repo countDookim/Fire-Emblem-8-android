@@ -8,6 +8,7 @@ import fe8.game.mapanim.ApProcs
 import fe8.game.save.BmSaveLib
 import fe8.game.save.NewGameRam
 import fe8.game.save.SaveExtras
+import fe8.game.ui.HelpPromptSprite
 import fe8.game.ui.UiHand
 import fe8.game.worldmap.GmData
 import gbafe.core.rng.LcgRng
@@ -197,6 +198,10 @@ public object SaveMenuAssembly {
         val mainLoop = SaveMenuMainLoop(d.engine, keys, d.saveLib)
         mainLoop.hooks.playSoundEffect = d.playSoundEffect
         mainLoop.hooks.startBgmVolumeChange = startBgmVolumeChange
+        val helpPrompt = HelpPromptSprite(d.engine, d.layers, d.hardware, d.rom)
+        mainLoop.hooks.startHelpPromptSprite = { x, y, z, parent ->
+            helpPrompt.startHelpPromptSprite(x, y, z, parent)
+        }
         bridge.hooks.funcs["SameMenu_CtrlLoop"] = ProcFunc { mainLoop.sameMenuCtrlLoop(it) }
         bridge.hooks.funcs["SaveMenuScrollSlot"] = ProcFunc { mainLoop.saveMenuScrollSlot(it) }
         bridge.hooks.funcs["SaveMenuSlotSelDrawSprite"] =

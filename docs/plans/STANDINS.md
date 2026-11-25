@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 257 across 60 Kotlin files.
+Total entries: 255 across 59 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -32,14 +32,13 @@ Total entries: 257 across 60 Kotlin files.
 | EP-34a | 2 |
 | EP-7 | 2 |
 | IS-2 | 1 |
-| PC-11d | 1 |
 | PC-4f | 1 |
 | PC-cap1 | 2 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 35 |
+| unassigned | 34 |
 
 ## M6-B (13)
 
@@ -345,12 +344,6 @@ Total entries: 257 across 60 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until IS-2 (help boxes): nothing happens (the selection's `onHelp`). |
 
-## PC-11d (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuMainLoop.kt` | `startHelpPromptSprite` | `StartHelpPromptSprite(x, y, z, proc)` (`src/statscreen.c`); a stand-in (`PC-11d`: does nothing until the prompt sprite is ported). |
-
 ## PC-4f (1)
 
 | Kotlin file | Declaration | Stand-in |
@@ -388,7 +381,7 @@ Total entries: 257 across 60 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (35)
+## unassigned (34)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -419,7 +412,6 @@ Total entries: 257 across 60 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenu.kt` | `newNewGameDifficultySelect` | Transcribed from src/difficultymenu.c: NewNewGameDifficultySelect (not verified: the capture shows the child's parent and the save menu's cursor holding at 23 while it runs, but the test's parent i... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | `Hooks` | Stand-ins for the parts of `sub_80AAE90` / `sub_80AAF6C` that no capture runs (the option lists, which need `sub_80AABC4` / `sub_80AAC40`) and for `sub_80AB514`; each fails loudly until ported. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuChoice.kt` | `Hooks` | A null entry uses [SaveExtras] when given; without it the fixed stand-in answers apply (link arena, support viewer, free map and bonus claim false, the sound room true). |
-| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuMainLoop.kt` | `saveMenuSlotSelDrawSprite` | Partially ported from src/savemenu.c: SaveMenuSlotSelDrawSprite (verified: invokes the prompt sprite hook for Resume and Restart in the title runs and skips it for New Game in `ram_trace_newgame`;... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `loadSaveMenuInfo` | Stand-in (not ported). |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `newGame` | Stand-in (not ported). |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `writeNewGame` | Stand-in (not ported). |

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 728 across 108 decomp files (missing reason: 0).
+Total entries: 729 across 109 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -1228,6 +1228,12 @@ Total entries: 728 across 108 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetPlayerLeaderPid` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no test checks it against a trace yet |
+
+## src/statscreen.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `gProcScr_HelpPromptSpr` | `game/src/commonMain/kotlin/fe8/game/ui/HelpPromptSprite.kt` | the procs watch cannot tag a script; the one-frame yield shows as the proc's first drawn frame |
 
 ## src/sysutil.c (1)
 

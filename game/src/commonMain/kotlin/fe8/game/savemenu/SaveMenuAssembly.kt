@@ -6,11 +6,14 @@ import fe8.game.bm.ChapterTitle
 import fe8.game.bm.PlaySt
 import fe8.game.mapanim.ApProcs
 import fe8.game.save.BmSaveLib
+import fe8.game.save.NewGameRam
 import fe8.game.ui.UiHand
 import fe8.game.worldmap.GmData
 import gbafe.core.rng.LcgRng
+import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
+import gbafe.proc.ProcFunc
 import gbafe.render.ArchivedPaletteFade
 import gbafe.render.BgHardware
 import gbafe.render.BgVerticalScroll
@@ -127,6 +130,67 @@ public object SaveMenuAssembly {
         }
         menu.wireSelectLoop(loop)
         return Result(menu, lifecycle, slots, effects, flip, loop, slotData)
+    }
+
+    /** What [wireNewGame] built. */
+    public class NewGameWiring(
+        /** The `ProcScr_SaveMenu` bridge (script, `SaveMenu_NewGame`, `SaveMenuWriteNewGame`). */
+        public val saveMenu: SaveMenuNewGame,
+        /** The `ProcScr_NewGameDifficultySelect` screen. */
+        public val difficulty: DifficultyMenu,
+        /** The difficulty screen's sprite child. */
+        public val sprites: DifficultyMenuSprites,
+    )
+
+    /**
+     * Wires the New Game path of the save menu onto [result] (`PC-9`): the select loop's
+     * `SaveMenu_NewGame` and `SaveMenuWriteNewGame` hooks become [SaveMenuNewGame.saveMenuNewGame]
+     * and [SaveMenuNewGame.saveMenuWriteNewGame] (the write is `BmSaveLib.writeNewGameSave` on
+     * [ram], then [afterWrite]); `ProcScr_SaveMenu` becomes the script
+     * [SaveMenuPostChapter.saveMenuSetDifficultyChoice] searches; the difficulty select is a real
+     * [DifficultyMenu] with [DifficultyMenuSprites] reading [keys], whose choice is written back
+     * through [SaveMenuPostChapter.saveMenuSetDifficultyChoice]. The script's other callbacks
+     * (`SaveMenu_Init`, `SameMenu_CtrlLoop`, the graphics reload of
+     * `SaveMenu_ReloadScreenFormDifficulty`, ...) stay in [SaveMenuNewGame.Hooks] for the title
+     * menu (`PC-11`) to wire.
+     *
+     * @param d the deps [assemble] was called with
+     * @param ram `gPlaySt`, flags and convoy that `WriteNewGameSave` initialises
+     * @param keys key status the difficulty select reads
+     * @param startBgmVolumeChange `StartBgmVolumeChange`
+     * @param afterWrite called after the new game is written (e.g. flush SRAM to storage)
+     */
+    public fun wireNewGame(
+        result: Result,
+        d: Deps,
+        ram: NewGameRam,
+        keys: KeyStatus,
+        startBgmVolumeChange: (Int, Int, Int, Int) -> Unit = { _, _, _, _ -> },
+        afterWrite: () -> Unit = {},
+    ): NewGameWiring {
+        val bridge = SaveMenuNewGame(d.engine, d.hardware, d.saveLib, ram, d.archivedFade)
+        bridge.hooks.startBgmVolumeChange = startBgmVolumeChange
+        bridge.hooks.postSaveMenuHandler = result.menu.hooks.postSaveMenuHandler
+        bridge.hooks.saveSlotSelectLoop = result.menu.hooks.saveSlotSelectLoop
+        val difficulty = DifficultyMenu(
+            d.engine, d.hardware, d.rom, d.playSt, d.text, d.messages, d.archivedFade,
+            keys = keys, layers = d.layers,
+        )
+        difficulty.hooks.playSoundEffect = d.playSoundEffect
+        difficulty.hooks.setDifficultyChoice = { choice, b ->
+            result.menu.saveMenuSetDifficultyChoice(choice, b)
+        }
+        val sprites = DifficultyMenuSprites(d.engine, d.hardware, d.layers, d.rom)
+        difficulty.wireSprites(sprites)
+        bridge.hooks.newNewGameDifficultySelect =
+            ProcFunc { difficulty.newNewGameDifficultySelect(it) }
+        result.menu.hooks.saveMenuProcScript = bridge.script
+        result.selectLoop.hooks.newGame = { bridge.saveMenuNewGame(it) }
+        result.selectLoop.hooks.writeNewGame = {
+            bridge.saveMenuWriteNewGame(it)
+            afterWrite()
+        }
+        return NewGameWiring(bridge, difficulty, sprites)
     }
 
     /** `Make6C_SaveMenuPostChapter` for [GameControl.Hooks.makeSaveMenuPostChapter]. */

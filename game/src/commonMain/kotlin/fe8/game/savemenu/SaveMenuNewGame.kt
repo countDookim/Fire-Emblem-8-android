@@ -26,8 +26,8 @@ import gbafe.render.BgHardware
  * The new-game bridge of the save menu (`src/savemenu.c`, `PC-9d`): `ProcScr_SaveMenu` and the
  * callbacks that run a new game's difficulty select, slot write and exit. The other callbacks of
  * the script (`SaveMenu_Init`, the main menu loop, extra screens, ...) belong to other tasks and
- * run through [Hooks.funcs] / [Hooks.conds] by their C name. Not wired into the live New Game
- * flow (`PC-9` WIRE).
+ * run through [Hooks.funcs] / [Hooks.conds] by their C name. [SaveMenuAssembly.wireNewGame] wires
+ * the difficulty select, select loop and write; the title menu (`PC-11`) does not start it yet.
  */
 public class SaveMenuNewGame(
     private val engine: ProcEngine,

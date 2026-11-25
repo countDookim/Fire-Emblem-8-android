@@ -102,7 +102,7 @@ public class DifficultyMenuState {
  * The new-game difficulty select screen (`src/difficultymenu.c`, PC-9a/PC-9b): the blocking proc
  * `ProcScr_NewGameDifficultySelect` with its screen setup, description drawing, key handler, and
  * end callback. The sprite child (`PC-9c`), sound effects, and `SaveMenu_SetDifficultyChoice`
- * run through [hooks]. Not wired into the live New Game flow (`PC-9` WIRE).
+ * run through [hooks]; [SaveMenuAssembly.wireNewGame] wires them.
  */
 public class DifficultyMenu(
     /** The proc scheduler running the screen. */

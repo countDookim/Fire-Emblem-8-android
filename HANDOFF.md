@@ -25,6 +25,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 ## In progress
 
 - PC-9c: owner PC, until ~13:00Z
+- EP-11: owner PC, until ~13:15Z
 
 
 ## Current state

@@ -10,7 +10,7 @@ needs your ROM, imported on first start.
 | | Build | Date | Report |
 |---|---|---|---|
 | Latest APK | 0.1.889 (`271bd27`) | 2026-11-25 | — |
-| Last owner test | 0.1.889 (`271bd27`) | 2026-11-25 | Game over (PC-8) confirmed OK |
+| Last owner test | 0.1.889 (`271bd27`) | 2026-11-25 | PC-8 (game over) & PC-6 (Ch1 opening) confirmed OK |
 | Last full pass | 0.1.622 (`22cfc9d`) | 2026-11-12 | HANDOFF "Device status" |
 
 Items are removed from this page once the owner confirms them; the history is in git and in
@@ -20,17 +20,7 @@ Items are removed from this page once the owner confirms them; the history is in
 
 Everything up to 0.1.868 was tested earlier; new items carry their build.
 
-- **Chapter 1 opening (PC-6).** Build: 0.1.889 (`271bd27`).
-  1. Play (or fast-forward with A) the Prologue to its end, take save slot 1 in the save menu, and
-     watch the Chapter 1 opening play through (text pages need A; the whole opening takes a few minutes).
-  2. Expected: enemy soldiers walk in, two green units walk in and one of them is removed, the other
-     is killed and its sprite fades out (about half a second) before it is gone, then the two
-     player units walk in from the bottom right and each stops on its own tile, both visible.
-  3. Expected: when the event ends the first player phase starts at turn 1, and both player units are
-     on the map and can be moved (do not open a unit's menu, EP-35b crashes there).
-  - Changed by this build: at the end of the opening one player unit used to be hidden and moved onto
-    the other's tile (a unit check was missing); the killed green unit used to vanish at once, without
-    the fade.
+Nothing new to test yet (D-23 fix below still awaits a quick check).
 
 ## 2. Open bugs (no fix yet)
 
@@ -84,8 +74,9 @@ Retest these only when a change to them is announced.
     the level-up panel.
   - End, the enemy phase (movement and attacks), the turn-2 banner, suspend and resume.
   - The step-by-step walkthrough is in git history (commit 948965e) if a regression needs it.
-- **Prologue end to Chapter 1 (0.1.868):** the save menu after the ending, saving to slot 1, the
-  Chapter 1 title card and opening event, the first player phase.
+- **Prologue end to Chapter 1 (0.1.868 / PC-6 0.1.889):** the save menu after the ending, saving to slot 1, the
+  Chapter 1 title card and opening event (green unit dies and fades out, Seth and Eirika stop in their
+  correct positions), the first player phase.
 - **Map:** the player phase banner, the hover cursor, the Rapier popup, exp and level-up sounds with no
   lingering beep.
 - **Bug fixes (0.1.856):** after a kill the attacker stays on his tile (D-18); the HP box has its

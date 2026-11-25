@@ -2441,3 +2441,65 @@ step must be on the forced unit, otherwise the hint branch, as in PC-10i-input);
 masked in the ignore mask (bksel.c). Menu bits: `DISABLEOPTIONS(~EVENT_MENUOVERRIDE_ATTACK)` in Tutorial5 (menu shows
 only Attack); the item/weapon list is not overridden in this window. Not observed: B in the Attack-only menu, B/D-pad
 during the forecast box, a different weapon (CAP row PC-10cap2).
+
+### PC-10i-end result
+
+Run `ram_trace_newgame_easy`, window `f26392..30900`; test `EasyTutorialEndInventoryTest` (proc rows per sub-window
+without `ekr*`/`efx*`; plus queue, unit, flag and chapter-change state). Battle animation, level-up, ending scene, save menu
+and Chapter 1 opening internals are as in BA-*, MapLevelUp*, PrologueEnd*, SaveMenu*, Chapter1*; only Easy-specific
+differences are recorded. Correction to the run header: the first turn-3 select is the grid A at **f26400** (the
+`gProcScr_0859ACE8` select proc and the queue clear are at f26401), and A f26550 is a destination press on the wrong
+tile (Eirika's own tile (4,5)), not a select; the `TutEirikaAttack` script itself ends with the enqueue at f26308,
+before PhaseIntro.
+
+Inputs: A f26400 (select Eirika, cursor already on her), A f26550 (not the forced tile -> hint, cursor snapped to
+(8,6)), A f26640 (destination (8,6)), A f26700 (Attack), A f26730 (weapon), A f27630 (target), other A = text pages.
+
+| Sub-window | Frames | What runs | Status |
+|---|---|---|---|
+| Select event | f26392..26549 | PlayerPhase f26392; `gProcScr_0859ACE8` (`TryCallSelectEvents` -> `RunTutorialEvent(ONSELECT)`) + StdEventEngine f26401..26520 (TutorialA success branch: range display `sProcScr_MoveLimitView`, `EventDisplayCursor`, box, one page f26461..26491), enqueues DESTSELECTED TutorialB f26517 | as PC-10a/b (hooks, `Exec0`) |
+| Hint, forced destination, walk | f26550..26687 | A f26550: `StartDestSelectedEvent` -> TutorialB `Exec1` fail branch (cursor (4,5) != (8,6) -> `SET_CURSOR`, hint box f26560..26631), re-queue f26636; A f26640: success (event f26640..26643), enqueues AFTERMOVE TutorialC f26641; walk `ProcScr_MuStepSe` f26646..26686; Eirika (4,5) -> (8,6) f26688 | as PC-10a/b/d (`PlayerPhase_*ForceAPress` seen at f19021 chain; idle callback not re-dumped here) |
+| Attack-only menu, weapon | f26688..26735 | `sProc_Menu` (Attack only, TutorialB set `~EVENT_MENUOVERRIDE_ATTACK`) with TutorialC event f26688..26690 (enqueues FORECAST TutorialD in the same step); A f26700 -> `gProcCmd_MenuItemPanel` + E_FACE; A f26730 -> `TargetSelection` + `BKSEL` | as PC-10h (override functions missing, PC-10c) |
+| Forecast box | f26736..27633 | TutorialD event f26736..27628 (`StartBattleForecastTutorialEvent`), 9 text pages (waits at 30-frame grid), A f27630 confirms; TutorialE queued POSTACTION f27626 | as PC-10g |
+| Battle | f27634..28823 | `sProcScr_CombatAction` f27634..28822, ekrBattle f27667..28753 (scripted hits NormalDamage, NormalDamage, CriticalHit from `TutEirikaAttack`'s `FIGHT_SCRIPT`), `ProcScr_BattleEventEngine` f28039..28100 (mid-fight dialogue, E_FACE), `ProcScr_eobjLvup` f28542..28732 + E_FACE (forced level-up), `MuDeathFade` f28790..28820. At f28790: boss (Red[0]) HP 23 -> 0, Eirika (Blue[1]) HP 16 -> 6, Lv 1 -> 2, exp 42 -> 22, max HP 16 -> 17; boss struct cleared f28822 | new row PC-10l (scripted player attack: `Event3F_ScriptBattle` FIGHT_SCRIPT, `SetScriptedBattle`, `BattleUnwindScripted`, ...); rest BA-*/MapLevelUp*/MapCombat* |
+| TutorialE + ending | f28824..30373 | `RunTutorialEvent(POSTACTION)` f28824 (flag 0x1F set): TutorialE event f28824..29037 (box f28825..29031, two pages, `ENUT(0xE7)`; flag 0x82 f29035); then `EventScr_Prologue_EndingScene` (DefeatBoss misc event) StdEventEngine f29038..30370: FadeToBlack f29040, FadeFromBlack f29061, E_FACE dialogue f29078..30333, FadeToBlack f30336 (gPlaySt+0x4A low nibble 4 f30354); PlayerPhase, StdEventEngine gone f30371 | TutorialE is the only Easy-specific part (Normal has no tutorial box here); ending as PrologueEnd* |
+| Chapter change + save screen | f30374..30549 | `gPlaySt.chapterIndex` 0 -> 1 f30374, party healed (Eirika 6 -> 17, Seth 11 -> 30), `gProcScr_SaveMenuPostChapter` f30374..30540 with `ProcScr_savedraw`, `SaveDrawCursor`, `ApProc`, `BmFadeIN` f30388..30419, `BmFadeOUT` f30523..30538; BMapMain f30548 | same proc set and shape as Normal `ram_trace_prologue_end` (differs only in dwell from the A grid); SaveMenu* applies |
+| Chapter intro | f30550..30757 | `gProcScr_ChapterIntro` + `Bg1And3Scroll` + `KeyListen` f30613..30659; faction 0x40 f30543 | as ChapterIntro* |
+| Chapter 1 opening | f30758..30900 | StdEventEngine f30758.., six Mu walks, `EventDisplayCursor` f30876 | as Chapter1*; Red[0] reused (HP 20) f30759 |
+
+No free play: in the Easy Prologue the player never acts freely. The decomp hooks make every legal action a forced one
+(`EventScr_Tutorial_Exec0/1`: select only Eirika, destination only the forced tile, `DISABLEOPTIONS` leaves Wait or Attack
+only, one weapon, Seth moved/ended by events `SET_ENDTURN`, O'Neill never AI-switched), R/START/B are masked by
+`IGNORE_KEYS`; only cursor movement and wrong-target A presses (which get the hint branch) are free. The boss kill ends
+the chapter (`DefeatBoss`), so the tutorial queue is never released to a normal phase; it is empty at f28824 and later.
+The row's "free play" therefore does not exist; PC-10 is "forced controls only".
+
+Tutorial scripts to windows (counter = `gPlaySt+0x4B` = index + 1 in `EventListScr_Prologue_Tutorial`; queued = counter
+written, run = counter cleared by `RunTutorialEvent`):
+
+| Counter | Script | Type | Queued | Run | Window / row |
+|---|---|---|---|---|---|
+| 1 | Tutorial0 | ONSELECT | f18448 | f18541 | PC-10i-input; PC-10a/b |
+| 2 | Tutorial1 | DESTSELECTED | f18747, f18988 | f18800 (fail), f19020 | PC-10i-input; PC-10a/b/d |
+| 3 | Tutorial2 | AFTERMOVE | f19021 | f19068 | PC-10i-input; PC-10c |
+| 4 | Tutorial3 | POSTACTION | f19068 | f19081 | PC-10i-input; rapier give, box f19543 |
+| 5 | Tutorial4 | ONSELECT | f22137 | f22231 | PC-10i-battle; PC-10a |
+| 6 | Tutorial5 | DESTSELECTED | f22404 | f22440 | PC-10i-battle; PC-10d |
+| 7 | Tutorial6 | AFTERMOVE | f22441 | f22448 | PC-10i-battle; PC-10h |
+| 8 | Tutorial7 | FORECAST | f22524 | f22566 | PC-10i-battle; PC-10g |
+| 9 | Tutorial8 | POSTACTION | f23366 | f24029 | PC-10i-battle; PC-10f |
+| 10 | Tutorial9 | PLAYERPHASE | f24199 | f24210 | PC-10i-battle; PC-10f/k |
+| 11 | TutorialA | ONSELECT | f26308 | f26401 | this window |
+| 12 | TutorialB | DESTSELECTED | f26517, f26636 | f26550 (fail), f26640 | this window |
+| 13 | TutorialC | AFTERMOVE | f26641 | f26688 | this window |
+| 14 | TutorialD | FORECAST | f26688 | f26736 | this window |
+| 15 | TutorialE | POSTACTION | f27626 | f28824 | this window |
+
+Scripts outside the list (called from turn/misc events via `EventScr_CallOnTutorialMode`): `ExecTut` f18230..18451
+(PC-10i-input), `GiveRapier`/box f19543 (input window, pages to ~f19880 unmapped), `TutMessageTurn1` and `ONeillSpawn`
+(f19901..20728), `TutMessageTurn2` (f21478..22140), `OneillSethBattle` (f25148..26311, PC-10i-battle), `TutEirikaAttack`
+(inside f25148..26311, ends f26308), `OneEnemyLeft`/`ONeillAttack` (f24699..25042), `EndingScene` (this window).
+Not covered by any inventory: f19560..22214 (turn-1 enemy phase, TutMessageTurn1/2, durability box pages) and
+f24870..25148 + f25750..26392 (ONeillAttack, Seth/Eirika dialogue, PhaseIntro, TutEirikaAttack): INV rows PC-10i-turn and
+PC-10i-turn3. Not exercised by any run: the `Exec0` fail branch (wrong unit selected; text of Tutorial A/0/4 hint 2) -> CAP
+row PC-10cap3. Other unobserved inputs: PC-10cap, PC-10cap2.

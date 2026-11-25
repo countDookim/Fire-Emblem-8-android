@@ -73,8 +73,7 @@ import org.junit.jupiter.api.Timeout
  *   `f20269..20328`) and reproduces hardware `OAM[0..3]` at `f15600` and `f20300`.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-// ~112 s locally (dense f25419..25423 replay); CI runners are slower. Speed-up: row PC-6e-c-speed.
-@Timeout(600)
+@Timeout(120)
 class Chapter1TeardownDifferentialTest {
     private var shared: Rig? = null
     private var loaded = false
@@ -143,6 +142,10 @@ class Chapter1TeardownDifferentialTest {
         private val inputs = run.inputs
         private val trace = TalkTrace(runDir)
 
+        private fun addressOf(name: String): Int =
+            names.entries.firstOrNull { it.value == name }?.key
+                ?: error("symbol '$name' not in the ROM name table")
+
         private fun procsAt(step: Int) = ProcArrayDump.ofWatch(procsWatch, step, names)
 
         private fun dumpName(step: Int): String =
@@ -195,12 +198,15 @@ class Chapter1TeardownDifferentialTest {
 
         fun assertTeardownPreconditions() {
             // None of the non-talk teardown target procs ever exists anywhere in PC-cap1 opening.
+            // Resolve symbols once: ProcArrayDump.find(name) scans the whole name table.
+            val absentAddrs = ABSENT_TEARDOWN_PROCS.associateWith { addressOf(it) }
+            val engineAddr = addressOf("ProcScr_StdEventEngine")
             for (step in 10297..25580) {
                 val dump = procsAt(step)
-                for (absent in ABSENT_TEARDOWN_PROCS) {
-                    assertNull(dump.find(absent), "$absent at f$step")
+                for ((absent, addr) in absentAddrs) {
+                    assertNull(dump.find(addr), "$absent at f$step")
                 }
-                val eng = dump.find("ProcScr_StdEventEngine")
+                val eng = dump.find(engineAddr)
                 if (eng != null && step <= 25423) {
                     assertEquals(0, eng.u16(MAP_SPRITE_PAL_OVERRIDE), "override at f$step")
                 }

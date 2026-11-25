@@ -338,7 +338,6 @@ Scenario scopes and stop conditions: [M6 task scopes](plans/M6-task-scopes.md).
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| PC-6e-c-speed | INV | `Chapter1TeardownDifferentialTest` teardown case takes ~112 s (CI timed out at 120 s, runs 878..883); seed closer to f25419 or cache-free lighter replay | Under 20 s locally, same assertions | — | todo |
 | CAP-hard1 | CAP | Hard-mode New Game run reaching autolevelled loads (unblocks old M6-13) | Run published; then tag `UnitAutolevelRealistic`, `UnitApplyBonusLevels`, `UnitAutolevelPenalty` | — | todo |
 | CAP-collide1 | CAP | Run where a unit load lands on an occupied tile (unblocks old M6-14) | Run published; then verify `AiGetUnitClosestValidPosition`, `AdjustNewUnitPosition` | — | todo |
 | BUG-gold | CAP+PORT | Give-gold event path: port `NewPopup_GoldGot` (adds gold only for a blue unit, else the stolen popup) and `GetPartyGoldAmount`/`SetPartyGoldAmount` (chapter index 5 reads 0, cap 999999); Fe8Boot wires the raw field (found by the 11-13 readability audit) | Capture of a gold event checked against the port | — | todo |
@@ -354,6 +353,7 @@ Readability remains owner-paused until ~2026-11-17 (HANDOFF).
 
 ## Done
 
+- **Claude 2026-11-25 (17:10Z, scheduled):** PC-6e-c-speed (`Chapter1TeardownDifferentialTest` teardown 153 s -> 1.3 s: symbol lookups hoisted out of the f10297..25580 loop; same assertions; break-check `resumeGameplay` removal fails; `@Timeout(120)`).
 - **Claude 2026-11-25 (14:05Z, scheduled):** PC-9d (`fe8.game.savemenu.SaveMenuNewGame`, `NewGameSaveMenuDifferentialTest` on `ram_trace_newgame`: `SaveMenu_NewGame`, `_ResetLcdFormDifficulty`, `_PostDifficultHandler` Ported; `SaveMenuWriteNewGame`, `SaveMenu_SetDifficultyChoice` Partially (difficulty 1 only); `SaveMenu_ReloadScreenFormDifficulty` Transcribed; 7 break-checks). BUG-deadmovestat (dead actor's NULL char read = BIOS open-bus pid 4; capture shows pid 4 favval +2 at f2018/f2723; asserted in `CpPerformActionDifferentialTest`, break-checked).
 - **Gemini 2026-11-25 (12:53Z):** EP-11 (Prologue Normal-mode events & boss AI verified end-to-end in `PrologueBossEventWireTest` over `Fe8Boot`: one-enemy-left event `0x089EF0D8` at `f2386` -> flag `7`, Turn 2 boss turn event `0x089EF12C` at `f2964..3721` -> `CHAI` AI `[6,1,3,1]->[0,0,0,0]` at `f3719`, boss moves `(10,8)->(9,6)` in EP2 & moves `(9,6)->(8,5)` + attacks Eirika with combat/battle quote in EP3, clear replay reaches `EventScr_Prologue_EndingScene` with 0 `onEventStub` calls; `EP-11g` audio CAPs & `MANUAL_TEST` check remain open).
 - **Gemini 2026-11-25 (12:43Z):** PC-9c (`fe8.game.savemenu.DifficultyMenuSprites`, `DifficultyMenuSpritesDifferentialTest` against `ram_trace_newgame` `f984..1088` + `f1020` HW OAM/VRAM/palettes): `StartDrawDifficultyMenuSprites` & `DrawDifficultySprites_Loop` Ported (10 break-checks); `DrawDifficultySprite_Init`, `DrawDifficultyMenuCursorMaybe`, `sub_80AC4F8`, & `gProcScr_DrawDifficultyMenuSprites` Transcribed per Rule 4 (`PC-9cap` gaps: sel `2`, horizontal glide, post-move HW OAM).

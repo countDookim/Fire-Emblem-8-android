@@ -24,6 +24,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- EP-11-hooks: Gemini owner PC, until ~10:43Z (`wip/ep11hooks`, 2026-11-25).
+- PC-9b: Gemini owner PC, until ~10:43Z (`wip/pc9b`, 2026-11-25).
 
 
 ## Current state

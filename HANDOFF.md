@@ -24,7 +24,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-6l-d: Gemini owner PC, until ~05:59Z (`wip/pc6ld`, 2026-11-25).
+- PC-6l-d: wrapped up at 2026-11-25 05:58Z, unfinished on `origin/wip/pc6ld` (`63cc3d8f`): `Chapter1MuStepSeDifferentialTest` passes W1/W4; finish remaining break-check mutations, update `Mu.kt` KDoc/`UNVERIFIED.md`/`M6C-J-breakdown.md`, run `:game:jvmTest` & Dokka.
 
 
 ## Current state

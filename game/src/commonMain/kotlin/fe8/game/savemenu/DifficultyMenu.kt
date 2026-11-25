@@ -22,6 +22,7 @@ import gbafe.proc.ProcScripts.yield
 import gbafe.render.ArchivedPaletteFade
 import gbafe.render.BgHardware
 import gbafe.render.BgTilemap
+import gbafe.render.SpriteLayers
 import gbafe.text.MsgStrings
 import gbafe.text.Text
 import gbafe.text.TextSystem
@@ -41,6 +42,9 @@ public class DifficultyMenuSpritesState {
 
     /** `flags_1` (+0x29 bit 1): set while the cursor moves (read by the key handler, `PC-9b`). */
     public var flags1: Boolean = false
+
+    /** `unk_2a` (+0x2A, `u8`): sprite animation frame counter (`PC-9c`). */
+    public var unk2a: Int = 0
 
     /** `current_selection` (+0x2B). */
     public var currentSelection: Int = 0
@@ -62,6 +66,15 @@ public class DifficultyMenuSpritesState {
 
     /** `unk_36` (+0x36, `u16`): move target Y set by [DifficultyMenu.startDifficultyCursorMove]. */
     public var unk36: Int = 0
+
+    /** `unk_38` (+0x38, `s16`): cursor move X delta (`unk34 - unk30`, `PC-9c`). */
+    public var unk38: Int = 0
+
+    /** `unk_3a` (+0x3A, `s16`): cursor move Y delta (`unk36 - unk32`, `PC-9c`). */
+    public var unk3a: Int = 0
+
+    /** `unk_3c` (+0x3C, `s16`): cursor move interpolation step counter (`0..4`, `PC-9c`). */
+    public var unk3c: Int = 0
 }
 
 /** The proc fields of `struct DifficultyMenuProc` (`include/savemenu.h`) past `PROC_HEADER`. */
@@ -110,6 +123,8 @@ public class DifficultyMenu(
     public val hooks: Hooks = Hooks(),
     /** Key status (`gKeyStatusPtr`) read by [difficultySelectLoopKeyHandler]. */
     private val keys: KeyStatus = KeyStatus(),
+    /** Sprite layers passed to the default [DifficultyMenuSprites] child. */
+    private val layers: SpriteLayers = SpriteLayers(),
 ) {
     /** Parts of the screen owned by other tasks or host wiring. */
     public class Hooks(
@@ -120,14 +135,24 @@ public class DifficultyMenu(
         public var keyHandler: ProcFunc? = null,
         /**
          * `StartDrawDifficultyMenuSprites(parent)` (`PC-9c`): starts the sprite child and returns
-         * it; its [Proc.state] must be a [DifficultyMenuSpritesState]. Null: no sprites.
+         * it; its [Proc.state] must be a [DifficultyMenuSpritesState]. When null,
+         * [initDifficultySelectScreen] starts the built-in [DifficultyMenuSprites] child.
          */
-        public var startSprites: (Proc) -> Proc? = { null },
+        public var startSprites: ((Proc) -> Proc?)? = null,
         /** `PlaySoundEffect(songId)` called by [difficultySelectLoopKeyHandler]. */
         public var playSoundEffect: (songId: Int) -> Unit = {},
         /** `SaveMenu_SetDifficultyChoice(difficulty, b)` called on confirm or cancel. */
         public var setDifficultyChoice: (difficulty: Int, b: Int) -> Unit = { _, _ -> },
     )
+
+    private val defaultSprites: DifficultyMenuSprites by lazy {
+        DifficultyMenuSprites(engine, hardware, layers, rom)
+    }
+
+    /** Wires [sprites] (`StartDrawDifficultyMenuSprites`, `PC-9c`) into [Hooks.startSprites]. */
+    public fun wireSprites(sprites: DifficultyMenuSprites) {
+        hooks.startSprites = { parent -> sprites.startDrawDifficultyMenuSprites(parent) }
+    }
 
     /**
      * `ProcScr_NewGameDifficultySelect` (`src/difficultymenu.c`). Command indices match the ROM
@@ -237,7 +262,8 @@ public class DifficultyMenu(
 
         hardware.enableBgSyncByMask(BG0_SYNC_BIT or BG1_SYNC_BIT)
 
-        state.spritesProc = hooks.startSprites(proc)
+        state.spritesProc =
+            hooks.startSprites?.invoke(proc) ?: defaultSprites.startDrawDifficultyMenuSprites(proc)
         state.currentSelection = 0
         (state.spritesProc?.state as? DifficultyMenuSpritesState)?.let { sprites ->
             sprites.currentSelection = 0

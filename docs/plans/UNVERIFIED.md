@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 724 across 108 decomp files (missing reason: 0).
+Total entries: 728 across 108 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -705,6 +705,18 @@ Total entries: 724 across 108 decomp files (missing reason: 0).
 | `AiGetUnitClosestValidPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no reference trace exercises the occupied case |
 | `CharStoreAI` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | every traced definition has zero AI bytes, so a skipped or wrong store survives |
 
+## src/difficultymenu.c (7)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `NewNewGameDifficultySelect` | `game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenu.kt` | the capture shows the child's parent and the save menu's cursor holding at 23 while it runs, but the test's parent is a stand-in, so the blocking is not compared |
+| `DifficultySelect_Loop_KeyHandler` | `game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenu.kt` | `DPAD_UP`, `2 -> 0` wrap, `sprites.flags1 == true` block, `START_BUTTON`, selections `0` and `2` confirm, `unk2c = 0` over already-zero `unk2c`, and `B_BUTTON` cancel are unexercised in `ram_trace_newgame`; `DPAD_DOWN` `0 -> 1` at `f1030` and selection `1` `A_BUTTON` confirm at `f1060` are verified |
+| `gProcScr_DrawDifficultyMenuSprites` | `game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenuSprites.kt` | script order is checked against `ram_trace_newgame` procs, which cannot tag a data array |
+| `DrawDifficultySprite_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenuSprites.kt` | `ram_trace_newgame` observes only clearing of `unk2a` when seeded from `r00983` slot 1; `flags0`, `flags1`, and `unk2e` are already zero in `r00983` slot 1, and `unk2c` and `unk2e` are overwritten by `InitDifficultySelectScreen` before `r00984` |
+| `DrawDifficultyMenuCursorMaybe` | `game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenuSprites.kt` | `unk38` stays zero in `ram_trace_newgame` because `unk30 == unk34 == 0`, so horizontal interpolation and negative vertical moves are unexercised, and HW `.oam.bin` exists only at `f1020` rather than `f1030..1087`; vertical interpolation over `f1031..1034`, all 8 bobbing offsets, `sSpritePool`, and `gOam` match `f984..1087` |
+| `sub_80AC4F8` | `game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenuSprites.kt` | `selectedIdx == 2` is unexercised in `ram_trace_newgame`, the active-branch write `PAL_OBJ_COLOR(5 + i * 2, 1)` is immediately overwritten by `Pal_08A28088`, and the inactive-branch write `PAL_OBJ_COLOR(6 + i * 2, 1)` writes the same color already loaded by `InitDifficultySelectScreen`; all 16 cycle colors across selections 0 and 1 match `f984..1087` |
+| `SaveDrawSetDifficultSlotPalette` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | the capture has no `PLAY_FLAG_HARD` slot |
+
 ## src/gamecontrol.c (7)
 
 | Function | Kotlin file | Reason |
@@ -970,14 +982,6 @@ Total entries: 724 across 108 decomp files (missing reason: 0).
 | `GetSpecialItemFuncIndex` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the result -1 runs, for Red 0's items, and it shows in no captured value; a wrong hit would enter a special item function, which the function trace of the Prologue says never runs |
 | `AiTryDoSpecialItems` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs once, for Red 0, and changes nothing; its result is discarded by the caller |
 | `sub_8040C5C` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the non-rogue return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a stand-in, EP-12 |
-
-## src/difficultymenu.c (3)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `NewNewGameDifficultySelect` | `game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenu.kt` | the capture shows the child's parent and the save menu's cursor holding at 23 while it runs, but the test's parent is a stand-in, so the blocking is not compared |
-| `DifficultySelect_Loop_KeyHandler` | `game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenu.kt` | `DPAD_UP`, `2 -> 0` wrap, `sprites.flags1 == true` block, `START_BUTTON`, selections `0` and `2` confirm, `unk2c = 0` over already-zero `unk2c`, and `B_BUTTON` cancel are unexercised in `ram_trace_newgame`; `DPAD_DOWN` `0 -> 1` at `f1030` and selection `1` `A_BUTTON` confirm at `f1060` are verified |
-| `SaveDrawSetDifficultSlotPalette` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | the capture has no `PLAY_FLAG_HARD` slot |
 
 ## src/mapanim_lvup.c (3)
 

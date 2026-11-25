@@ -1460,6 +1460,8 @@ unobserved. No new capture is needed for PC-9a itself. Not wired: the New Game s
 `Fe8Boot.newGameSaveMenu` still writes difficulty 1 directly; PC-9 WIRE calls
 `DifficultyMenu.newNewGameDifficultySelect(saveMenuProc)` (`ProcScr_SaveMenu` is not ported).
 
+PC-9c result (2026-11-25): `DifficultyMenuSprites` (`fe8.game.savemenu`), wired as the default child of `DifficultyMenu` (`Hooks.startSprites == null` / `wireSprites`). `DifficultyMenuSpritesDifferentialTest` checks `ram_trace_newgame` across `r00984..1088`: `DifficultyMenuSpritesProc` EWRAM fields (`flags0..1`, `unk2a`, `currentSelection`, `unk2c..3c`, `scrCur`), `f1031..1034` vertical cursor glide, all 8 bobbing LUT entries, all 16 highlight cycle colors for selections `0` and `1`, OBJ palettes, `sSpritePool` layer 4 + `gOam` (`f985..1087`, including empty overrun step `f1030`), and HW OAM/VRAM/palettes at `f1020`. Ported: `StartDrawDifficultyMenuSprites`, `DrawDifficultySprites_Loop` (10 break-checks). Transcribed (`not verified`): `DrawDifficultySprite_Init` (only `unk2a` reset is observable from `r00983`), `DrawDifficultyMenuCursorMaybe` (`unk38` horizontal delta stays `0`; no post-move HW `.oam.bin`), `sub_80AC4F8` (sel `2` uncaptured; active color overwritten by `Pal_08A28088`, inactive matches init palette), and `gProcScr_DrawDifficultyMenuSprites` (data array). `PC-9cap` retains sel `2`, horizontal glide, and post-move HW OAM.
+
 PC-9b result (2026-11-25): `DifficultyMenuDifferentialTest` extended over `ram_trace_newgame` (real `inputs.bin`:
 `Down` at f1030, `A` at f1060). Ported: `sub_80AC680` (`startDifficultyCursorMove`; `unk_30..36` and `flags_0` match
 the capture's sprite proc at f1030; 5 break-checks killed). Transcribed (branches the capture does not run):

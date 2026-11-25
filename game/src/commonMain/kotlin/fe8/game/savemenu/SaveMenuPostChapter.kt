@@ -207,7 +207,7 @@ public class SaveMenuPostChapter(
          */
         public var startSaveDraw: (Proc) -> Proc? = { null },
         /**
-         * `ProcScr_SaveMenu` (`PC-9d`, not ported yet); searched by
+         * `ProcScr_SaveMenu` ([SaveMenuNewGame.script]); searched by
          * [saveMenuSetDifficultyChoice].
          */
         public var saveMenuProcScript: ProcScript? = null,
@@ -316,10 +316,10 @@ public class SaveMenuPostChapter(
      * selected [difficulty] (`0..2`, or `3` when cancelled) and [b] (`unk_3d`) onto its
      * [SaveMenuState].
      *
-     * Transcribed from src/savemenu.c: SaveMenu_SetDifficultyChoice (not verified:
-     * `ProcScr_SaveMenu` itself is `PC-9d`, so tests pass a stand-in `ProcScript`; the null-proc
-     * guard, `difficulty` values `0`/`2`/`3`, and non-zero `b` are unexercised in
-     * `ram_trace_newgame`; `difficulty = 1` and `b = 0` on an active proc are verified at `f1060`)
+     * Partially ported from src/savemenu.c: SaveMenu_SetDifficultyChoice (verified in
+     * `NewGameSaveMenuDifferentialTest` on [SaveMenuNewGame.script]: `difficulty = 1`, `b = 0`
+     * at f1060; not verified: the null-proc guard, difficulties `0`/`2`/`3`, and non-zero `b`,
+     * unexercised in `ram_trace_newgame`)
      */
     public fun saveMenuSetDifficultyChoice(difficulty: Int, b: Int) {
         val script = hooks.saveMenuProcScript ?: return

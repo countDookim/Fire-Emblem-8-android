@@ -2081,3 +2081,46 @@ Proposed rows:
 | BA-p1a | PORT | `NewEkrBattleDeamon`, `nullsub_35`, `NewEkrBattleStarting`, `ekrBaStart_InitScreen`, `_SreenFailIn`, `_InitBattleScreen` (debug 0, CLOSE arm), `_ExecEkrBattle6C` (`gBanimBG == 0` arm); draws, `NewEkr*` starts behind hooks | f1464..1496 and f14431..14467 callback, cursor, timer, `x1..y2`, `gBattleDeamonActive`, proc-start hook order equal the dumps (no-run steps skipped); mutated `> 0xB` gate fails | BA-i1 | todo |
 | BA-p1b | PORT | `NewEkrWindowAppear`, `EkrWindowAppearMain`, `NewEkrNamewinAppear`, `EkrNamewinAppearDelay`/`Main`, `NewEkrBaseAppear`, `EkrBaseAppearMain` (type 0; register writes behind hooks) | timer, terminator, `ymax`, exist flags and end step equal the dumps in both windows; mutated `>= terminator` fails | BA-i1 | todo |
 | BA-p1c | PORT | `NewEkrBaseKaiten`, `EkrBaseKaitenMain` (CLOSE, type 0), `NewEkrUnitKakudai` (CLOSE), `UnitKakudaiPrepareAnimScript`, `UnitKakudaiMain`, `UnitKakudaiEndNop`, `ScriptBattleDeamon` (lock-false arm) | box, `left_pos`/`right_pos`, `valid_l/r`, timer, callback/cursor and gone steps equal the dumps; sprite/anim draws behind hooks | BA-i1 | todo |
+
+### BA-i5 result
+
+`BattlePanelsInventoryTest` (same method as BA-i8: `ram_trace_prologue_attack`, no function-entry trace, dump = state after
+the step), f1478..1993; the appearance of `ekrGauge`/`ekrDispUP` (f1480..1500) is BA-i1's, here only their per-step state is
+inventoried. The four procs are plain `PROC_REPEAT` procs whose callback never breaks in the window (`ekrGaugeMain` and
+`ekrDispUPMain` cursor 2, `sub_8054F10` cursor 4, `EfxHPBarColorChangeMain` cursor 3), so every dump step is one call except
+three whole-screen no-run steps (f1582, f1752, f1789: no proc field and no HP changes; BA-cap3 already lists f1582/f1789).
+Inputs constant over the window: `gEkrDistanceType` CLOSE, `gBanimMaxHP` (22, 16), `gBanimWtaBonus` (-15, +15),
+`gBanimEffectiveness` (0, 0), `gEkrGaugeHit/Dmg/Crt` fixed, `valid` 0, hide flags `unk4C/unk50` 0 on both procs, `asnyc` 0.
+`gEkrGaugeHp` is a pair of halfwords (side 0 low, side 1 high). `NamewinAppear` (f1482..1499) stays BA-p1b's.
+
+| Function | Frames (calls) | Branch taken | Not exercised |
+|---|---|---|---|
+| `NewEkrGauge` / `NewEkrDispUP` | f1480 (1 each); `gpProcEkrGauge`/`gpProcEkrDispUP` = proc address while alive | `gEkrGaugeHpBak` = (-1, -1) f1480..1482; `valid`, `battle_init`/`sync`, `unk4C/50`, `asnyc` 0; VRAM/palette/icon loads and `ModDec` buffers (not dumped) | `gEkrGaugeHp > 0x50` purple palette; `EkrGauge_Set4C50`/`EkrDispUpSet*` |
+| `EkrGauge_Clr323A` / `EkrDispUP_SetPositionUnsync` (via `EkrWindowAppearMain`/`EkrNamewinAppearMain`, BA-p1b) | f1482..1495 (y per step) | gauge `y` 57 -> 0 (57,57,57,57,56,53,50,46,41,34,27,19,10,0), dispup `y` -49 -> 0 (-49 x5, -48,-46,-43,-39,-35,-30,-24,-17,-9, 0 at f1496); `battle_init` 0, `sync` 0 | none |
+| `EkrGauge_SetInitFlag`, `SyncEkrDispUP`/`EkrDispUP_SetPositionSync` (callers in BA-p1b/BA-i6) | gauge `battle_init` 1 f1496..1992; dispup `sync` 1 f1497..1988, 0 again f1989 | `x = y = 0` except 24 steps with `y = x = +-3` (f1578..1803, three hits: 1578 -3, 1583 +3, 1586 -3 ...), identical on gauge and dispup; `gEkrBg0QuakeVec` itself reads (0, 0) at every dump step | `Setxy323A` callers for magic/dragon/triangle |
+| `ekrGaugeMain` | f1480..1993 (1/step) | `battle_init == 0` arm (BG0 panel redraw) f1480..1495 and again f1993; `1` arm after; `hp_changed`: `gEkrGaugeHpBak` copies `gEkrGaugeHp` the same step it changes (22 -> 15 side 0 f1579..1592, 16 -> 7 side 1 f1661..1677, 15 -> 8 side 0 f1786..1799, drops of 1 every 2..3 steps) and at the first run f1483; `CheckEkrHitNow` rotate-scale arm for side 0 f1577..1608, side 1 f1659..1689, side 0 f1784..1815; single HP bar row only (max HP <= 0x28), `gBanimWtaBonus` arrow arm both signs | `valid == 1` return; `unk4C/50` hide; HP > 0x50; second bar row (`uVar8 != 0`); FAR/FARFAR/MONOCOMBAT x offsets |
+| `EkrGauge_Setup44` | f1862 (`unk44` 0x400, from `EkrGauge_Setup44(1)` in the exp window) and f1982 (0) | value `val * 0x400` | `Setup44(2)` (level-up) |
+| `ekrDispUPMain` | f1480..1993 (1/step) | `sync == 0` arm (draws BG0 panel) f1480..1496, then returns at `sync != 0` through f1988; `sync == 0` again f1989..1993 (arm runs again) | `asnyc == 1` return, `unk4C/50` hide |
+| `NewEfxWeaponIcon` / `sub_8054F10` | started f1505 (counters 0), then 1 call/step to f1984 (479 steps, 3 no-run) | eff1 = eff2 = 0: only `EfxAdvanceFrameLut` + `EnablePaletteSync`; frame `unk4C` 0..16, cycle 32 steps (wraps f1538, 1570, 1603, 1635, ...); `invalid` 0 | `eff != 0` white flash arms (`LoadIconPalette`, `EfxPalWhiteInOut`), `Disable/EnableEfxWeaponIcon` |
+| `EndProcEfxWeaponIcon` | f1985 (proc gone, `gpProcEfxWeaponIcon` 0) | proc was still on its repeat callback; `sub_8054F78` (end callback) palette restore not dumped | none |
+| `NewEfxHpBarColorChange` / `EfxHPBarColorChangeMain` | started f1505, 1 call/step to f1984 | both HP halves <= 80: `EfxDecodeSplitedPalette` arms for both sides; `timer1/frame1` LUT cycle 36 steps -> `unk54` 0..5, `timer2/frame2` cycle 80 steps -> `unk58` 0..4 (unused here); `disabled` 0 | HP > 80 purple arm (`unk58` used), `Disable/EnableEfxHpBarColorChange` |
+| `EndEfxHPBarColorChange` | f1985 (proc gone; `gpProcEfxHpBarColorChange` keeps the stale address) | `Proc_End` | none |
+| `EfxAdvanceFrameLut` | 2 x 1 call/step f1506..1984 icon, colour | `timer == 0`: take the entry, `timer = dur - 1`, `frame++`; else `timer--`; `-2` restart arm taken (icon 14, colour1 13, colour2 5 times); `frame` reads 1 after a restart | `-1`, `-3`, `-4`, `-5`, `-6` return arms |
+
+Gaps: everything drawn (BG0 name/weapon/terrain panel tiles, HP gauge and hit/dmg/crit digits, OAM of bars and icons, VRAM
+`RegisterDataMove` copies, palette banks 0xB/0xC and the 0x1D/0x1E icon palettes, window/blend registers) is VRAM/OAM/palette
+and not in the EWRAM dumps (BA-cap1 evidence), so a port verifies control state only and the pixel result of the panels and
+bars stays unverified. The text drawing of names and weapon names (`EfxPrepareScreenFx`, `EkrDispUP`) runs at entry before the
+first dump. `ModDec`/`gEkrGaugeDecoder` (EWRAM) were not compared; `sub_8050E40`, `sub_8071068` and `sub_8051238` write only
+palette/OAM tables. The no-run steps f1582/f1752/f1789 need BA-cap3 to be attributed (a port drives the dump steps and skips
+them). No capture of HP > 0x50, max HP > 0x28, effectiveness flash (eff != 0), FAR/FARFAR/MONOCOMBAT gauges, or the scripted
+Seth/Valter window was inventoried (optional `ram_trace_prologue_battle` f14448..15035 not run: same procs, same arms expected).
+
+Proposed rows:
+
+| ID | Kind | Task | Acceptance | Deps | Status |
+|---|---|---|---|---|---|
+| BA-p9a | PORT | `NewEkrGauge` (control state; draws, palette, icon loads behind hooks), `EkrGauge_Setup44`, `EkrGauge_Clr4C50`, `EkrGauge_Clr323A`, `EkrGauge_SetInitFlag`/`ClrInitFlag`, `DisableEkrGauge`, `EndEkrGauge` | f1480 proc fields, `gEkrGaugeHpBak` (-1, -1), `unk44` f1862/f1982, `battle_init` f1496/f1993 equal the dumps; mutated `val * 0x400` fails | BA-i5 | todo |
+| BA-p9b | PORT | `ekrGaugeMain` (control: `battle_init`/`valid`/hide arms, `hp_changed` and `gEkrGaugeHpBak` copy, x/y selection for CLOSE, rotate-scale arm select; OAM/VRAM/BG0 writes behind hooks), `EkrGauge_Setxy323A` | f1480..1993 `gEkrGaugeHpBak`, `x`/`y` per step (incl. 24 quake steps), hook call order per step equal the dumps; mutated `hp_changed` fails | BA-p9a | todo |
+| BA-p9c | PORT | `NewEkrDispUP`, `EkrDispUpClear4C50`, `EkrDispUP_SetPositionSync`/`Unsync`, `SyncEkrDispUP`/`UnsyncEkrDispUP`/`UnAsyncEkrDispUP`, `ekrDispUPMain` (sync/asnyc early returns; panel tilemap copy behind a hook) | f1480..1993 `sync`, `y`, hook calls (only while `sync == 0`) equal the dumps | BA-i5 | todo |
+| BA-p9d | PORT | `NewEfxWeaponIcon`, `sub_8054F10` (eff = 0 arm), `EndProcEfxWeaponIcon`, `NewEfxHpBarColorChange`, `EfxHPBarColorChangeMain` (HP <= 80 arm), `EndEfxHPBarColorChange`, `EfxAdvanceFrameLut` (LUT data read from the ROM loader) | f1505..1985 `timer`, `frame`, value fields, gone step and `gp*` pointers equal the dumps (no-run steps skipped); mutated `dur - 1` fails | BA-i5 | todo |

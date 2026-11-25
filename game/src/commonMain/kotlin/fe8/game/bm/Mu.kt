@@ -346,7 +346,7 @@ public class Mu(
     /**
      * Starts a MU for [unit] with an explicit class and palette.
      *
-     * Transcribed from src/mu.c: StartMuExt (not verified: the trace MU is started by StartMu)
+     * Ported from src/mu.c: StartMuExt
      */
     public fun startMuExt(unit: MuUnit, jid: Int, pal: Int): Proc? {
         val proc = startMuInternal(unit.xPos, unit.yPos, jid, -1, pal) ?: return null
@@ -619,7 +619,8 @@ public class Mu(
     /**
      * True if a `ProcScr_Mu` proc exists.
      *
-     * Transcribed from src/mu.c: MuExists (not verified: trivial Proc_Find)
+     * Transcribed from src/mu.c: MuExists (not verified: a trivial Proc_Find that no PC-cap1
+     * differential reads; `muExists() = true` survives the Ch1 MU step-sound tests)
      */
     public fun muExists(): Boolean = procs.find(script) != null
 
@@ -772,8 +773,11 @@ public class Mu(
      * the clock's place in its loop, starts that sound at the MU's screen x
      * ([startPlayMuStepSe]).
      *
-     * Transcribed from src/mu.c: UpdateMuStepSounds (not verified: the Foot class of the
-     * Prologue walks is the only class list seen; the song and x it passes are compared)
+     * Partially ported from src/mu.c: UpdateMuStepSounds (verified: the default Foot script
+     *   (Fighter, Soldier) and the heavy script (Armor Knight), the clock advance and wrap, the
+     *   song and x passed on in PC-cap1 f10299..10376 and f16019..16153; not verified: the
+     *   mounted/flying branch and every other class list, the no-sound classes (Fallen Prince,
+     *   Fallen Peer); wyvern-to-mounted and Fallen Prince mutations survive)
      */
     public fun updateMuStepSounds(proc: MuProc) {
         val jid = proc.jid
@@ -846,8 +850,7 @@ public class Mu(
     }
 
     /**
-     * Transcribed from src/mu.c: MuStepSe_Init (not verified: the proc is new when it runs, so
-     * the cleared fields are 0 either way)
+     * Ported from src/mu.c: MuStepSe_Init
      *
      * Clears both queued sounds.
      */

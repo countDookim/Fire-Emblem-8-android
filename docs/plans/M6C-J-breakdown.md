@@ -1787,6 +1787,15 @@ Functions entered (decomp chains; `Ported` / `Transcribed` per `Ported from`/`Tr
   `f13050..13058` and unblocks on leg transition `0 -> 1` at `f13059`; W4 has 7 single-leg `MOVE` walks at
   speeds 16/24 Q4/f with 4-slot throttle and `BestMove` tie-breaks at `f16022`/`f16040`; `fastWalkB`, `A_BUTTON`,
   flags `2/4/8`, and `AdjustNewUnitPosition` on occupied tiles remain unexercised).
+- `PC-6l-d` W1/W4 (`f10298..10378`, `f16018..16153`, `Chapter1MuStepSeDifferentialTest`; MU Q4 x/y, speeds,
+  `stepSoundClock`, `camB`, `ProcScr_MuStepSe` song1/x1/song2/x2 and M4A per VBlank frame equal `PC-cap1`; VBlank
+  frames with `mainLoopEnded == 0` complete on the next frame). Dirty `sProcArray` `+0x60` (`unk60`) is stale
+  non-zero for reused step-SE slots, so `song2`/`x2` are compared only where `unk60 == 0`. Break-checks:
+  `StartMuExt` and `MuStepSe_Init` `Ported` (`camB`/`unitAddress`/each clear mutation fails); `PlayMuStepSe` and
+  `StartPlayMuStepSe` stay `Ported`; `UpdateMuStepSounds` `Partially ported` (Foot and heavy scripts, clock
+  advance, `song != 0` guard verified; the Ch1 classes are only Armor Knight, Fighter, Soldier, so the
+  mounted/flying branch, other class lists and the Fallen Prince/Peer no-sound return survive mutation);
+  `MuExists` stays `Transcribed` (`muExists() = true` survives; nothing in `PC-cap1` reads it).
 
 PORT rows (each one window, <= 8 functions; verify-or-port against the `f`-windows above):
 `PC-6l-a` W1 load path (`EventLoadUnitWithMovement`, `ModifyMoveUnitFlag`, `TryPrepareEventUnitMovement`,

@@ -35,7 +35,9 @@ Everything up to 0.1.868 was tested earlier; new items carry their build.
 
 ## 2. Open bugs (no fix yet)
 
-None reported.
+- **D-23 (0.1.886, owner 11-25):** a regular enemy's AI can switch off. Prologue: Eirika waits on the tile
+  above the Bandit in the woods; turn 1 the other enemy attacks her and dies, the woods Bandit attacks (both
+  survive); turn 2 Eirika waits and you End: that Bandit never acts again. Separate from the boss (EP-11).
 
 ## 3. Known gaps (not bugs)
 

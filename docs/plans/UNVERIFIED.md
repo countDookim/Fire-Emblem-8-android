@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 719 across 108 decomp files (missing reason: 0).
+Total entries: 720 across 108 decomp files (missing reason: 0).
 
 ## src/scene.c (34)
 
@@ -1022,6 +1022,13 @@ Total entries: 719 across 108 decomp files (missing reason: 0).
 | `AiIsUnitEnemy` | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | it is only called on the captured target of each attacker, and no captured value shows its result; an allied unit (false) is not seen |
 | `AiIsUnitEnemyAndNotInScrList` | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | no capture has an ignore list in script commands |
 
+## src/difficultymenu.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `NewNewGameDifficultySelect` | `game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenu.kt` | the capture shows the child's parent and the save menu's cursor holding at 23 while it runs, but the test's parent is a stand-in, so the blocking is not compared |
+| `SaveDrawSetDifficultSlotPalette` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | the capture has no `PLAY_FLAG_HARD` slot |
+
 ## src/eventcall.c (2)
 
 | Function | Kotlin file | Reason |
@@ -1165,12 +1172,6 @@ Total entries: 719 across 108 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `PutSprite` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteLayers.kt` | no test checks it against a trace yet |
-
-## src/difficultymenu.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SaveDrawSetDifficultSlotPalette` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | the capture has no `PLAY_FLAG_HARD` slot |
 
 ## src/eventscr2.c (1)
 

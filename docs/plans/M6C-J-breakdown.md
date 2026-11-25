@@ -1444,6 +1444,22 @@ scenarios for occupied-slot prompts and other save-menu callers; do not infer
 coverage of branches from the source or a single clean slot. Capture replayable
 setup, input scripts, manifests, and full RAM/video/SRAM around boundaries.
 
+
+PC-9a result (2026-11-25): `DifficultyMenu` (`fe8.game.savemenu`), `DifficultyMenuDifferentialTest` against
+`ram_trace_newgame`. Ported: `DifficultySelect_Init`, `DifficultySelect_OnEnd` (`unk_29` 1 -> 0 -> 1).
+Partially ported: `InitDifficultySelectScreen` (BG0..3 tilemaps and palettes at step 985, full VRAM and
+palette at f1020; sprite start is a hook, the `Pal_SaveScreenSprits` load is masked by
+`Pal_DifficultyMenuObjs`), `DrawDifficultyModeText` and `sub_80AC034` (selection 0 only; the box clear
+is a no-op on the blank BG0). Transcribed: `NewNewGameDifficultySelect` (blocking not compared, the
+parent is a stand-in), the script's label 2 jump and `nullsub_64`. The script's cursor path 7/10/12/14/end, fade-in and fade-out
+proc lifetimes match steps 986..1088 one-for-one; init steps 982..984 are not step-comparable (the init
+spans three steps). PC-9cap gaps for PC-9a: B cancel (`Proc_Goto(proc, 2)` skips the 10-frame sleep and
+runs the same fade-out) and selection 0/2 confirm only change which label/`SaveMenu_SetDifficultyChoice`
+value the key handler uses, not the lifecycle; `windowColor` != 0 and selections 1/2 text at init are
+unobserved. No new capture is needed for PC-9a itself. Not wired: the New Game save menu stand-in in
+`Fe8Boot.newGameSaveMenu` still writes difficulty 1 directly; PC-9 WIRE calls
+`DifficultyMenu.newNewGameDifficultySelect(saveMenuProc)` (`ProcScr_SaveMenu` is not ported).
+
 ## EP-11f2 UI helper follow-up (2026-11-21)
 
 EP-11f2 evidence: event.c EventEngine_OnEnd -> ReadGameSaveCoreGfx (event type 5); bm.c ReadGameSaveCoreGfx -> ResetText; fontgrp.c ResetText -> InitTextFont -> InitSystemTextFont, ApplyPalette(Pal_Text, palid), color 0 zero. Capture f3720->3721 color 14 tested through production TalkScene host, full bank compared. Other event-end mid-frame VRAM timing exclusions remain as existing tests. Face fade uses default layout; other SetupFaceGfxData layouts remain unsupported. No new port tags or mutation checks.

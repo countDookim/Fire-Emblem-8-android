@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-25 14:10Z (scheduled: PC-9d, BUG-deadmovestat); earlier 12:53Z (owner PC: D-24, PC-9c, EP-11); earlier 11:45Z (scheduled: EP-11-hooks, PC-9b partial); earlier 08:50Z (owner PC: PC-6l-c/d/e, PC-8, PC-9a, PC-6, EP-drift, D-23); earlier 05:35Z (scheduled: BA-i1, BA-i5); earlier 2026-11-24 23:28Z (scheduled: PC-8b, BA-p8a, BA-p8b); earlier 2026-11-24 22:40Z (owner PC: PC-7b, PC-6e-a, PC-8a, PC-6e-b); earlier 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-25 17:08Z (scheduled: PC-6e-c-speed, M7-24, PC-9 partial, EP-12 partial); earlier 14:10Z (scheduled: PC-9d, BUG-deadmovestat); earlier 12:53Z (owner PC: D-24, PC-9c, EP-11); earlier 11:45Z (scheduled: EP-11-hooks, PC-9b partial); earlier 08:50Z (owner PC: PC-6l-c/d/e, PC-8, PC-9a, PC-6, EP-drift, D-23); earlier 05:35Z (scheduled: BA-i1, BA-i5); earlier 2026-11-24 23:28Z (scheduled: PC-8b, BA-p8a, BA-p8b); earlier 2026-11-24 22:40Z (owner PC: PC-7b, PC-6e-a, PC-8a, PC-6e-b); earlier 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -14,6 +14,7 @@ are in ROADMAP "User-report issues".
 Issue #8 (owner, 0.1.868, 11-24): PC-3a/4/5 confirmed (save menu, slot 1 save, Ch1 title card and opening
 event, first player phase). New gaps: power-on resumes the Ch1 suspend, no title menu (PC-11); no enemy range
 (PP-enemy). Ch1 unit-menu crash (EP-35b), boss AI (EP-11), no game over (PC-7/8) as expected.
+Issue #10 (owner, 0.1.892, 11-25): EP-11 boss AI confirmed on device (one-enemy-left dialogue, boss moves and attacks).
 Extensive modding scope, separate vanilla tests and replaceable camera/controls/AI are accepted (ADR 0016).
 [M7 decisions](docs/plans/M7-modding.md): release staging (D2), API details (D5), layout/debug/storage/packaging
 (D4/D6/D8/D9) and executable runtime (D10) remain open; M6 and design inventories are not blocked.
@@ -24,10 +25,10 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-EP-12: scheduled, until ~17:31Z (wip/EP-12)
-M7-24: scheduled, until ~17:31Z (wip/M7-24)
 
 ## Current state
+
+- 2026-11-25 17:08Z scheduled (Sonnet agents): **PC-6e-c-speed, M7-24 done; PC-9, EP-12 partial.** PC-6e-c-speed: `Chapter1TeardownDifferentialTest` 153 s -> 1.3 s (per-frame name-table scans hoisted; same assertions, break-checked). PC-9: `SaveMenuAssembly.wireNewGame` wires real DifficultyMenu/sprites + `SaveMenuNewGame` into the select loop; `NewGameSaveMenuWireTest` (Normal choice, slot-0 SRAM, BGM fade vs `ram_trace_newgame`); not used by `Fe8Boot` until PC-11 (other `ProcScr_SaveMenu` callbacks unset); no B-cancel capture; no allocation check yet; no MANUAL_TEST change (nothing device-visible). EP-12: matrix "EP-12 result" + EP12-script/steal/score-cap rows, but scenarios unconfirmed: subagents could not run git on `.assets/decomp` (sandbox) -> parent should confirm against `src/cp_*.c`. M7-24: "M7-24 result" in M7-modding (candidate rows M7-26a/b..M7-28a/b not in TASKS yet). Issue #10 logged (EP-11 device OK). Full suite not run (>15 min; changed tests + `:game:jvmTest` + Dokka green). Next: EP-12 decomp check, PC-11cap/PP-enemy-cap (owner PC captures), EP-35b.
 
 - 2026-11-25 14:10Z scheduled (Sonnet agents): **PC-9d, BUG-deadmovestat done.** PC-9d: `SaveMenuNewGame` (1:1 `ProcScr_SaveMenu`, other callbacks via hooks); `NewGameSaveMenuDifferentialTest` (3 ok, 7 break-checks); WriteNewGame/SetDifficultyChoice verified for Normal only; Reload Transcribed (capture lags it 9 frames). Not wired (PC-9 now unblocked: swap `SaveMenuSelectLoop` newGame/writeNewGame stand-ins). BUG-deadmovestat: dead actor credits BIOS open-bus pid 4 (`PlayerPhase.BIOS_OPEN_BUS_PID`), matches capture. Full `:testing:test` exceeds 15 min here (ran changed areas + `:game:jvmTest`, green; CI runs full). Push needs `git -c push.negotiate=false push` (repo moved to `Fire-Emblem-8-android`). Next: PC-9, EP-35b, PP-enemy-cap, PC-11cap.
 

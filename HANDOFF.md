@@ -24,6 +24,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- PC-9d: scheduled, until ~14:10Z
+- BUG-deadmovestat: scheduled, until ~14:10Z
 
 ## Current state
 

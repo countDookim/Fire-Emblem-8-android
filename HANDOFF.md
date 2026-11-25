@@ -24,8 +24,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- EP-11-hooks: Gemini owner PC, until ~10:43Z (`wip/ep11hooks`, 2026-11-25).
-- PC-9b: Gemini owner PC, until ~10:43Z (`wip/pc9b`, 2026-11-25).
+- EP-11-hooks: wrapped up at 2026-11-25 10:38Z, unfinished on `origin/wip/ep11hooks` (`41877aef`): `Fe8Boot.kt` `EventScrHooks` + 3 tests updated; finish full `jvmTest`/`test`/`serialTest` + Dokka + delete `wip/eventscrhooks`.
+- PC-9b: wrapped up at 2026-11-25 10:38Z, unfinished on `origin/wip/pc9b` (`7b89c083`): key handler/cursor move/difficulty save helpers + `DifficultyMenuDifferentialTest` written (100% pass on direct test; remaining `break_check.py` cases hit lock timeout behind `ep11hooks`); finish break-checks, KDoc/`UNVERIFIED.md`/`M6C-J-breakdown.md`, `:game:jvmTest` + Dokka.
 
 
 ## Current state

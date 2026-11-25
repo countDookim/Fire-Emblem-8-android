@@ -24,6 +24,9 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- ENG-save-slots: GPT owner PC, standalone save slots, until ~15:15Z (2026-11-25).
+- ENG-action-policy: GPT owner PC, standalone action selection, until ~15:15Z (2026-11-25).
+
 
 ## Current state
 

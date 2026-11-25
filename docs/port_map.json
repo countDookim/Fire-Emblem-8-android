@@ -8,8 +8,8 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1469,
-    "implemented_unverified": 126
+    "verified": 1476,
+    "implemented_unverified": 134
   },
   "functions": {
     "APProc_Create": {
@@ -2158,6 +2158,16 @@
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
+    "ClearUnit": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Chapter1EnemyLoadDifferentialTest#Chapter 1 W1 enemy load matches PC-cap1 across f10298 to f10378"
+      ]
+    },
     "ClearUnitBurstMapUi": {
       "decomp_file": "src/player_interface.c",
       "system": "menus",
@@ -3892,6 +3902,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventCursorCamera.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1TeardownDifferentialTest#ProcScr_EventDisplayCursor lifecycle and OAM across Chapter 1 opening match PC-cap1",
         "fe8.testing.EventCursorCameraTest#event display cursor loop matches prologue procs watch"
       ]
     },
@@ -4399,7 +4410,50 @@
         "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
       ]
     },
+    "GameOverScreenHBlank": {
+      "decomp_file": "src/gameoverbgfx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/GameOverScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GameOverScreenHBlankDifferentialTest#gameOverScreenHBlank matches PC-cap2b BLDALPHA and full IO on all 912 calls",
+        "fe8.testing.GameOverScreenHBlankDifferentialTest#init installs hblankHandler whose active callback matches PC-cap2b on all 912 calls"
+      ]
+    },
+    "GameOverScreen_BeginFadeOut": {
+      "decomp_file": "src/gameoverbgfx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/GameOverScreen.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GameOverScreen_BeginIdle": {
+      "decomp_file": "src/gameoverbgfx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/GameOverScreen.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GameOverScreen_Init": {
+      "decomp_file": "src/gameoverbgfx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/GameOverScreen.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GameOverScreen_LoopFadeIn": {
+      "decomp_file": "src/gameoverbgfx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/GameOverScreen.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GameOverScreen_LoopFadeOut": {
       "decomp_file": "src/gameoverbgfx.c",
       "system": "presentation",
       "in_scope": true,
@@ -5346,6 +5400,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W1 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f10299 to f10376",
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W4 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f16019 to f16153",
         "fe8.testing.MuDisplayDifferentialTest#PutMu position matches the MU object in OAM on every frame f10580 to f10633"
       ]
     },
@@ -8387,6 +8443,27 @@
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
+    "MuCtrExists": {
+      "decomp_file": "src/muctrl.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Chapter1MuCtrlDifferentialTest#W5 ally load two blue units path tie-break and settle tiles match PC-cap1 f20248 to f20268"
+      ]
+    },
+    "MuCtr_StartDefinedMove": {
+      "decomp_file": "src/muctrl.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Chapter1MuCtrlDifferentialTest#W1 red unit REDA walks delays multi-leg and no-op match PC-cap1 f10298 to f10378",
+        "fe8.testing.Chapter1MuCtrlDifferentialTest#W2 NPC load dependency wait and 3-leg walk match PC-cap1 f13048 to f13103"
+      ]
+    },
     "MuDeathFade_OnLoop": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -8428,6 +8505,17 @@
         "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
       ]
     },
+    "MuStepSe_Init": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W1 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f10299 to f10376",
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W4 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f16019 to f16153"
+      ]
+    },
     "MuStepSe_PlaySeA": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -8435,6 +8523,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W1 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f10299 to f10376",
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W4 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f16019 to f16153",
         "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
         "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
         "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
@@ -8447,6 +8537,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W1 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f10299 to f10376",
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W4 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f16019 to f16153",
         "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
         "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
         "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
@@ -8482,6 +8574,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W1 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f10299 to f10376",
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W4 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f16019 to f16153",
         "fe8.testing.MuMoveDifferentialTest#MU walk of the prologue talk run matches f10580 to f10621 and f10624 to f10633",
         "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
       ]
@@ -8517,6 +8611,14 @@
       "tests": [
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
+    },
+    "NewEkrbattleending": {
+      "decomp_file": "src/banim-ekrbattleending.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleEnding.kt",
+      "status": "implemented",
+      "tests": []
     },
     "NewFadeIn": {
       "decomp_file": "src/sysutil.c",
@@ -9213,6 +9315,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W1 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f10299 to f10376",
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W4 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f16019 to f16153",
         "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
         "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
         "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
@@ -9225,6 +9329,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/SpacialSe.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W1 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f10299 to f10376",
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W4 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f16019 to f16153",
         "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
         "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
         "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
@@ -9923,6 +10029,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapCursor.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1TeardownDifferentialTest#ProcScr_EventDisplayCursor lifecycle and OAM across Chapter 1 opening match PC-cap1",
         "fe8.testing.MapCursorDifferentialTest#map cursor objects match the dump OAM"
       ]
     },
@@ -10744,6 +10851,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/SpacialSe.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W1 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f10299 to f10376",
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W4 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f16019 to f16153",
         "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
         "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
         "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
@@ -11849,6 +11958,16 @@
         "fe8.testing.MuStartDifferentialTest#StartMu from the unit as dumped at f9674 matches the f9674 MU proc and config"
       ]
     },
+    "StartMuExt": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W1 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f10299 to f10376"
+      ]
+    },
     "StartMuHitFlash": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -11866,6 +11985,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W1 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f10299 to f10376",
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W4 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f16019 to f16153",
         "fe8.testing.MuStartDifferentialTest#StartMu from the unit as dumped at f9674 matches the f9674 MU proc and config"
       ]
     },
@@ -11927,6 +12048,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W1 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f10299 to f10376",
+        "fe8.testing.Chapter1MuStepSeDifferentialTest#W4 MU positions speeds stepSoundClock ProcScr_MuStepSe and M4A match PC-cap1 f16019 to f16153",
         "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
         "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
         "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
@@ -13829,6 +13952,30 @@
         "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
       ]
     },
+    "ekrBattleEnding_8056228": {
+      "decomp_file": "src/banim-ekrbattleending.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleEnding.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "ekrBattleEnding_8056288": {
+      "decomp_file": "src/banim-ekrbattleending.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleEnding.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "ekrBattleEnding_8056484": {
+      "decomp_file": "src/banim-ekrbattleending.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleEnding.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "ekrBattleExecDragonIntro": {
       "decomp_file": "src/banim-ekrbattle.c",
       "system": "battle_anim",
@@ -14573,6 +14720,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
+      ]
+    },
+    "sub_807A300": {
+      "decomp_file": "src/muctrl.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Chapter1MuCtrlDifferentialTest#W1 red unit REDA walks delays multi-leg and no-op match PC-cap1 f10298 to f10378",
+        "fe8.testing.Chapter1MuCtrlDifferentialTest#W2 NPC load dependency wait and 3-leg walk match PC-cap1 f13048 to f13103"
       ]
     },
     "sub_807BA28": {

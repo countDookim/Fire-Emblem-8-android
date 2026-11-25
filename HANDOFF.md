@@ -24,8 +24,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-PC-9: scheduled, until ~17:26Z
-PC-6e-c-speed: scheduled, until ~17:26Z
+EP-12: scheduled, until ~17:31Z (wip/EP-12)
+M7-24: scheduled, until ~17:31Z (wip/M7-24)
 
 ## Current state
 

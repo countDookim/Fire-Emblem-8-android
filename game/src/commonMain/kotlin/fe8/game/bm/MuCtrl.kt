@@ -172,9 +172,11 @@ public class MuCtrl(
     }
 
     /**
-     * Transcribed from src/muctrl.c: MuCtr_StartDefinedMove (not verified: no trace walk)
+     * Ported from src/muctrl.c: MuCtr_StartDefinedMove
      *
-     * Starts a walk of [unit] through [redas] ([count] of them).
+     * Starts a walk of [unit] through [redas] ([count] of them) on proc tree 5. `count == 0` is
+     * unreached (rejected in [initDefinedMove]); `CopyEventMoveREDAs` / `proc->reda_cur` is
+     * replaced by [List.take] (`PC-6l-c`).
      */
     public fun startDefinedMove(unit: Int, redas: List<Reda>, count: Int, flags: Int) {
         val proc = procs.start(script, 5)
@@ -182,7 +184,11 @@ public class MuCtrl(
     }
 
     /**
-     * Transcribed from src/muctrl.c: MuCtr_InitDefinedMove (not verified: no trace walk)
+     * Partially ported from src/muctrl.c: MuCtr_InitDefinedMove (verified: proc fields, last-REDA
+     *   target, startMu, delayFrames, flags, US_HIDDEN, gBmMapOther reservation, and MU hiddenB
+     *   in Ch1 W1/W2/W4; not verified: adjustNewUnitPosition when target is occupied/sumFlag,
+     *   gBmMapUnit clear before execReda on completed passes, non-zero gBmMapOther source-tile
+     *   clear, count == 0 error, and hideUnitSprite hook)
      *
      * Positions the walk's target ([adjustNewUnitPosition] on the last REDA), starts the unit's
      * MU, hides the unit's sprite and map entry and reserves the target in the "other" map.
@@ -203,16 +209,16 @@ public class MuCtrl(
         val pos = intArrayOf(last.x, last.y)
         adjustNewUnitPosition(unit, pos, flags)
         proc.unit = unit
-        proc.muProc = mu.startMu(muUnit(unit, o)) ?.state as MuProc?
+        proc.muProc = mu.startMu(muUnit(unit, o))?.state as MuProc?
         proc.redas = redas
         proc.redaCount = count
         proc.timer = 0
-        proc.delayFrames = redas[0].delayFrames
+        proc.delayFrames = redas[0].delayFrames.toShort().toInt()
         proc.flags = flags and 0xFFFF
-        proc.x = pos[0]
-        proc.y = pos[1]
-        proc.unk42 = x
-        proc.unk43 = y
+        proc.x = pos[0].toByte().toInt()
+        proc.y = pos[1].toByte().toInt()
+        proc.unk42 = x.toByte().toInt()
+        proc.unk43 = y.toByte().toInt()
         hooks.hideUnitSprite(unit)
         table.setState(unit, table.state(unit) or US_HIDDEN)
         if (map.unit[table.yPos(unit), table.xPos(unit)] == (table.index(unit) and 0xFF)) {
@@ -394,32 +400,61 @@ public class MuCtrl(
         generateBestMovementScript(map.range, map.sizeX, map.sizeY, rng, x0, y0, workingScript)
     }
 
+    /** `gUnknown_03001C34`, `gUnknown_03001C35`, `gUnknown_03001C36`: state for [canStartAfter]. */
+    private var waitClear = false
+    private var waitPid = 0
+    private var waitLeg = 0
+    private val checkWaitTargetFn = ProcFunc { sub807A300(it) }
+    private val checkWaitLegFn = ProcFunc { sub807A324(it) }
+
     /**
-     * Transcribed from src/muctrl.c: sub_807A294 (not verified: needs two walks that wait on each
-     * other)
+     * Partially ported from src/muctrl.c: sub_807A294 (verified: pid == 0 fast path, sub807A300
+     *   block while waited walk runs in Ch1 W2 f13050..13058, and sub807A324 leg-threshold
+     *   unblock at f13059; not verified: b == 0xFFFF wait while target walk is still running)
      *
      * True when the walk may start: [pid] is 0, no walk of character [pid] runs, or one that runs
      * has a current leg index above [b] (0xFFFF = no leg condition, wait for the walk to end).
      */
     private fun canStartAfter(pid: Int, b: Int): Boolean {
         if (pid == 0) return true
-        var ok = true
-        procs.forEach(script, ProcFunc {
-            val s = it.state as MuCtrlProc
-            if (table.charId(s.unit) == pid) ok = false
-        })
-        if (!ok && b != 0xFFFF) {
-            procs.forEach(script, ProcFunc {
-                val s = it.state as MuCtrlProc
-                if (table.charId(s.unit) == pid && b < s.timer) ok = true
-            })
+        waitPid = pid
+        waitClear = true
+        procs.forEach(script, checkWaitTargetFn)
+        if (!waitClear && b != 0xFFFF) {
+            waitLeg = b
+            waitClear = false
+            procs.forEach(script, checkWaitLegFn)
         }
-        return ok
+        return waitClear
     }
 
     /**
-     * Transcribed from src/muctrl.c: sub_807A0E4 (not verified: the walk is checked through its
-     * end position and frame count only)
+     * Ported from src/muctrl.c: sub_807A300
+     *
+     * `Proc_ForEach` visitor for [canStartAfter]: clears [waitClear] when [proc] moves [waitPid].
+     */
+    private fun sub807A300(proc: Proc) {
+        val s = proc.state as MuCtrlProc
+        if (table.charId(s.unit) == waitPid) waitClear = false
+    }
+
+    /**
+     * Partially ported from src/muctrl.c: sub_807A324 (verified: waitLeg < timer boundary in
+     *   Ch1 W2 f13050..13059; not verified: table.charId == waitPid guard when another unrelated
+     *   MuCtrlProc has timer > waitLeg)
+     *
+     * `Proc_ForEach` visitor for [canStartAfter]: sets [waitClear] when [proc] moves [waitPid]
+     * and has advanced past leg [waitLeg].
+     */
+    private fun sub807A324(proc: Proc) {
+        val s = proc.state as MuCtrlProc
+        if (table.charId(s.unit) == waitPid && waitLeg < s.timer) waitClear = true
+    }
+
+    /**
+     * Partially ported from src/muctrl.c: sub_807A0E4 (verified: dependency gate, normal
+     *   delayFrames decrement, < 1 threshold, and execReda start in Ch1 W1/W2/W4; not verified:
+     *   fastWalkB skip, A_BUTTON -= 4 fast delay, and timer != 0 waiting sprite/map show)
      *
      * Step before a leg (`sub_807A0E4` in the decomp): once the walks this leg waits for allow it,
      * counts the delay down (4 per frame while A is held) and starts the leg; with the fast walk
@@ -453,7 +488,9 @@ public class MuCtrl(
     }
 
     /**
-     * Transcribed from src/muctrl.c: sub_807A194 (not verified: as [waitToStartLeg])
+     * Partially ported from src/muctrl.c: sub_807A194 (verified: !isMuActive poll, unit position
+     *   update between legs, timer++ and redaCount loop bound, delayFrames reload, and goto(1)
+     *   completion in Ch1 W1/W2/W4; not verified: !mu.fastWalkB guard on multi-leg continuation)
      *
      * Step during a leg (`sub_807A194` in the decomp): waits for the MU to finish the leg, puts
      * the unit on the leg's target and moves to the next leg, or ends the proc after the last one
@@ -467,7 +504,7 @@ public class MuCtrl(
             setPos(u, s.unk42, s.unk43)
             s.timer++
             if (s.timer < s.redaCount && !mu.fastWalkB) {
-                s.delayFrames = s.redas[s.timer].delayFrames
+                s.delayFrames = s.redas[s.timer].delayFrames.toShort().toInt()
                 return false
             }
             procs.goto(proc, 1)
@@ -477,7 +514,8 @@ public class MuCtrl(
     }
 
     /**
-     * Transcribed from src/mu.c: IsMuActive (not verified: trivial).
+     * Partially ported from src/mu.c: IsMuActive (verified: MU_STATE_INACTIVE false vs moving true
+     *   in Ch1 W1/W2/W4; not verified: config.slot == 0 false check)
      *
      * True while the MU has a sprite slot and has not reached `MU_STATE_INACTIVE`.
      */
@@ -485,7 +523,11 @@ public class MuCtrl(
         m.config!!.slot != 0 && m.state != Mu.MU_STATE_INACTIVE
 
     /**
-     * Transcribed from src/muctrl.c: MuCtr_ExecREDA_807A358 (not verified: as [waitToStartLeg])
+     * Partially ported from src/muctrl.c: MuCtr_ExecREDA_807A358 (verified: gBmMapOther clear and
+     *   restore around path build, same-tile no-op skip, MU show/script/moveConfig/disableMuCamera,
+     *   and unk42/unk43 update in Ch1 W1/W2/W4; not verified: intermediate-leg flag 0 clear on
+     *   occupied tiles, flags & 2/4/8 true branches, config > 0x100 clamp, US_HIDDEN/gBmMapUnit
+     *   redundancies with initDefinedMove, and sprite hooks)
      *
      * Starts the current leg: builds the movement script to its target and hands it to the MU
      * with the leg's move config (+0x40 for flag 8, capped at 0x100 as `SetMuConfig`), the camera
@@ -524,13 +566,17 @@ public class MuCtrl(
                 map.unit[table.yPos(u), table.xPos(u)] = 0
             }
             hooks.refreshUnitSprites()
-            s.unk42 = pos[0]
-            s.unk43 = pos[1]
+            s.unk42 = pos[0].toByte().toInt()
+            s.unk43 = pos[1].toByte().toInt()
         }
     }
 
     /**
-     * Transcribed from src/muctrl.c: MuCtr_OnEnd (not verified: as [waitToStartLeg])
+     * Partially ported from src/muctrl.c: MuCtr_OnEnd (verified: US_HIDDEN clear, map/entity
+     *   placement when neither map.unit write nor refreshEntityBmMaps runs, and EndMu in Ch1
+     *   W1/W2/W4; not verified: fastWalkB MoveUnit_ branch, setPos redundant with waitForLegEnd,
+     *   unitFinalizeMovement, individual map.unit vs refreshEntityBmMaps redundancy, and sprite
+     *   hooks)
      *
      * End callback of the proc. Puts the unit on its final tile (through [moveUnit] when the fast
      * walk cut the walk short), shows it and ends the MU.

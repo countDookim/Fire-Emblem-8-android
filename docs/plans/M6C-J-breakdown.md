@@ -1778,6 +1778,15 @@ Functions entered (decomp chains; `Ported` / `Transcribed` per `Ported from`/`Tr
   `r10298` `gUnitArrayRed[0..6]` holds dirty Prologue bytes so `ClearUnit` is exercised; Ch1 applies
   `easyModeLevelMalus == 0` / bonus 0; `sub_800F8A8` takes `MuCtr_StartDefinedMove` with `MoveUnit_`/`MoveUnitExt`
   unentered); `GenUnitDefinitionFinalPosition` stays `Transcribed` (mutation to `(0, 0)` survives W1).
+- `PC-6l-b` W1/W2/W4 (`f10298..10378`, `f13048..13103`, `f16018..16153`, `Chapter1MuCtrlDifferentialTest`):
+  extracted `sub_807A300` and `sub_807A324` from `sub_807A294` in `MuCtrl.kt`; `MuCtr_StartDefinedMove` and
+  `sub_807A300` upgraded to `Ported`; `MuCtr_InitDefinedMove`, `sub_807A0E4`, `sub_807A194`, `sub_807A294`,
+  `sub_807A324`, `MuCtr_ExecREDA_807A358`, `MuCtr_OnEnd`, and `IsMuActive` upgraded to `Partially ported` per
+  rule 4 break-checks (every `timer > 0` leg across `PC-cap1` has `delayFrames == 0` and `a == 0`, so `sub_807A0E4`
+  never waits at `timer != 0`; W2 `green[1]` waits on `green[0]` via `sub_807A300`/`sub_807A324` across
+  `f13050..13058` and unblocks on leg transition `0 -> 1` at `f13059`; W4 has 7 single-leg `MOVE` walks at
+  speeds 16/24 Q4/f with 4-slot throttle and `BestMove` tie-breaks at `f16022`/`f16040`; `fastWalkB`, `A_BUTTON`,
+  flags `2/4/8`, and `AdjustNewUnitPosition` on occupied tiles remain unexercised).
 
 PORT rows (each one window, <= 8 functions; verify-or-port against the `f`-windows above):
 `PC-6l-a` W1 load path (`EventLoadUnitWithMovement`, `ModifyMoveUnitFlag`, `TryPrepareEventUnitMovement`,

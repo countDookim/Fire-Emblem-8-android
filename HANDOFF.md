@@ -25,7 +25,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-10i-turn3, PC-11b: owner PC, until ~21:30Z
+- PC-10i-turn3, PC-11b (merging), PC-11c: owner PC, until ~21:30Z
 
 ## Current state
 

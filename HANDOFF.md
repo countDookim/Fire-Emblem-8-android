@@ -24,7 +24,6 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- EP-drift: owner PC, until ~10:00Z
 - PC-6l-e: owner PC, until ~10:00Z
 
 

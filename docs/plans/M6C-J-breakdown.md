@@ -354,6 +354,35 @@ Not seen: which entry an item selects. Every captured weapon has the same defaul
 Transcribed: `GetSpellAssocStructPtr` (above), `GetSpellAssocReturnBool` (caller in the info box, EP-20) and `GetSpellAssocFlashColor` (hit flash, EP-25): the results reach no captured value yet.
 Stand-ins: none new; the EP-13 `spellAssocEntry` scan is gone and `MapAnimApi` calls `SpellAssoc`. Nothing visible changes in game.
 
+### EP-drift result (2026-11-25)
+
+`EnemyPhaseTimingInventoryTest` replays `ram_trace_prologue_gameover` (same keys as EP-cap1) through `Fe8Boot` from the
+first idle frame and compares the proc names per step; it asserts the current gaps. Findings (capture step numbers):
+
+- **First divergence f1340, not in the enemy phase.** The capture opens the Options screen from the map menu
+  (`ProcScr_Config_Field`, `ProcScr_BmFadeOUT`/`IN`, `ProcScr_SlidingWallBg`, f1340..1449); the port's Options menu item does
+  nothing (the MANUAL_TEST known gap), so `sProc_Menu` stays open until the keys close it and the idle edge comes about 20
+  frames early (port f1431 vs capture f1451). Cost: ~20 frames per visit; the keys that follow still land.
+- **First enemy-phase divergence f2403, the main gap (~323 of the ~336 frames).** `gProcScr_CpPhase` is present 1137 frames in
+  the capture, 801 in the port. The two Soldier battles match to 1-2 frames each (`ProcScr_MapAnimBattle` 313/312 and
+  269/268 frames, the walks 81 vs 85, the info boxes, `ProcScr_MuDeathFade`, `ProcScr_PhaseIntro` 71/70). After the second
+  Soldier's death the capture starts a `ProcScr_StdEventEngine` with `pEventStart` 0x089EF0D8 (f2403..2721, 318 frames:
+  `ProcScr_EventDisplayCursor` f2403..2462, `gProcScr_Talk` f2465..2703, faces, flag 262 set, flag 263 cleared f2719), the
+  same script that ran for 3 frames after the first kill (f2014). The port starts it for the first kill (f2005, 2 frames) but
+  not for the second; the only event it starts afterwards is the turn event 0x089EF23C (f2425, capture f2768). Also, the
+  port's f2005 run sets flags 7 and 363, which the capture's f2014 run does not touch.
+- **Suspect functions (not yet fixed).** The event comes from `CpPerform`'s `RunPotentialWaitEvents` >
+  `EventInfos.checkForWaitEvents`/`runWaitEvents` > `searchAvailableEvent` (misc event list) > `EventEngine` running the
+  script, whose first command is `CHECK_ENEMIES` (red units == 1, only the boss left, branches to the dialogue). Port counts:
+  `UnitTable.countRedUnits` gives 3, 2 (f2005), 1 (f2430). `Fe8Boot` constructs `EventScrCore` without `EventScrHooks`, so
+  `countRedUnits`, `countGreenUnits`, `battleMapKind`, `eventTriggerId` and `tutorialEvent` are the stand-in defaults
+  (0); wiring `countRedUnits = units.countRedUnits()` (3 lines in `Fe8Boot`) was tried and does NOT change the result, so the
+  wrong branch/flag handling is elsewhere: compare the misc list entries (conditions, flag per entry) at the second kill, and
+  why the f2005 run sets flags 7 and 363 (`SearchAvailableEvent`, `StartEventFromInfo`, `RegisterEventActivation`, entry flag
+  handling). Next row: PORT/INV on the misc-event entries at f2005..2014 and f2399..2403 (capture the entry list and
+  `gActiveEventRegistry`).
+- Measured: the probe takes about 1 s locally.
+
 ### EP-11a result (2026-11-15)
 
 Test: `BossTurnEventDifferentialTest` over `ram_trace_prologue_clear`. Start: `RunPhaseSwitchEvents` seeded from the step 2963 flags and `gActiveEventRegistry` and the step 2964 `gPlaySt` (`SwitchPhases` turns the faction earlier in the same step), compared with step 2964: the `CallEvent` script and exec type (the engine proc's start and exec type), the 0x40 registry bytes (the earlier misc event's entry is replaced: one entry, flag 8, count 1), the flags watch and the tutorial queue fields. AI change: the event engine of step 3718 (parked at the TUTORIAL check before SETVAL slot 1, CHAI, EVBIT and END) loaded into a real `EventEngine` with `EventScrCore` and the new command, one frame run; engine fields, slots 1..13, slot queue, flags and all 50 red units compared with step 3719 (boss `ai1`/`ai_a_pc`/`ai2`/`ai_b_pc` 6/1/3/1 to 0/0/0/0; the only unit whose AI bytes change). No release stub is hit in that frame.

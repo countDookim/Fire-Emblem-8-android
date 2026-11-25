@@ -134,7 +134,7 @@ class GameOverWireTest {
         boot.engine.procs.any { it.script?.name == name }
 
     @Test
-    fun `lord death game over and return to the title match the capture`() {
+    fun `lord death to the GameOver screen and back to the title matches the capture`() {
         assumeTrue(available(), "reference data / ROM / nm file")
         val run = ref.run(RUN)
         val trace = run.watch("procs")

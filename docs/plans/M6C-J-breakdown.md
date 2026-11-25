@@ -1796,6 +1796,16 @@ Functions entered (decomp chains; `Ported` / `Transcribed` per `Ported from`/`Tr
   advance, `song != 0` guard verified; the Ch1 classes are only Armor Knight, Fighter, Soldier, so the
   mounted/flying branch, other class lists and the Fallen Prince/Peer no-sound return survive mutation);
   `MuExists` stays `Transcribed` (`muExists() = true` survives; nothing in `PC-cap1` reads it).
+- `PC-6l-c` W1/W2/W4/W5 (`f10298..10378`, `f13048..13103`, `f16019..16153`, `f20249..20268`;
+  `Chapter1MuCtrlDifferentialTest`, new W5 test seeded from `r20240`/`f20248`: ally `Event2C_LoadUnits`, blue
+  slots 1/2 walk (14,9) -> (13,8)/(12,9), single `BestMove` draw at `f20250`, MU/`MuCtrl` fields, unit tiles,
+  `gBmMapUnit`/`Other` and `gRNState` per frame equal). `MuCtrExists` `Ported` (the `ENUN` wait: forcing it
+  `false` or `true` fails all windows); `sub_807A644` `Partially ported` (`flagsB & 1 == 0` branch: flooding
+  from another tile fails W1/W2/W4; the free-tile branch survives mutation because every walk in `PC-cap1` has
+  `flagsB == 0`). `AdjustNewUnitPosition` (called with flags 0 only), `MoveUnit_`/`MoveUnitExt` (never entered:
+  no skipped events, no immediate placement) and `SetMuMaxWalkSpeed_` (only while skipping) stay `Transcribed`;
+  all their mutations survive. `CopyEventMoveREDAs`/`ClearEventMoveBuffer` have no C-shaped counterpart (a list
+  copy; no buffer to clear), so nothing was labelled or written for them.
 
 PORT rows (each one window, <= 8 functions; verify-or-port against the `f`-windows above):
 `PC-6l-a` W1 load path (`EventLoadUnitWithMovement`, `ModifyMoveUnitFlag`, `TryPrepareEventUnitMovement`,

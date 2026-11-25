@@ -142,6 +142,18 @@ class Chapter1MuCtrlDifferentialTest {
         rig().verifyWindow4()
     }
 
+    @Test
+    @VerifiesPort(
+        "MuCtr_InitDefinedMove",
+        "sub_807A644",
+        "MuCtr_ExecREDA_807A358",
+        "MuCtr_OnEnd",
+        "MuCtrExists",
+    )
+    fun `W5 ally load two blue units path tie-break and settle tiles match PC-cap1 f20248 to f20268`() {
+        rig().verifyWindow5()
+    }
+
     private class Rig(
         romBytes: ByteArray,
         private val run: ReferenceData.Run,
@@ -154,6 +166,7 @@ class Chapter1MuCtrlDifferentialTest {
         private val rngWatch = run.watch("rng")
         private val procsWatch = run.watch("procs")
         private val redWatch = run.watch("red")
+        private val blueWatch by lazy { run.watch("blue") }
         private val evGlobalsWatch = run.watch("evglobals")
         private val dumpByStep = run.dumps.entries.associate { it.value to it.key }
 
@@ -431,6 +444,61 @@ class Chapter1MuCtrlDifferentialTest {
             assertDumpMaps(16160)
             assertEquals(0, procs.procs.count { it.script === muCtrl.script }, "W4 all ended")
             assertEquals(0, procs.procs.count { it.script === mu.script }, "W4 all MUs ended")
+        }
+
+        fun verifyWindow5() {
+            // Seed from r20240 (units, maps, RNG, playSt, evglobals unchanged 20240..20248);
+            // step 20249 enters Event2C_LoadUnits for the two blue allies.
+            val evProc = seedWindow(20248, 20240, null)
+            assertMuProcs(20248)
+            assertBlueWatch(20248)
+
+            var completed = 0
+            var drewRng = false
+            for (step in 20249..20268) {
+                if (gbmst.u8(step, 0) == 0) continue
+                val before = IntArray(3) { rng.primary.word(it) }
+                keys.updateWith(run.inputs[step - 1])
+                procs.run(procs.root(3))
+                procs.run(procs.root(5))
+                completed++
+
+                assertMuProcs(step)
+                assertBlueWatch(step)
+                assertRngEquals(step)
+                assertEventCursor(step, evProc)
+                if (!before.contentEquals(IntArray(3) { rng.primary.word(it) })) {
+                    assertEquals(20250, step, "W5 RNG draw frame")
+                    drewRng = true
+                }
+                if (step in dumpByStep) assertDumpMaps(step)
+            }
+            assertTrue(drewRng, "W5 BestMove draw happened")
+            assertEquals(0, procs.procs.count { it.script === muCtrl.script }, "W5 all ended")
+            assertEquals(0, procs.procs.count { it.script === mu.script }, "W5 all MUs ended")
+            assertEquals(13, table.xPos(1), "W5 Seth x")
+            assertEquals(8, table.yPos(1), "W5 Seth y")
+            assertEquals(12, table.xPos(2), "W5 Eirika x")
+            assertEquals(9, table.yPos(2), "W5 Eirika y")
+            assertDumpMaps(20270)
+        }
+
+        private fun assertBlueWatch(step: Int) {
+            val watch = blueWatch.step(step)
+            for (slot in 0 until 2) {
+                val id = 1 + slot
+                val wOff = slot * UNIT_SIZE
+                val valid = u32(watch, wOff) != 0
+                assertEquals(valid, table.isValid(id), "blue[$slot] valid f$step")
+                if (!valid) continue
+                assertEquals(s8(watch, wOff + UNIT_X), table.xPos(id), "blue[$slot] xPos f$step")
+                assertEquals(s8(watch, wOff + UNIT_Y), table.yPos(id), "blue[$slot] yPos f$step")
+                assertEquals(
+                    u32(watch, wOff + UNIT_STATE) and US_HIDDEN,
+                    table.state(id) and US_HIDDEN,
+                    "blue[$slot] US_HIDDEN f$step",
+                )
+            }
         }
 
         private fun seedWindow(step: Int, dumpStep: Int, cursorOverride: Int?): EventEngineProc {

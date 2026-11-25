@@ -152,7 +152,7 @@ public class MuCtrl(
     private val workingScript = IntArray(0x40)
 
     /**
-     * Transcribed from src/muctrl.c: MuCtrExists (not verified: trivial Proc_Find)
+     * Ported from src/muctrl.c: MuCtrExists
      *
      * True while any `E_MuCtr` walk is running.
      */
@@ -243,8 +243,8 @@ public class MuCtrl(
     }
 
     /**
-     * Transcribed from src/muctrl.c: SetMuMaxWalkSpeed_ -> SetMuMaxWalkSpeed (not verified:
-     * trivial setter)
+     * Transcribed from src/muctrl.c: SetMuMaxWalkSpeed_ -> SetMuMaxWalkSpeed (not verified: only
+     * called while the event is skipped, which PC-cap1 never does; `fastWalkB = false` survives)
      *
      * Makes every running MU walk at the fastest speed (`fast_walk_b`); `E_MuCtr` then skips to
      * the end of its walk.
@@ -300,8 +300,10 @@ public class MuCtrl(
     }
 
     /**
-     * Transcribed from src/muctrl.c: AdjustNewUnitPosition (not verified: flag 1 is the shared
-     * [UnitLoader.closestValidPosition], flag 2 needs the sum position)
+     * Transcribed from src/muctrl.c: AdjustNewUnitPosition (not verified: every PC-cap1 walk
+     * (f10298..10378, f13048..13103, f16019..16153, f20249..20268) passes flags 0, so the flag 1
+     * and flag 2 branches never run and mutating them survives; flag 1 is the shared
+     * [UnitLoader.closestValidPosition])
      *
      * Moves [pos] (x, y) to a free tile near it: with flag 2 a random free neighbour that the
      * unit can reach, else with flag 1 the closest valid position if the tile is blocked.
@@ -348,8 +350,11 @@ public class MuCtrl(
     }
 
     /**
-     * Transcribed from src/muctrl.c: sub_807A644 (not verified: the generated script is only
-     * checked through the walk's end position)
+     * Partially ported from src/muctrl.c: sub_807A644 (verified: the `flagsB & 1 == 0` branch,
+     *   flood from the unit's tile and the generated script through MU positions, speeds,
+     *   facing and the BestMove RNG draws, PC-cap1 f10298..10378, f13048..13103, f16019..16153,
+     *   f20249..20268; not verified: the `flagsB & 1` free-tile branch (mark, closest valid
+     *   position, restore), which no PC-cap1 walk takes)
      *
      * Builds the best movement script from the unit's tile to [pos] (into [workingScript]).
      * With [flag] (`flagsB & 1`, find a free tile near the target) a free target tile is marked

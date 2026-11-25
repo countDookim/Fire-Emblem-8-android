@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 721 across 108 decomp files (missing reason: 0).
+Total entries: 719 across 108 decomp files (missing reason: 0).
 
 ## src/scene.c (34)
 
@@ -623,21 +623,6 @@ Total entries: 721 across 108 decomp files (missing reason: 0).
 | `SyncLoOam` | `engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt` | no test checks it against a trace yet |
 | `SetObjAffine` | `engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt` | no test checks it against a trace yet |
 
-## src/muctrl.c (10)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `MuCtrExists` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | trivial Proc_Find |
-| `MuCtr_StartMoveTowards` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the result is only checked through the walk's end position |
-| `SetMuMaxWalkSpeed_` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | trivial setter |
-| `MoveUnitExt` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the headless walk only reaches it through the skip path of the event, which no trace exercises |
-| `MoveUnit_` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the headless walk only reaches it through the skip path of the event, which no trace exercises |
-| `AdjustNewUnitPosition` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | flag 1 is the shared [UnitLoader.closestValidPosition], flag 2 needs the sum position |
-| `sub_807A644` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the generated script is only checked through the walk's end position |
-| `MoveUnitExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | W1 uses REDA walks via MuCtr_StartDefinedMove, never reaching the immediate-move branch |
-| `MoveUnit_` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | W1 uses REDA walks via MuCtr_StartDefinedMove, never reaching the immediate-move branch |
-| `GenUnitDefinitionFinalPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | LoadUnit_800F704 immediately overwrites xPos/yPos with def.x/def.y and no Chapter 1 tile is TERRAIN_ROOF, so writing (0, 0) survives PC-cap1 W1 and RamTraceNewgameBm |
-
 ## src/savemenu.c (10)
 
 | Function | Kotlin file | Reason |
@@ -692,6 +677,19 @@ Total entries: 721 across 108 decomp files (missing reason: 0).
 | `GetStringTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the US ROM has no Shift-JIS glyph lists and the trace runs with lang = 1 |
 | `GetCharTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
 | `EndGreenText` | `game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt` | only `sProc_MenuMain` calls it after the menu's idle callback breaks, which no capture does |
+
+## src/muctrl.c (8)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `MuCtr_StartMoveTowards` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the result is only checked through the walk's end position |
+| `SetMuMaxWalkSpeed_` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | only called while the event is skipped, which PC-cap1 never does; `fastWalkB = false` survives |
+| `MoveUnitExt` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the headless walk only reaches it through the skip path of the event, which no trace exercises |
+| `MoveUnit_` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the headless walk only reaches it through the skip path of the event, which no trace exercises |
+| `AdjustNewUnitPosition` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | every PC-cap1 walk (f10298..10378, f13048..13103, f16019..16153, f20249..20268) passes flags 0, so the flag 1 and flag 2 branches never run and mutating them survives; flag 1 is the shared [UnitLoader.closestValidPosition] |
+| `MoveUnitExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | W1 uses REDA walks via MuCtr_StartDefinedMove, never reaching the immediate-move branch |
+| `MoveUnit_` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | W1 uses REDA walks via MuCtr_StartDefinedMove, never reaching the immediate-move branch |
+| `GenUnitDefinitionFinalPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | LoadUnit_800F704 immediately overwrites xPos/yPos with def.x/def.y and no Chapter 1 tile is TERRAIN_ROOF, so writing (0, 0) survives PC-cap1 W1 and RamTraceNewgameBm |
 
 ## src/cp_utility.c (7)
 

@@ -145,6 +145,7 @@ public class CpScript(
         aiState.unk7E = rom.u8(current + 2)
         when (val cmd = rom.u8(current)) {
             AI_CMD_ACTION -> cmdDoStandardAction()
+            AI_CMD_GOTO -> cmdGoto()
             AI_CMD_NOP -> cmdDoNothing()
             AI_CMD_NOP_0E -> cmdDoNothing()
             AI_CMD_MOVE_TO_ENEMY -> cmdMoveTowardsEnemy()
@@ -244,6 +245,39 @@ public class CpScript(
         advancePc()
     }
 
+    /**
+     * Transcribed from src/cp_script.c: AiScriptCmd_03_Goto (not verified: no capture window
+     * reaches a script entry after the first, where the `AI_GOTO_START` of the common scripts
+     * sits; D-23 shows the unit's AI stops without it)
+     *
+     * Sets the active unit's `ai_a_pc` or `ai_b_pc` (by the script kind) to 0, or, for a
+     * non-zero target (byte 3), to the entry after the `AI_CMD_LABEL` entry with that target
+     * in the unit's current script. Sets the script not ended, so the caller runs the next
+     * command.
+     */
+    private fun cmdGoto() {
+        val target = rom.u8(current + 3)
+        var pc = 0
+        if (target != 0) {
+            val table = if (scriptKind == KIND_AI1) GP_AI1_TABLE else GP_AI2_TABLE
+            val unit = active.unit
+            val index = if (scriptKind == KIND_AI1) units.ai1(unit) else units.ai2(unit)
+            val script = rom.u32(rom.u32(table) + 4 * index)
+            var i = 0
+            while (rom.u8(script + SCR_SIZE * i) != AI_CMD_LABEL ||
+                rom.u8(script + SCR_SIZE * i + 3) != target) {
+                i++
+            }
+            pc = i + 1
+        }
+        if (scriptKind == KIND_AI1) {
+            units.setAiAPc(active.unit, pc)
+        } else {
+            units.setAiBPc(active.unit, pc)
+        }
+        scriptEnded = false
+    }
+
     /** `(*pc)++`: advances the active unit's `ai_a_pc` or `ai_b_pc` (by the script kind; u8). */
     private fun advancePc() {
         val id = active.unit
@@ -258,6 +292,12 @@ public class CpScript(
     public companion object {
         /** `AI_CMD_ACTION`: `AiScriptCmd_05_DoStandardAction`, attack or use a staff by chance. */
         public const val AI_CMD_ACTION: Int = 0x05
+
+        /** `AI_CMD_GOTO`: `AiScriptCmd_03_Goto`, jump to the start or a label. */
+        public const val AI_CMD_GOTO: Int = 0x03
+
+        /** `AI_CMD_LABEL`: a jump target of `AI_CMD_GOTO`. */
+        private const val AI_CMD_LABEL = 0x1C
 
         /** `AI_CMD_NOP`: `AiScriptCmd_06_DoNothing`, advance only. */
         public const val AI_CMD_NOP: Int = 0x06

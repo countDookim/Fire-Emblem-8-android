@@ -42,6 +42,13 @@ public interface EventUnitStateHooks {
 
     /** `Proc_Find(ProcScr_MuDeathFade) != 0`: a unit's death fade is still running. */
     public fun muDeathFadeExists(): Boolean = false
+
+    /**
+     * `GetUnitLuck(unit)`: luck with the item bonuses. The default is the raw luck byte of the
+     * unit record (`+0x19`; no bonus items), which [fe8.game.event.EventUnitState] cannot reach
+     * the item data for.
+     */
+    public fun unitLuck(unitId: Int): Int? = null
 }
 
 /**
@@ -64,7 +71,68 @@ public class EventUnitState(
 ) {
     /** Registers 0x34 on [engine]. */
     public fun registerOn(engine: EventEngine) {
+        engine.register(0x33, event33CheckUnitVarious)
         engine.register(0x34, event34MessWithUnitState)
+    }
+
+    /**
+     * Partially ported from src/eventscr.c: Event33_CheckUnitVarious
+     *
+     * The unit checks (`CHECK_EXISTS`, `_STATUS`, `_ALIVE`, `_DEPLOYED`, `_ACTIVEID`,
+     * `_ALLEGIANCE`, `_COORDS`, `_CLASS`, `_LUCK`): store a fact about the unit named by the event
+     * character parameter in slot C; a missing unit is an error except for EXISTS and ALIVE.
+     * Verified by `Chapter1OpeningWireTest` (PC-6): `CHECK_ALIVE` of the unit in slot 2 at the end
+     * of the Chapter 1 opening (`EventScr_MoveUnitS2ToLeader`: the branch it takes, and so the
+     * units, equal `f25510` of PC-cap1). Transcribed (not verified: no capture window runs
+     * them): the other subcodes.
+     */
+    public val event33CheckUnitVarious: EventHandler = EventHandler { proc ->
+        val cur = proc.pEventCurrent
+        val unit = getUnitStructFromEventParameter(memory.u16(cur + 2).toShort().toInt())
+        val missing = unit < 0
+        when (memory.u16(cur) and 0xF) {
+            CHECK_EXISTS -> state.slots[0xC] = if (missing) 0 else 1
+            CHECK_STATUS -> {
+                if (missing) return@EventHandler EVC_ERROR
+                state.slots[0xC] = table.characterByte(unit, CHAR_VISIT_GROUP)
+            }
+            CHECK_ALIVE -> state.slots[0xC] =
+                if (missing || (table.state(unit) and US_DEAD) != 0) 0 else 1
+            CHECK_DEPLOYED -> {
+                if (missing) return@EventHandler EVC_ERROR
+                val notDeployed = (table.state(unit) and US_NOT_DEPLOYED) != 0
+                state.slots[0xC] = if (notDeployed || table.xPos(unit) < 0) 0 else 1
+            }
+            CHECK_ACTIVEID -> {
+                if (missing) return@EventHandler EVC_ERROR
+                val active = hooks.activeUnit()
+                val pid = memory.u16(cur + 2).toShort().toInt()
+                state.slots[0xC] = if (active != 0 && table.charId(active) == pid) 1 else 0
+            }
+            CHECK_ALLEGIANCE -> {
+                if (missing) return@EventHandler EVC_ERROR
+                state.slots[0xC] = when (table.index(unit) and 0xC0) {
+                    0x00 -> 0
+                    0x80 -> 2
+                    else -> 1
+                }
+            }
+            CHECK_COORDS -> {
+                if (missing) return@EventHandler EVC_ERROR
+                state.slots[0xC] =
+                    (table.xPos(unit) and 0xFFFF) or ((table.yPos(unit) and 0xFFFF) shl 16)
+            }
+            CHECK_CLASS -> {
+                if (missing) return@EventHandler EVC_ERROR
+                state.slots[0xC] = table.classId(unit)
+            }
+            CHECK_LUCK -> {
+                if (missing) return@EventHandler EVC_ERROR
+                state.slots[0xC] = hooks.unitLuck(unit)
+                    ?: table.bytes[table.unitOffset(unit) + OFF_LUCK].toInt()
+            }
+        }
+        EVC_ADVANCE_CONTINUE
     }
 
     /**
@@ -249,6 +317,23 @@ public class EventUnitState(
     }
 
     private companion object {
+        // Sub-commands of Event33 (`EVSUBCMD_CHECK_*`).
+        const val CHECK_EXISTS = 0
+        const val CHECK_STATUS = 1
+        const val CHECK_ALIVE = 2
+        const val CHECK_DEPLOYED = 3
+        const val CHECK_ACTIVEID = 4
+        const val CHECK_ALLEGIANCE = 5
+        const val CHECK_COORDS = 6
+        const val CHECK_CLASS = 7
+        const val CHECK_LUCK = 8
+
+        /** `visit_group` of `CharacterData`. */
+        const val CHAR_VISIT_GROUP = 0x30
+
+        /** `lck` of `struct Unit`. */
+        const val OFF_LUCK = 0x19
+
         // Sub-command nibbles of the command word (`EVSUBCMD_*`).
         const val SUB_REMU = 0x0
         const val SUB_REVEAL = 0x1

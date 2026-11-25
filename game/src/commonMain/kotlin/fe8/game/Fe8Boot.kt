@@ -53,6 +53,8 @@ import fe8.game.bm.PhaseTargets
 import fe8.game.bm.PlayerPhase
 import fe8.game.bm.ResetCursorPosition
 import fe8.game.bm.SelectTargets
+import fe8.game.bm.UnitDeployState
+import fe8.game.bm.UnitDeployStateHooks
 import fe8.game.bm.UnitLoader
 import fe8.game.ui.GotItemPopup
 import fe8.game.ui.UiFrame
@@ -606,6 +608,26 @@ public class Fe8Boot(
                         refreshSprites()
                         bmapRender.renderBmMap()
                     }
+
+                    // `KILL`: `HideUnitSprite`, `StartMu`, `SetAutoMuDefaultFacing` and
+                    // `MU_StartDeathFade` (the unit state part is in the handler).
+                    override fun startUnitDeathFade(unitId: Int) {
+                        spriteHandles?.hideUnitSprite(unitId)
+                        val muProc = mu.startMu(
+                            MuUnit(
+                                address = UnitTable.BLUE_ADDRESS + units.unitOffset(unitId),
+                                xPos = units.xPos(unitId),
+                                yPos = units.yPos(unitId),
+                                classId = units.classId(unitId),
+                                state = units.state(unitId),
+                                spritePalette = spriteHandles?.getUnitSpritePalette(unitId) ?: 0,
+                            ),
+                        ) ?: return
+                        mu.setAutoMuDefaultFacing()
+                        mu.muStartDeathFade(muProc.state as MuProc)
+                    }
+
+                    override fun muDeathFadeExists(): Boolean = mu.muDeathFadeExists()
                 },
             ).also { us -> us.registerOn(it) }
             EventChangeAi(
@@ -1166,7 +1188,7 @@ public class Fe8Boot(
     private val battleChapters: ChapterData by lazy { ChapterData(rom) }
 
     /** The battle map's `gBmMap*` pools, shared by the battle map path and the unit loads. */
-    private val battleBmMap: BmMap by lazy { BmMap(rom, battleChapters, loop.bmSt) }
+    public val battleBmMap: BmMap by lazy { BmMap(rom, battleChapters, loop.bmSt) }
 
     /** `RenderBmMap` of the battle map. */
     private val bmapRender: BmMapRender by lazy { BmMapRender(loop.bmSt, battleBmMap, hw) }
@@ -1505,6 +1527,16 @@ public class Fe8Boot(
         main.hooks.clearActiveFactionGrayedStates =
             { phaseStartEnd.clearActiveFactionGrayedStates() }
         main.hooks.tickActiveFactionTurn = { phaseStartEnd.tickActiveFactionTurn() }
+        // `UpdatePrevDeployStates` (BMapMain label 1, before the beginning events).
+        val deployState = UnitDeployState(
+            units, statsUnitLoader, control.playSt,
+            object : UnitDeployStateHooks {
+                override fun refreshEntityBmMaps() { battleEntityMaps.refreshEntityBmMaps() }
+
+                override fun endAllMus() { mu.endAllMus() }
+            },
+        )
+        main.hooks.updatePrevDeployStates = { deployState.updatePrevDeployStates() }
         main.hooks.processTurnSupportExp = { battle.supportReliance.processTurnSupportExp() }
         supportReliance = battle.supportReliance
         main.hooks.statusDecayDisplay = phaseStartEnd.statusDecayDisplay
@@ -1865,6 +1897,7 @@ private val NO_WORLD_MAP_NODES = object : BattleMapNodes {
 
 /** Offset of `goalWindowDataType` in `struct ChapterData` (the ROM chapter struct). */
 private const val GOAL_WINDOW_DATA_TYPE_OFFSET = 0x8C
+
 
 /** Offset of `protectCharacterIndex` in `struct ChapterData`. */
 private const val OFF_PROTECT_CHARACTER = 0x8E

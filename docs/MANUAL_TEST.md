@@ -33,11 +33,27 @@ Everything up to 0.1.868 was tested earlier; new items carry their build.
     title menu yet (PC-11); the fog's blend can differ from the original by a
     shade in single frames (not visible in play).
 
+- **Chapter 1 opening (PC-6).** Build: next build after this commit (CI pending).
+  1. Play (or fast-forward with A) the Prologue to its end, take save slot 1 in the save menu, and
+     watch the Chapter 1 opening play through (text pages need A; the whole opening takes a few minutes).
+  2. Expected: enemy soldiers walk in, two green units walk in and one of them is removed, the other
+     is killed and its sprite fades out (about half a second) before it is gone, then the two
+     player units walk in from the bottom right and each stops on its own tile, both visible.
+  3. Expected: when the event ends the first player phase starts at turn 1, and both player units are
+     on the map and can be moved (do not open a unit's menu, EP-35b crashes there).
+  - Changed by this build: at the end of the opening one player unit used to be hidden and moved onto
+    the other's tile (a unit check was missing); the killed green unit used to vanish at once, without
+    the fade.
+
 ## 2. Open bugs (no fix yet)
 
-- **D-23 (0.1.886, owner 11-25):** every enemy that attacks in an enemy phase and survives never acts
-  again (reproduced with both turn-1 attackers surviving). Separate from the boss (EP-11). Until fixed, to
-  test game over: attack the boss with Eirika until his counterattack kills her.
+- **D-23 (0.1.886, owner 11-25): fix pending a device check.** Every enemy that attacked in an enemy phase
+  and survived never acted again (an unported AI "go to start" command). Fixed in the next build: in the
+  Prologue, let an enemy attack Eirika and survive, end turn 2 next to it, and it should attack again.
+  Until then, to test game over: attack the boss with Eirika until his counterattack kills her.
+- **D-24 (found 11-25, not yet seen on a device):** a map battle can crash the app when a unit's HP bar
+  needs its one-segment minimum or the HP overflow glyph (two unported functions). Likelier now that enemies
+  keep fighting (D-23 fix). Report the HP values if it happens.
 
 ## 3. Known gaps (not bugs)
 

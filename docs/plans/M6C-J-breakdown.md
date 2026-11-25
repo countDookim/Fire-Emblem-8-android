@@ -1852,6 +1852,18 @@ Functions entered (decomp chains; `Ported` / `Transcribed` per `Ported from`/`Tr
   skip condition, dead check, `MuCtrExists` inverted, ENUN yield, fade `timeLeft`/state/end/MU end, hit-flash sleep and
   start, KILL hide, `DISA_IF` fade check and `ClearUnit`, `UnitKill` non-blue) all fail; survivors: ENUN
   `RefreshEntityBmMaps`, KILL yield, MOVEONTO/1STEP, ENUN skip branch and sprite/render calls, blend and sprite layer.
+- `PC-6` WIRE (`Chapter1OpeningWireTest`, 2.2 s local): the real `Fe8Boot` from the save menu through the Chapter 1
+  intro and the opening event (`f10298..25423`, capture inputs) to the first player phase equals `PC-cap1` at the stall
+  points `r13110`, `r15560`, `r16160`, `r20270` and at `f25510` (units of all three armies except the sprite handle
+  word, `gBmMapUnit`/`gBmMapOther`, flags, `gPlaySt`; turn 1, faction 0, PlayerPhase command 16, no event engine). Wired:
+  `UpdatePrevDeployStates` (`UnitDeployState`), `Event33_CheckUnitVarious` (`Partially ported`: CHECK_ALIVE and
+  CHECK_DEPLOYED of `EventScr_MoveUnitS2ToLeader` verified; it was the only stub the opening ran), the KILL death fade
+  (`StartMu`, `MU_StartDeathFade`, DISA_IF wait; 31 fade frames), and `EventScrHooks` (`countRedUnits`,
+  `countGreenUnits`, `battleMapKind`, `GetEventTriggerId`, `tutorialEvent`; no opening window reads them: wired, not
+  verified). Seeded from `r10298`: the blue unit records and `gRNState` (the boot resumes the Prologue from a suspend
+  save, not the capture's state); the boot's `UpdatePrevDeployStates` result is compared before that seed. Still
+  stand-ins: `GetPlayerLeaderPid` (`EventUnitStateHooks.playerLeaderPid`, M6-I; equals the Eirika-mode value) and the
+  `r15090` fight (the capture has an MU there, the boot none; battle animations M6-G).
 - `PC-6l-d` W1/W4 (`f10298..10378`, `f16018..16153`, `Chapter1MuStepSeDifferentialTest`; MU Q4 x/y, speeds,
   `stepSoundClock`, `camB`, `ProcScr_MuStepSe` song1/x1/song2/x2 and M4A per VBlank frame equal `PC-cap1`; VBlank
   frames with `mainLoopEnded == 0` complete on the next frame). Dirty `sProcArray` `+0x60` (`unk60`) is stale

@@ -53,7 +53,7 @@ public interface EventScrHooks {
      */
     public fun tutorialEvent(chapterIndex: Int, index: Int): Int = 0
 
-    /** `CountRedUnits`: living enemy-army units, ids 0x81..0xBF (the unit table is not wired). */
+    /** `CountRedUnits`: living enemy-army units, ids 0x81..0xBF (`Fe8Boot` wires the unit table, PC-6). */
     public fun countRedUnits(): Int = 0
 
     /** `CountGreenUnits`: living NPC-army (green) units, ids 0x41..0x7F. */

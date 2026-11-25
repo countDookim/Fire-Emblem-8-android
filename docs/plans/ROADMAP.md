@@ -94,7 +94,7 @@ What they reported and is still missing, and where it is tracked:
 | #7 item 1 | Title-idle class showcase (the opening replays instead) | `BA-reel-inv` (after `BA-w`) |
 | #5 item 5, #6, #7 item 6 | Item command and the other unit/map menu commands | M6-F (`IS-*`), M6-H (`C14-item-cap`/`-inv`, trade, ...) |
 | #6, #8 | The boss never moves or attacks | `EP-11` |
-| #6 | After the last enemy: no save menu, no Chapter 1 (save menu, intro and opening event confirmed on 0.1.868, #8) | `PC-6` |
+| #6 | After the last enemy: no save menu, no Chapter 1 (save menu, intro and opening event confirmed on 0.1.868, #8) | PC-6 wired 2026-11-25; device check pending |
 | #7 item 7, #8 | Eirika's death: no game over, enemies stop acting | PC-8 wired 2026-11-25; device check pending |
 | #8 | Power-on resumes the Chapter 1 suspend; no title menu to Continue from a slot | `PC-11cap` → `PC-11i` → `PC-11` |
 | #8 | Chapter 1: opening a unit's menu crashes (`EvCheck05_LOCA`) | `EP-35b` |

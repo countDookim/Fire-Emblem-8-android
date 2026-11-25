@@ -94,7 +94,7 @@ public class BMapMain(
         /**
          * `UpdatePrevDeployStates` (bmunit.c:1401): copies `US_NOT_DEPLOYED` into `US_BIT21` and
          * `US_BIT16` into `US_BIT26` for every unit, saves the unit word structs during the prep
-         * screen and calls `ResetAllPlayerUnitState`. Stand-in (M6-I).
+         * screen and calls `ResetAllPlayerUnitState`. `Fe8Boot` sets [UnitDeployState] (PC-6).
          */
         public var updatePrevDeployStates: () -> Unit = {}
 

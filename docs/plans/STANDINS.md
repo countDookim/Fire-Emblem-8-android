@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 255 across 58 Kotlin files.
+Total entries: 254 across 58 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -21,7 +21,7 @@ Total entries: 255 across 58 Kotlin files.
 | M6-F | 16 |
 | M6-G | 5 |
 | M6-H | 44 |
-| M6-I | 26 |
+| M6-I | 25 |
 | M6-J | 10 |
 | D09-3 | 3 |
 | EP-10c | 1 |
@@ -212,12 +212,11 @@ Total entries: 255 across 58 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `summonTargetCount` | Stand-in until M6-H ports summon target lists. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until M6-H (the sound effect players are not in `SoundWrapper` yet; no visible effect in the Prologue, which calls it in the skip branch of [postBeginningEvent] a... |
 
-## M6-I (26)
+## M6-I (25)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `gorgonEggHatchDisplay` | Stand-in until M6-I: ends at once. |
-| `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `updatePrevDeployStates` | Stand-in (M6-I). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `getBattleMapKind` | Stand-in until M6-I. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterTitle.kt` | `ChapterTitle` | Stand-in supplied by the caller until M6-I (the rest of the world map). @param getNextUnclearedNode `GetNextUnclearedNode(&gGMData)` (worldmap_path.c): the world map node the story reaches next. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `endPrepMenuButtonDisplay` | Stand-in until M6-I for `Proc_EndEach(gProcScr_PrepMap_MenuButtonDisplay)`. |

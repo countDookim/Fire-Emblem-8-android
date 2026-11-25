@@ -114,6 +114,19 @@ public class UnitTable(
     }
 
     /**
+     * Transcribed from src/bmunit.c: CountGreenUnits (not verified: no capture reads it)
+     *
+     * Number of valid, living units with ids 0x41 to 0x7F.
+     */
+    public fun countGreenUnits(): Int {
+        var count = 0
+        for (id in 0x41 until 0x80) {
+            if (isValid(id) && (state(id) and US_DEAD) == 0) count++
+        }
+        return count
+    }
+
+    /**
      * Ported from src/uidebug.c: AreAnyEnemyUnitDead
      *
      * Despite its name the C returns 1 when a living enemy (ids 0x81 to 0xBF) is left, as this
@@ -174,6 +187,10 @@ public class UnitTable(
             StructCodec.put32(bytes, offset + OFF_CHARACTER, 0)
         }
     }
+
+    /** Byte [offset] of the `CharacterData` of unit [id] in the ROM (the unit must be valid). */
+    public fun characterByte(id: Int, offset: Int): Int =
+        rom.u8(u32(bytes, unitOffset(id) + OFF_CHARACTER) + offset)
 
     /** `pClassData->number` of unit [id], read from the ROM (the unit must be valid). */
     public fun classId(id: Int): Int = rom.u8(u32(bytes, unitOffset(id) + OFF_CLASS) + 4)

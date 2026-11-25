@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-25 05:35Z (scheduled: BA-i1, BA-i5); earlier 2026-11-24 23:28Z (scheduled: PC-8b, BA-p8a, BA-p8b); earlier 2026-11-24 22:40Z (owner PC: PC-7b, PC-6e-a, PC-8a, PC-6e-b); earlier 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-25 08:50Z (owner PC: PC-6l-c/d/e, PC-8, PC-9a, PC-6, EP-drift, D-23); earlier 05:35Z (scheduled: BA-i1, BA-i5); earlier 2026-11-24 23:28Z (scheduled: PC-8b, BA-p8a, BA-p8b); earlier 2026-11-24 22:40Z (owner PC: PC-7b, PC-6e-a, PC-8a, PC-6e-b); earlier 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -24,11 +24,11 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- D-23: owner PC, until ~11:00Z
-- PC-6: owner PC, until ~11:00Z
 
 
 ## Current state
+
+- 2026-11-25 ~08:50Z owner PC Claude (Sonnet agents): **PC-6l-d (Gemini WIP finished), PC-6l-c, PC-6l-e, PC-8, PC-9a, PC-6, EP-drift, D-23 done.** Game over wired (0.1.886, device check pending). Chapter 1 opening wired end to end (`Chapter1OpeningWireTest`; Event33 ported, KILL fade, UpdatePrevDeployStates). D-23 (owner: enemies that fought stop acting) = unported `AiScriptCmd_03_Goto`, fixed (`CpScript.cmdGoto`), device check pending. EP-drift: enemy-phase drift = missing one-enemy-left event; wiring `EventScrHooks` makes it run but 3 tests encode the old flow -> **EP-11-hooks** (`wip/eventscrhooks`). New rows: D-24 (HP-box `TODO()` crash risk), D23-cap, PC-6e-c-speed. CI was red 876..883 (Chapter1TeardownDifferentialTest 112 s vs 120 s timeout), fixed; `@Timeout` >= 5x local. Next: EP-11-hooks, D-24, PC-9b..d, PC-9.
 
 - 2026-11-25 05:52Z owner PC Gemini (Pro agent): **PC-8h done (`28f582cc`).** Ported `GameOverScreenHBlank` (`GameOverScreen.kt`, replacing `NO_HBLANK` default with `DEFAULT_HBLANK` -> `gameOverScreenHBlank`). Verified in `GameOverScreenHBlankDifferentialTest` against all 912 `PC-cap2b` calls (`f6130..6133`, `VCOUNT` `0..227`, direct + `hardware.hblank.active`, full `0x60` IO parity, 7 break-check mutations); `GameOver*` (5 suites, 19 ok), `:game:jvmTest` (89 ok), `:game:dokkaGenerate`, `standins.py`/`unverified.py --check`, game-text guard green.
 
@@ -363,7 +363,7 @@ Close an issue only after reference verification and owner confirmation; preserv
 
 | Issue | Latest evidence / status |
 |---|---|
-| D-23 enemy AI off | **Open (owner 11-25, 0.1.886):** any enemy that attacks and survives never acts again (both turn-1 attackers when both survive; repro in TASKS D-23). Not the boss gap (EP-11). |
+| D-23 enemy AI off | **Fixed, device check pending (next build):** cause = unported AI `AI_GOTO_START` (`AiScriptCmd_03_Goto`). Was: any enemy that attacks and survives never acts again (both turn-1 attackers when both survive; repro in TASKS D-23). Not the boss gap (EP-11). |
 | D-07 audio | **Resolved for both reported castle events:** owner heard neither hitch on local 0.1.488 (`0a73f11`); normal trace PCM repetitions fell 4495→0 after the movement frontier change. Earlier cache/reserve changes alone failed. |
 | D-12 phase banner | **Player banner confirmed correct by the owner on 0.1.488 (11-11)**; reference: `PhaseIntroDifferentialTest`. Enemy/green banners open (D12-2, with M6-D). |
 | D-11 cinematic | **Confirmed by the owner on 0.1.622 (11-12):** monologue, Magvel world-map exposition and Start in the monologue (skip to the exposition with a fade-in) are correct. Follow-up D-14. |

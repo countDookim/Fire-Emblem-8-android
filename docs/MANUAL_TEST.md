@@ -9,7 +9,7 @@ needs your ROM, imported on first start.
 
 | | Build | Date | Report |
 |---|---|---|---|
-| Latest APK | 0.1.886 (`848cd63`) | 2026-11-25 | — |
+| Latest APK | 0.1.889 (`271bd27`) | 2026-11-25 | — |
 | Last owner test | 0.1.868 (`dd96da1`) | 2026-11-24 | Issue #8: save menu to Chapter 1 OK |
 | Last full pass | 0.1.622 (`22cfc9d`) | 2026-11-12 | HANDOFF "Device status" |
 
@@ -33,7 +33,7 @@ Everything up to 0.1.868 was tested earlier; new items carry their build.
     title menu yet (PC-11); the fog's blend can differ from the original by a
     shade in single frames (not visible in play).
 
-- **Chapter 1 opening (PC-6).** Build: next build after this commit (CI pending).
+- **Chapter 1 opening (PC-6).** Build: 0.1.889 (`271bd27`).
   1. Play (or fast-forward with A) the Prologue to its end, take save slot 1 in the save menu, and
      watch the Chapter 1 opening play through (text pages need A; the whole opening takes a few minutes).
   2. Expected: enemy soldiers walk in, two green units walk in and one of them is removed, the other
@@ -47,8 +47,8 @@ Everything up to 0.1.868 was tested earlier; new items carry their build.
 
 ## 2. Open bugs (no fix yet)
 
-- **D-23 (0.1.886, owner 11-25): fix pending a device check.** Every enemy that attacked in an enemy phase
-  and survived never acted again (an unported AI "go to start" command). Fixed in the next build: in the
+- **D-23 (0.1.886, owner 11-25): fixed in 0.1.889, device check pending.** Every enemy that attacked in an enemy phase
+  and survived never acted again (an unported AI "go to start" command). In 0.1.889: in the
   Prologue, let an enemy attack Eirika and survive, end turn 2 next to it, and it should attack again.
   Until then, to test game over: attack the boss with Eirika until his counterattack kills her.
 - **D-24 (found 11-25, not yet seen on a device):** a map battle can crash the app when a unit's HP bar

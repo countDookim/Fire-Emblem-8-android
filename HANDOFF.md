@@ -24,6 +24,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- PC-6l-b: Gemini owner PC, until ~05:25Z (`wip/pc6lb`, 2026-11-25).
+- PC-cap2b: Gemini owner PC, until ~05:25Z (ROM repo, 2026-11-25).
 
 
 ## Current state

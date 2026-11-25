@@ -19,8 +19,8 @@ import gbafe.render.HBlankHandler
 /**
  * The game over screen of `src/gameoverbgfx.c`: its set-up (`GameOverScreen_Init`), the fog
  * background scroll (`ProcScr_GameOverScreen_RandomScroll`) and its start, the fades, idle wait
- * and teardown (PC-8b), and the scanline HBlank blend (`GameOverScreenHBlank`, PC-8h). Not wired
- * into the game loop (PC-8).
+ * and teardown (PC-8b), and the scanline HBlank blend (`GameOverScreenHBlank`, PC-8h). Wired into
+ * `Fe8Boot` (PC-8).
  *
  * @param engine the proc engine the screen runs on.
  * @param hardware the BG, palette and LCD state the screen draws into.

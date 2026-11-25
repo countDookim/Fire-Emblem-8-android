@@ -42,6 +42,7 @@ import fe8.game.bm.MuUnit
 import fe8.game.bm.MuSpriteAnim
 import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMusic
+import fe8.game.bm.GameOverScreen
 import fe8.game.bm.MapTraps
 import fe8.game.bm.SupportReliance
 import fe8.game.bm.EntityBmMaps
@@ -90,6 +91,8 @@ import fe8.game.event.EventEngineProc
 import fe8.game.event.EventUnitLoads
 import fe8.game.event.EventChangeMap
 import fe8.game.event.EventInfoHooks
+import fe8.game.event.GameOverCaller
+import fe8.game.event.GameOverStart
 import fe8.game.event.EventInfos
 import fe8.game.event.EventMoveToChapter
 import fe8.game.event.EventMoveUnit
@@ -674,12 +677,56 @@ public class Fe8Boot(
                 eventText.registerOn(it)
                 EventAsmCall(
                     memory,
-                    mapOf(0x080CF460 to { _ -> bmGuideTextSetAllGreen(memory, flags) }),
+                    mapOf(
+                        0x080CF460 to { _ -> bmGuideTextSetAllGreen(memory, flags) },
+                        // `EventCallGameOverExt`: the ASMC of `EventScr_GameOver` (PC-8).
+                        0x08085374 to { p ->
+                            gameOverCaller.eventCallGameOverExt(checkNotNull(p.proc))
+                        },
+                    ),
                 ).registerOn(it)
                 eventTextBg.registerOn(it)
             }
             ReleaseEventStubs.registerMissing(it) { code -> onEventStub?.invoke(code) }
         }
+    }
+
+    /** The game over screen (`src/gameoverbgfx.c`) on the game's BG hardware, clock and keys. */
+    private val gameOverScreen: GameOverScreen by lazy {
+        GameOverScreen(
+            engine, hw, ColorFade(hw.palette), rom,
+            object : GameOverScreen.Hooks {
+                override fun bMapDispSuspend() { battleMap.bMapDispSuspend() }
+                override fun startGameOverBgm() { control.sound.startBgm(GameOverStart.SONG_GAME_OVER, 0) }
+                override fun endAllMus() { mu.endAllMus() }
+                override fun gameClock(): Int = clock.get().toInt()
+                override fun newKeys(): Int = keys.newKeys
+                override fun fadeOutBgm(speed: Int) { control.sound.fadeOutBgm(speed) }
+            },
+        )
+    }
+
+    /** `EventCallGameOverExt` and `ProcScr_BmGameOver`, on the real fade, MUs and event engines. */
+    private val gameOverCaller: GameOverCaller by lazy {
+        GameOverCaller(
+            engine, control.playSt,
+            fadeOutBgm = { control.sound.fadeOutBgm(it) },
+            startSlowFadeToBlack = { screenFade.startSlowFadeToBlack() },
+            endAllMus = { mu.endAllMus() },
+            startGameOverScreen = { gameOverScreen.startGameOverScreen(it) },
+            setNextGameActionId = { control.setNextGameActionId(it) },
+            endBMapMain = { battleMap.endBMapMain() },
+            deleteEventEngines = { eventEngine.deleteEventEngines() },
+        )
+    }
+
+    /** `sub_80837B0`: the start of the game over. */
+    private val gameOverStart: GameOverStart by lazy {
+        GameOverStart(
+            flags, control.playSt,
+            startBgm = { control.sound.startBgm(it, 0) },
+            callGameOverEvent = { eventEngine.callGameOverEvent() },
+        )
     }
 
     /**
@@ -1210,6 +1257,10 @@ public class Fe8Boot(
                 control.sound.startBgm(song, 0)
             }
 
+            override fun startGameOver() {
+                gameOverStart.startGameOver()
+            }
+
             override fun getBattleMapKind(): Int = battleMap.hooks.getBattleMapKind()
 
             override fun chapterEventGroup(chapter: Int): Int =
@@ -1428,6 +1479,7 @@ public class Fe8Boot(
             engine = engine, action = active.action,
         ).also {
             it.hooks.refreshEntityBmMaps = { battleEntityMaps.refreshEntityBmMaps() }
+            it.hooks.callGameOverEvent = { eventEngine.callGameOverEvent() }
         }
         // Phase start and end housekeeping (EP-1, EP-1b), over the list shared with the traps;
         // EP-w shares it with the player phase.

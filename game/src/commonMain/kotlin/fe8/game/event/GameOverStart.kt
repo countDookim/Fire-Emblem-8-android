@@ -4,8 +4,8 @@ import fe8.game.bm.PlaySt
 import gbafe.core.flags.FlagStore
 
 /**
- * `sub_80837B0` of `src/eventinfo.c`, the start of the game over (not wired into the game loop:
- * the game over screen itself, PC-8*, and `EventCallGameOverExt`, PC-7b, are not ported yet).
+ * `sub_80837B0` of `src/eventinfo.c`, the start of the game over (wired into `Fe8Boot`
+ * as the `EventInfoHooks.startGameOver` hook, PC-8).
  *
  * @param flags the event flags.
  * @param playSt supplies `config.disableBgm`.

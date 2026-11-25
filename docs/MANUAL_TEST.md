@@ -18,7 +18,20 @@ Items are removed from this page once the owner confirms them; the history is in
 
 ## 1. Test now
 
-Nothing new since 0.1.868. (Everything up to 0.1.868 was tested earlier; new items carry their build.)
+Everything up to 0.1.868 was tested earlier; new items carry their build.
+
+- **Game over (PC-8).** Build: next build after this commit (CI pending).
+  1. Start the Prologue (or resume it) and let Eirika die: end turns with her next to the enemies, or
+     leave her in reach of the boss's soldiers and do not move her away.
+  2. Expected: after her last hit the screen fades to black (the map music fades first), then the game
+     over screen shows a scrolling fog with the game over text and the game over song. Wait or press A.
+  3. Expected: pressing A fades the screen out and returns to the title; the title music starts again.
+     Without a press the screen should end by itself after about 25 seconds (idle timeout, not yet
+     verified against a capture: PC-cap2c).
+  - Known limits: the death comes from the real battle, but the battle animations are off (M6-G); after
+    the title, the game resumes the last suspend save (start of that player phase), because there is no
+    title menu yet (PC-11); the fog's blend can differ from the original by a
+    shade in single frames (not visible in play).
 
 ## 2. Open bugs (no fix yet)
 
@@ -38,7 +51,6 @@ Retest these only when a change to them is announced.
   - Selecting an enemy shows no range (PP-enemy); the info windows closing then is normal.
 - **Prologue flow:**
   - The boss never moves or attacks, even with a unit next to him (EP-11).
-  - Eirika dying gives no game over, and the enemies stop acting afterwards (PC-7, PC-8).
 - **Chapter 1 and saves:**
   - Selecting a unit and opening its menu crashes ("EvCheck05_LOCA is not ported yet", EP-35b).
   - Power-on always resumes the suspend save (Chapter 1's first player phase after the Prologue): there is

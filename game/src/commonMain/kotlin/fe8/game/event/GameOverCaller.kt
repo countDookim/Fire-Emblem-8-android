@@ -16,7 +16,7 @@ import gbafe.proc.ProcScripts.yield
  * `EventCallGameOverExt` and its proc `ProcScr_BmGameOver` of `src/eventcall.c`: the game over
  * sequence the lord-death event script (`EventScr_GameOver`) runs through `ASMC`. It waits, fades
  * the music and the screen out, ends the MUs, shows the game over screen and then returns to the
- * title (not wired into the game loop: that is PC-8).
+ * title (wired into `Fe8Boot` as the `EventScr_GameOver` ASMC, PC-8).
  *
  * @param engine the proc engine the sequence runs on.
  * @param playSt supplies `chapterStateBits` and `config.disableBgm`.
@@ -24,7 +24,7 @@ import gbafe.proc.ProcScripts.yield
  * @param startSlowFadeToBlack `StartSlowFadeToBlack`, normally `ScreenFade.startSlowFadeToBlack`.
  * @param endAllMus `EndAllMus`, normally `Mu.endAllMus`.
  * @param startGameOverScreen `StartGameOverScreen(parent)`: starts `ProcScr_GameOverScreen`
- *   blocking the given proc (PC-8a; a stand-in until then).
+ *   blocking the given proc.
  * @param setNextGameActionId `SetNextGameActionId`.
  * @param endBMapMain `EndBMapMain`.
  * @param deleteEventEngines `DeleteEventEngines`, normally [EventEngine.deleteEventEngines].

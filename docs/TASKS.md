@@ -36,6 +36,7 @@ EP-cap1/2.
 |---|---|---|---|---|---|
 | EP-10 | PORT | Phase end, split EP-10a..c: traps (bmtrick.c), trap display and post-battle counts, turn support exp. Also the event that starts f2403 (dialogue, waits for A) is EP-11 | See EP-10a..c; the proc tree rows of `EnemyPhaseInventoryTest` f2747..2851 and `EnemyPhaseInventory2Test` b | EP-1, EP-9 | todo |
 | EP-11 | PORT | Prologue Normal-mode events, split EP-11a..h (EP-0b): the one-enemy-left event (f2403, misc event, PP-11 notes) and the boss turn event f2964..3722 (one new opcode, 39); talk, face, text and UI plumbing around the talk procs | Event engine state per step in both windows | MC-cap3 (`ram_trace_prologue_levelup`, level-up at f6760; [M6C-J-breakdown](plans/M6C-J-breakdown.md) "MC-cap3 result"), EP-cap2 (`ram_trace_prologue_clear`) | todo |
+| EP-drift | INV | Port's Prologue enemy phase runs ~350 frames faster than PC-cap2 (PC-8 replay could not reach Eirika's death); find the first diverging frame and the function | First divergence frame + function named; PORT/fix row added | — | todo |
 | EP-12 | INV | Map unentered AI hooks/commands to retail scenarios; source audit only | Coverage matrix by behavior; each gap assigned to one CAP below | EP-cap2 | todo |
 | EP12-heal-cap | CAP | Enemy below heal threshold: one item heal and one turn moving to terrain healing | Heal choice, target tile, inventory/HP and action state at entry/return | EP-12 | todo |
 | EP12-escape-cap | CAP | One enemy escape action, including a turn with the escape point unreachable | Escape target, fallback action and movement map | EP-12 | todo |
@@ -87,7 +88,6 @@ EP-cap1/2.
 | PC-6l-e | PORT | Per-frame `Event2F_MoveUnit`/`Event30_ENUN` `f15049..15084`, `f16019..16153`; KILL fade `f15526..15558`: `UnitKill`, `MU_StartDeathFade`, `MuDeathFade_OnLoop`, `StartMuHitFlash` | Unit maps and x/y per frame equal PC-cap1; slot clear f15560 | PC-6l-c, PC-6e-a | todo |
 | PC-6 | WIRE | Chapter 1 opening integration | Units, map, flags and idle player-phase state equal PC-cap1; MANUAL_TEST | PC-5, PC-6e-a..c, PC-6l-a..e | todo |
 | PC-cap2c | CAP | `ram_trace_prologue_gameover_timeout`: PC-cap2 inputs without the last A; idle timeout (`counter2 < 0`, ~`f7624`) fades out and returns to the title | Run published | PC-cap2 | todo |
-| PC-8 | WIRE | Lord death to game-over screen to title | Headless replay matches state and display; allocation check; MANUAL_TEST | PC-7a, PC-7b, PC-8b, PC-8h | todo; `GameControl` already maps `GAME_ACTION_EVENT_RETURN` to the title (`f6295..6297`) |
 | PC-9cap | CAP | Fill PC-9i gaps: difficulty directions, B cancel, Normal confirm and empty-slot write | Dense menu/proc/display state; chosen difficulty and SRAM write; skip only with documented existing coverage | PC-9i | conditional: only missing evidence |
 | PC-9a | PORT | Difficulty screen lifecycle; [scope](plans/M6-task-scopes.md#pc-9a-difficulty-screen-lifecycle) | Proc lifecycle, BG tiles, palettes and display restore | PC-9i, PC-9cap | blocked: inventory first |
 | PC-9b | PORT | Difficulty input and selection; [scope](plans/M6-task-scopes.md#pc-9b-difficulty-input-and-selection) | Selection, descriptions, A/B dispatch and difficulty result | PC-9i, PC-9cap | blocked: inventory first |
@@ -359,6 +359,7 @@ Readability remains owner-paused until ~2026-11-17 (HANDOFF).
 
 ## Done
 
+- **Claude 2026-11-25 (07Z):** PC-8 (game over wired in `Fe8Boot`: `EventInfoHooks.startGameOver` -> `GameOverStart`, ASMC `0x08085374` -> `GameOverCaller`, real fade/MU/screen/clock/keys/music hooks, trap path too; `GameOverWireTest` f5833..6297 procs, scroll, palette banks 0-1, 89 rendered frames within 3 levels, zero idle allocations; death forced by EVFLAG_GAMEOVER because of EP-drift; timeout path unverified, PC-cap2c; MANUAL_TEST item).
 - **Claude 2026-11-25 (07Z):** PC-6l-c (`Chapter1MuCtrlDifferentialTest` W1/W2/W4 + new W5 f20249..20268: `MuCtrExists` Ported, `sub_807A644` Partially ported (flagsB 0 branch); `AdjustNewUnitPosition`, `MoveUnit_`/`MoveUnitExt`, `SetMuMaxWalkSpeed_` stay Transcribed (flag/skip branches never run); `CopyEventMoveREDAs`/`ClearEventMoveBuffer` have no Kotlin counterpart; BestMove RNG draws match every frame).
 - **Claude 2026-11-25 (06Z, finishing Gemini WIP):** PC-6l-d (`Chapter1MuStepSeDifferentialTest` W1 f10299..10376, W4 f16019..16153: `StartMuExt`, `MuStepSe_Init` Ported; `UpdateMuStepSounds` Partially ported (Foot/heavy scripts); `MuExists` Transcribed (nothing reads it)).
 - **Gemini 2026-11-25:** PC-8h (`28f582cc`; `GameOverScreenHBlank` Ported in `GameOverScreen.kt` & `GameOverScreenHBlankDifferentialTest` over 912 `PC-cap2b` calls / 7 break-checks, `GameOver*` 19 ok, `:game:jvmTest` 89 ok, Dokka green).

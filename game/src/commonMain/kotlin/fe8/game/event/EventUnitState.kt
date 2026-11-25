@@ -74,7 +74,12 @@ public class EventUnitState(
      * unit at the tile of slot B hidden; `f15558`: unit cleared once the death fade is gone) and
      * DISA with no unit at the tile (`f13103`: continues, unit arrays unchanged). Every other
      * subcode is Transcribed (not verified: no PC-cap1 window runs it). The death fade itself
-     * (`MU_StartDeathFade`, `PalFade`) is [EventUnitStateHooks], not compared.
+     * (`MU_StartDeathFade`, `PalFade`) is [EventUnitStateHooks], not compared there;
+     * `Chapter1MoveUnitKillDifferentialTest` runs it per frame `f15526..15558` with the real
+     * `StartMu`,
+     * `MU_StartDeathFade` and `StartMuHitFlash` (only the palette, blend and sound hooks are
+     * stand-ins). That the KILL yield (rather than continue) matters is not verified: the next
+     * command is DISA_IF, which parks at the same cursor either way.
      *
      * The subcodes: REMU (hide and make unavailable), REVEAL (undo REMU), CUSA/CUSN/CUSE (move
      * the unit to the player, ally or enemy faction), SET_HP (HP from slot 1, dead at 0),

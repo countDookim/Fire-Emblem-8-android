@@ -1797,7 +1797,7 @@ Functions entered (decomp chains; `Ported` / `Transcribed` per `Ported from`/`Tr
   `MU_OnEnd`/`EndMu`, `PlayMuStepSe`, `StartPlayMuStepSe`, `MuStepSe_PlaySeA/B`, `MU_StartDeathFade`,
   `MuDeathFade_OnLoop`, `StartMuHitFlash`: `Ported` (`Mu.kt`); `MuStepSe_Init`, `UpdateMuStepSounds`,
   `StartMuExt`/`MuExists`: `Transcribed`.
-- `Event2F_MoveUnit`, `Event30_ENUN`: `Ported` but verified for end tiles only; `Event30` also runs
+- `Event2F_MoveUnit`, `Event30_ENUN`: `Partially ported` (`PC-6l-e`; was `Ported`, end tiles only); `Event30` also runs
   `RefreshEntityBmMaps`, `RefreshUnitSprites`, `RenderBmMap` (`Ported`). `Event34` (`DISA`/`KILL`/`DISA_IF`) is
   owned by `PC-6e-a`; `ClearUnit` `Ported` (`PC-6l-a`); `UnitKill` `Ported`.
 - `PC-6l-a` W1 (`f10298..10378`, `Chapter1EnemyLoadDifferentialTest`): `ClearUnit` `Ported`;
@@ -1816,6 +1816,26 @@ Functions entered (decomp chains; `Ported` / `Transcribed` per `Ported from`/`Tr
   `f13050..13058` and unblocks on leg transition `0 -> 1` at `f13059`; W4 has 7 single-leg `MOVE` walks at
   speeds 16/24 Q4/f with 4-slot throttle and `BestMove` tie-breaks at `f16022`/`f16040`; `fastWalkB`, `A_BUTTON`,
   flags `2/4/8`, and `AdjustNewUnitPosition` on occupied tiles remain unexercised).
+- `PC-6l-e` W3a/W3b/W4 (`f15049..15084`, `f15526..15558`, `f16019..16153`, `Chapter1MoveUnitKillDifferentialTest`,
+  3 tests, 2.6 s local): per completed pass the red-unit watch (x, y, `US_HIDDEN`), live `ProcScr_MuCtrl`/`ProcScr_Mu`
+  fields, `gRNState` and the engine cursor equal `PC-cap1`; `gBmMapUnit`/`gBmMapOther` and the moving units' records
+  equal at every dump frame in the windows (the capture has no per-frame map watch; W3a has no dump after its walk, so
+  its end-of-walk map is covered by the W4 dump `r16160`). `Event2F_MoveUnit` and `Event30_ENUN` `Partially ported`
+  (label "end tiles only" dropped): verified MOVE with speed 16/24, the `gBmMapOther` clears, the
+  `TryPrepareEventUnitMovement` yield and the `MuCtrExists` wait; unverified MOVEONTO, MOVE_1STEP, MOVE_DEFINED, the
+  skip/negative-speed move, the dead-unit skip, `Event30`'s skip branch, and `RefreshEntityBmMaps` (removing it
+  survives), `RefreshUnitSprites`, `RenderBmMap`. W3b runs `Event34` KILL with the real `StartMu` (stand-in hooks:
+  palette, blend, sound, `PalFade`), `MU_StartDeathFade`, `StartMuHitFlash`, `MuDeathFade_OnLoop` per frame: MU state 7,
+  `timeLeft` 32..1, hit-flash sleep timer and script position, Mu count equal every pass; `DISA_IF` parks until
+  `f15557` and clears slot `0x42` at `f15558` (equal to `r15560`); fade functions stay `Ported` with this as extra
+  evidence (blend, layer and sound survive mutation, not compared). `Event34` stays `Partially ported` (KILL yield vs
+  continue survives: the next command is `DISA_IF`). `UnitKill` is not entered in this capture (the KILL command hides the
+  unit and never calls it; the unit is still valid at `r15520`): its `Ported` label rests on
+  `BattleWriteBackDifferentialTest` kill `f1999` (non-blue branch re-break-checked; the blue branch stays transcribed).
+  Break-checks: 22 mutations (target x/y swap, speed+1, `tryPrepare` never yields (NPE), `gBmMapOther` clears,
+  skip condition, dead check, `MuCtrExists` inverted, ENUN yield, fade `timeLeft`/state/end/MU end, hit-flash sleep and
+  start, KILL hide, `DISA_IF` fade check and `ClearUnit`, `UnitKill` non-blue) all fail; survivors: ENUN
+  `RefreshEntityBmMaps`, KILL yield, MOVEONTO/1STEP, ENUN skip branch and sprite/render calls, blend and sprite layer.
 - `PC-6l-d` W1/W4 (`f10298..10378`, `f16018..16153`, `Chapter1MuStepSeDifferentialTest`; MU Q4 x/y, speeds,
   `stepSoundClock`, `camB`, `ProcScr_MuStepSe` song1/x1/song2/x2 and M4A per VBlank frame equal `PC-cap1`; VBlank
   frames with `mainLoopEnded == 0` complete on the next frame). Dirty `sProcArray` `+0x60` (`unk60`) is stale

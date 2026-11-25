@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 253 across 57 Kotlin files.
+Total entries: 254 across 57 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -33,7 +33,7 @@ Total entries: 253 across 57 Kotlin files.
 | EP-7 | 2 |
 | IS-2 | 1 |
 | PC-4f | 1 |
-| PC-cap1 | 1 |
+| PC-cap1 | 2 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-4 | 1 |
@@ -351,11 +351,12 @@ Total entries: 253 across 57 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | `getChapterIndexOnWmNode` | Stand-in (PC-4f) until ported. |
 
-## PC-cap1 (1)
+## PC-cap1 (2)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `endBoxDialogue` | Transcribed from src/helpbox.c: sub_808BB74 (not verified: none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnkn... |
+| `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | `event34MessWithUnitState` | The death fade itself (`MU_StartDeathFade`, `PalFade`) is [EventUnitStateHooks], not compared there; `Chapter1MoveUnitKillDifferentialTest` runs it per frame `f15526..15558` with the real `StartMu`... |
 
 ## PP-10 (1)
 

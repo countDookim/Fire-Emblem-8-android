@@ -1089,6 +1089,10 @@ public class Mu(
      * `ProcScr_MuHitFlash`, which restores the palette.
      *
      * Ported from src/mu.c: StartMuHitFlash
+     *
+     * Also verified by `Chapter1MoveUnitKillDifferentialTest` on `f15526..15558` of
+     * `ram_trace_prologue_end` (the MuHitFlash proc's script position and sleep timer per
+     * frame; the palette and PalFade hooks are not compared there).
      */
     public fun startMuHitFlash(mu: MuProc, flashType: Int) {
         val config = mu.config!!
@@ -1120,6 +1124,10 @@ public class Mu(
      * are not compared with the capture.
      *
      * Ported from src/mu.c: MU_StartDeathFade
+     *
+     * Also verified by `Chapter1MoveUnitKillDifferentialTest` on `f15526..15558` of
+     * `ram_trace_prologue_end` (MU state 7, the MuDeathFade proc's `timeLeft` and script
+     * position per frame; blend, layer and sound are not compared there).
      */
     public fun muStartDeathFade(mu: MuProc) {
         mu.state = MU_STATE_DEATHFADE
@@ -1145,6 +1153,9 @@ public class Mu(
      * MU (and with it this proc) when none are left.
      *
      * Ported from src/mu.c: MuDeathFade_OnLoop
+     *
+     * Also verified by `Chapter1MoveUnitKillDifferentialTest` on `f15526..15558` of
+     * `ram_trace_prologue_end` (`timeLeft` 31..1 per frame, the MU ended with the proc).
      */
     public fun muDeathFadeOnLoop(proc: Proc) {
         val state = proc.state as MuEffectState

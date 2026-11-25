@@ -41,8 +41,11 @@ public interface EventMoveUnitHost {
  * until every scripted walk has finished) of `src/eventscr.c` and their helpers
  * `TryPrepareEventUnitMovement` and `ModifyMoveUnitFlag`.
  *
- * Verification: `MoveUnitDifferentialTest` compares the blue units' end tiles after the opening
- * moves with `ram_trace_first_phase` r19400 (not the per-frame walk). `TryPrepareEventUnitMovement`
+ * Verification: `Chapter1MoveUnitKillDifferentialTest` compares every pass of `f15049..15084` and
+ * `f16019..16153` of `ram_trace_prologue_end` (red-unit x/y/hidden, MuCtrl and Mu fields, engine
+ * cursor; `gBmMapUnit` / `gBmMapOther` at the dump frames, the capture has no per-frame map
+ * watch). `MoveUnitDifferentialTest` compares the blue units' end tiles after the opening
+ * moves with `ram_trace_first_phase` r19400. `TryPrepareEventUnitMovement`
  * and `ModifyMoveUnitFlag` share the implementations in [EventUnitLoads] (`EventUnitLoads.kt`);
  * [MuCtrl] is untagged.
  *
@@ -96,8 +99,14 @@ public class EventMoveUnit(
         modifyMoveUnitFlag(proc, unk)
 
     /**
-     * Ported from src/eventscr.c: Event2F_MoveUnit (verified: end tiles only, see
-     * `MoveUnitDifferentialTest`)
+     * Partially ported from src/eventscr.c: Event2F_MoveUnit
+     *
+     * Verified per frame by `Chapter1MoveUnitKillDifferentialTest` on `ram_trace_prologue_end`
+     * (`f15049..15084`, `f16019..16153`): subcode MOVE with a positive speed (16 and 24 Q4 per
+     * frame) on living units while not skipping: the target tiles, the `gBmMapOther` clear, the
+     * `TryPrepareEventUnitMovement` yield (4-slot throttle) and the `MuCtrl` walk start.
+     * Transcribed (not verified: no capture window runs them): MOVEONTO, MOVE_1STEP, MOVE_DEFINED,
+     * the skipping / negative-speed move, the dead-unit skip and the missing-unit / error exits.
      *
      * Arguments: speed (`EVT_CMD_ARGV[0]`), the unit's character parameter (`[1]`) and a target
      * (`[2]`). Subcodes (`EVSUBCMD_`): MOVE (a tile, packed X/Y bytes), MOVEONTO (the tile of
@@ -194,8 +203,13 @@ public class EventMoveUnit(
         }
 
     /**
-     * Ported from src/eventscr.c: Event30_ENUN (verified: end tiles only, see
-     * `MoveUnitDifferentialTest`)
+     * Partially ported from src/eventscr.c: Event30_ENUN
+     *
+     * Verified per frame by `Chapter1MoveUnitKillDifferentialTest` (`f15049..15084`,
+     * `f16019..16153`): the wait on `MuCtrExists`, the `gBmMapOther` clear and the final yield.
+     * Not verified: the skipping branch (`SetMuMaxWalkSpeed`), `RefreshEntityBmMaps` (removing it
+     * survives: the walks already refresh the maps), `RefreshUnitSprites` and `RenderBmMap` (the
+     * test host has no sprites or map render).
      *
      * Waits until no [MuCtrl] walk exists (`MuCtrExists`; walking at maximum speed while the
      * scene is skipped), then refreshes the entity maps, the unit sprites and the map and clears

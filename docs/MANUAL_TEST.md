@@ -9,7 +9,7 @@ needs your ROM, imported on first start.
 
 | | Build | Date | Report |
 |---|---|---|---|
-| Latest APK | 0.1.868 (`dd96da1`) | 2026-11-24 | — |
+| Latest APK | 0.1.886 (`848cd63`) | 2026-11-25 | — |
 | Last owner test | 0.1.868 (`dd96da1`) | 2026-11-24 | Issue #8: save menu to Chapter 1 OK |
 | Last full pass | 0.1.622 (`22cfc9d`) | 2026-11-12 | HANDOFF "Device status" |
 
@@ -20,7 +20,7 @@ Items are removed from this page once the owner confirms them; the history is in
 
 Everything up to 0.1.868 was tested earlier; new items carry their build.
 
-- **Game over (PC-8).** Build: next build after this commit (CI pending).
+- **Game over (PC-8).** Build: 0.1.886 (`848cd63`).
   1. Start the Prologue (or resume it) and let Eirika die: end turns with her next to the enemies, or
      leave her in reach of the boss's soldiers and do not move her away.
   2. Expected: after her last hit the screen fades to black (the map music fades first), then the game

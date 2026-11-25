@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1476,
+    "verified": 1474,
     "implemented_unverified": 134
   },
   "functions": {
@@ -3562,26 +3562,6 @@
         "fe8.testing.EventUnitLoadsTest#skipped load_unit2 of the throne room units reproduces the dumped unit structs"
       ]
     },
-    "Event2F_MoveUnit": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventMoveUnit.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.MoveUnitDifferentialTest#blue units end on the tiles of the r19400 dump after the opening moves"
-      ]
-    },
-    "Event30_ENUN": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventMoveUnit.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.MoveUnitDifferentialTest#blue units end on the tiles of the r19400 dump after the opening moves"
-      ]
-    },
     "Event39_ChangeAiScript": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -5601,7 +5581,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -7621,6 +7601,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1MoveUnitKillDifferentialTest#W3b KILL death fade and DISA_IF match PC-cap1 per frame f15526 to f15558",
         "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
       ]
     },
@@ -8471,6 +8452,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1MoveUnitKillDifferentialTest#W3b KILL death fade and DISA_IF match PC-cap1 per frame f15526 to f15558",
         "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
       ]
     },
@@ -11975,6 +11957,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.Chapter1MoveUnitKillDifferentialTest#W3b KILL death fade and DISA_IF match PC-cap1 per frame f15526 to f15558",
         "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
       ]
     },

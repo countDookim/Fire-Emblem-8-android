@@ -35,7 +35,7 @@ public class SaveMenuSlotFlip(
         public var playSoundEffect: (songId: Int) -> Unit = {},
         /** `StartBgmVolumeChange(volume, end, time, proc)`. */
         public var startBgmVolumeChange: (Int, Int, Int, Proc?) -> Unit = { _, _, _, _ -> },
-        /** `SaveMenuModifySaveSlot(slot, valid, position)`. Stand-in (not ported). */
+        /** `SaveMenuModifySaveSlot(slot, valid, position)`; wired by [SaveMenuAssembly]. */
         public var modifySaveSlot: (slot: Int, valid: Boolean, position: Int) -> Int =
             { slot, _, _ -> slot },
     )

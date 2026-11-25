@@ -120,7 +120,12 @@ public object SaveMenuAssembly {
         val flip = SaveMenuSlotFlip(
             d.engine, d.rom, d.oam, d.chapterTitle, slotData,
             SaveMenuChoice(extras = SaveExtras(d.saveLib)),
-        ).also { it.hooks.playSoundEffect = d.playSoundEffect }
+        ).also {
+            it.hooks.playSoundEffect = d.playSoundEffect
+            it.hooks.modifySaveSlot = { slot, valid, position ->
+                SaveMenuMainLoop.modifySaveSlot(d.saveLib, slot, valid, position)
+            }
+        }
         menu.wireSlotFlip(flip)
         val loop = SaveMenuSelectLoop(
             d.engine, d.hardware, d.text, d.messages, screen.subBoxFont, screen.subBoxText,
@@ -142,6 +147,8 @@ public object SaveMenuAssembly {
         public val difficulty: DifficultyMenu,
         /** The difficulty screen's sprite child. */
         public val sprites: DifficultyMenuSprites,
+        /** The main menu loop, slot scroll, slot-select sprite and slot search (`PC-11c`). */
+        public val mainLoop: SaveMenuMainLoop,
     )
 
     /**
@@ -151,10 +158,11 @@ public object SaveMenuAssembly {
      * [ram], then [afterWrite]); `ProcScr_SaveMenu` becomes the script
      * [SaveMenuPostChapter.saveMenuSetDifficultyChoice] searches; the difficulty select is a real
      * [DifficultyMenu] with [DifficultyMenuSprites] reading [keys], whose choice is written back
-     * through [SaveMenuPostChapter.saveMenuSetDifficultyChoice]. The script's other callbacks
-     * (`SaveMenu_Init`, `SameMenu_CtrlLoop`, the graphics reload of
-     * `SaveMenu_ReloadScreenFormDifficulty`, ...) stay in [SaveMenuNewGame.Hooks] for the title
-     * menu (`PC-11`) to wire.
+     * through [SaveMenuPostChapter.saveMenuSetDifficultyChoice]. `SameMenu_CtrlLoop`,
+     * `SaveMenuScrollSlot`, `SaveMenuSlotSelDrawSprite` and `SaveMenuModifySaveSlot` are wired
+     * through [SaveMenuMainLoop] (`PC-11c`); the remaining setup/graphics callbacks
+     * (`SaveMenu_Init`, `SaveMenu_ReloadScreenFormDifficulty` graphics reload, ...) stay in
+     * [SaveMenuNewGame.Hooks] for the remaining `PC-11` tasks.
      *
      * @param d the deps [assemble] was called with
      * @param ram `gPlaySt`, flags and convoy that `WriteNewGameSave` initialises
@@ -186,13 +194,21 @@ public object SaveMenuAssembly {
         difficulty.wireSprites(sprites)
         bridge.hooks.newNewGameDifficultySelect =
             ProcFunc { difficulty.newNewGameDifficultySelect(it) }
+        val mainLoop = SaveMenuMainLoop(d.engine, keys, d.saveLib)
+        mainLoop.hooks.playSoundEffect = d.playSoundEffect
+        mainLoop.hooks.startBgmVolumeChange = startBgmVolumeChange
+        bridge.hooks.funcs["SameMenu_CtrlLoop"] = ProcFunc { mainLoop.sameMenuCtrlLoop(it) }
+        bridge.hooks.funcs["SaveMenuScrollSlot"] = ProcFunc { mainLoop.saveMenuScrollSlot(it) }
+        bridge.hooks.funcs["SaveMenuSlotSelDrawSprite"] =
+            ProcFunc { mainLoop.saveMenuSlotSelDrawSprite(it) }
+        result.flip.hooks.modifySaveSlot = mainLoop::saveMenuModifySaveSlot
         result.menu.hooks.saveMenuProcScript = bridge.script
         result.selectLoop.hooks.newGame = { bridge.saveMenuNewGame(it) }
         result.selectLoop.hooks.writeNewGame = {
             bridge.saveMenuWriteNewGame(it)
             afterWrite()
         }
-        return NewGameWiring(bridge, difficulty, sprites)
+        return NewGameWiring(bridge, difficulty, sprites, mainLoop)
     }
 
     /** `Make6C_SaveMenuPostChapter` for [GameControl.Hooks.makeSaveMenuPostChapter]. */

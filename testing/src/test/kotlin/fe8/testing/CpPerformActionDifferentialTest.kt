@@ -2,8 +2,10 @@ package fe8.testing
 
 import fe8.game.bm.BattleStats
 import fe8.game.bm.BattleUnit
+import fe8.game.save.PidStats
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -130,6 +132,10 @@ class CpPerformActionDifferentialTest {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
         val s = CpPerformSim.create(ref, romFile, "ram_trace_prologue_enemy_phase", seed, unit, rngStep)
         val names = ProcArrayDump.romNames()
+        // `gBWLDataArray` of the frame before the end: the only change at the end is the dead
+        // actor's squares-moved credit, read through NULL (pid 4, see `moveActiveUnit`).
+        val before = s.data.region("r%05d".format(endStep - 1), "ewram")
+        before.copyInto(s.pidStats.data, 0, BWL_OFFSET, BWL_OFFSET + s.pidStats.data.size)
         // Engine frame f shows capture step f up to the frame that starts the attack ([start]); the
         // battle generation of that frame runs over the vertical blank, so the capture's step
         // [start] is a snapshot inside it and its end is step start + 1: from there on engine frame
@@ -146,6 +152,11 @@ class CpPerformActionDifferentialTest {
         actionData(s, endStep, "(end) f$endStep")
         units(s, endStep, "(end) f$endStep", withItems = true)
         cursor(s, endStep, "(end) f$endStep")
+        val after = s.data.region("r%05d".format(endStep), "ewram")
+        assertArrayEquals(
+            after.copyOfRange(BWL_OFFSET, BWL_OFFSET + s.pidStats.data.size), s.pidStats.data,
+            "gBWLDataArray (dead actor credits pid 4) f$endStep",
+        )
     }
 
     @Test
@@ -239,6 +250,7 @@ class CpPerformActionDifferentialTest {
     }
 
     private companion object {
+        const val BWL_OFFSET = 0x0203E894 - 0x02000000
         const val PROC_SCR_CP_PERFORM = 0x085A8024
         const val PROC_SCR_COMBAT = 0x0859DABC
         val AI_PC = 0x42..0x45

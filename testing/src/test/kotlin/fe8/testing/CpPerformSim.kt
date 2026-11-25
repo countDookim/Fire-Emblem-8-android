@@ -4,6 +4,7 @@ import fe8.game.Fe8Sound
 import fe8.game.RomView
 import fe8.game.SoundWrapper
 import fe8.game.SpacialSe
+import fe8.game.save.PidStats
 import fe8.game.bm.AiIntStep
 import fe8.game.bm.BattleGenerate
 import fe8.game.bm.BattleStats
@@ -89,6 +90,9 @@ internal class CpPerformSim(
     val perform: CpPerform
     val workingScript = IntArray(0x40)
 
+    /** `gBWLDataArray` as the squares-moved hook of [phase] fills it (set by the test). */
+    val pidStats = PidStats(rom)
+
     /** The BG hardware the map renders and the fade draw into (EP-9c). */
     val hardware = BgHardware()
     val fade: BmxFade
@@ -153,6 +157,9 @@ internal class CpPerformSim(
         battle.stats.decode(data.watch("bstats").step(seed), 0)
         combat = CombatAction(engine, battle, gen, units, active)
         phase.hooks.actionCombat = ProcBoolFunc { combat.actionCombat(it) }
+        phase.hooks.pidStatsAddSquaresMoved = { pid, amount ->
+            pidStats.pidStatsAddSquaresMoved(pid, amount)
+        }
         combat.hooks.itemGotPopup = CombatAction.ItemPopup { _, _, _ -> error("no item drop") }
         // The map battle animation (M6-H) is a placeholder: it locks the game and ends when the
         // capture's `ProcScr_MapAnimBattle` proc is gone (as MC-13's test does).

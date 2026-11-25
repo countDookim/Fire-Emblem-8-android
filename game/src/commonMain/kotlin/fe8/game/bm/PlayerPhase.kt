@@ -770,7 +770,9 @@ public class PlayerPhase(
     /**
      * Ported from src/bmunit.c: MoveActiveUnit
      *
-     * Verified for the Wait capture (the unit stays on its tile, no rescue, alive).
+     * Verified for the Wait capture (the unit stays on its tile, no rescue, alive). A dead actor
+     * (no character) credits [BIOS_OPEN_BUS_PID]: in `ram_trace_prologue_enemy_phase` the entry
+     * of pid 4 in `gBWLDataArray` gains favval 2 at f2018 and f2723 (no other byte changes).
      * Puts the active unit on ([x], [y]), makes it unselectable, records the squares moved,
      * shows it again if alive and finalizes the move (`UnitFinalizeMovement`: a carried rescuee
      * and a ballista move to the same tile).
@@ -779,12 +781,11 @@ public class PlayerPhase(
         val unit = active.unit
         units.setPosition(unit, x, y)
         units.setState(unit, units.state(unit) or US_UNSELECTABLE)
-        // Deviation: a unit killed in its action has no character (`AiRefreshMap` after an enemy
-        // attack); the C reads the character number from address 4 there and stores it in the
-        // statistics, which is skipped.
-        if (units.isValid(unit)) {
-            hooks.pidStatsAddSquaresMoved(units.charId(unit), active.action.moveCount)
-        }
+        // A unit killed in its action has no character (`AiRefreshMap` after an enemy attack): the
+        // C reads `pCharacterData->number` through NULL, i.e. byte 4 of the BIOS, and mGBA returns
+        // its open-bus value there (pid 4), which `GetPidStats` accepts.
+        val pid = if (units.isValid(unit)) units.charId(unit) else BIOS_OPEN_BUS_PID
+        hooks.pidStatsAddSquaresMoved(pid, active.action.moveCount)
         if (units.currentHp(unit) != 0) {
             units.setState(unit, units.state(unit) and US_HIDDEN.inv())
         }
@@ -1480,6 +1481,9 @@ public class PlayerPhase(
     public companion object {
         /** `PROC_MARK_MAIN`. */
         public const val PROC_MARK_MAIN: Int = 2
+
+        /** Pid read through a NULL character pointer (BIOS byte 4 as mGBA returns it). */
+        public const val BIOS_OPEN_BUS_PID: Int = 4
 
         /** `MAP_MOVEMENT_MAX` (bmmap.h). */
         public const val MAP_MOVEMENT_MAX: Int = 120

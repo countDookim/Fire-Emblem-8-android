@@ -388,9 +388,12 @@ public class MapAnimInfoBox(
 
     /**
      * Draws the HP bar of [maxHp] and [curHp] at [index] of [tilemap] from the segment list
-     * [table] (ROM address of `u16` span/base pairs ending with a zero span). C draws one
-     * segment for a non-zero [curHp] that scales to none; the capture has no such HP, so that
-     * case is not written.
+     * [table] (ROM address of `u16` span/base pairs ending with a zero span), keeping at least
+     * one segment (`filled = 1`) whenever [curHp] is positive.
+     *
+     * Main path verified against `ram_trace_prologue_clear`; the `filled == 0 && curHp > 0`
+     * one-segment minimum branch (`src/mapanim_infobox.c:81-82`) is transcribed from decomp
+     * (not yet exercised by a capture; capture verification remains tracked under `EP-21b`).
      *
      * Ported from src/mapanim_infobox.c: sub_807BB40
      */
@@ -411,9 +414,7 @@ public class MapAnimInfoBox(
         count += 1
 
         var filled = if (maxHp == curHp) count else (((count shl 8) / maxHp * curHp) shr 8)
-        if (filled == 0 && curHp > 0) {
-            TODO("sub_807BB40: the one-segment minimum is not exercised by the capture")
-        }
+        if (filled == 0 && curHp > 0) filled = 1
 
         val pal = rom.u32(PAL_TABLE + 4 * palIndex)
         var at = index
@@ -428,10 +429,14 @@ public class MapAnimInfoBox(
     /**
      * Writes the digit characters of [digits] (read backwards from [last] up to the first space)
      * as tiles into [tilemap], the last at [dst] and the earlier ones to its left, after blanking
-     * the [len] tiles ending at [dst]. With [overflow] set, C writes the overflow glyph (tile
-     * `base + 10`) into the two tiles ending at [dst] instead of digits; the Prologue capture
-     * never shows an HP of 100 or more, so that branch is not written. The initial blanking of the
-     * [len] tiles is covered by [sub807BA28]'s own blanking, so the capture cannot test it alone.
+     * the [len] tiles ending at [dst]. With [overflow] set, writes the overflow glyph (tile
+     * `base + 10`) into the two tiles ending at [dst] instead of digits. The initial blanking of
+     * the [len] tiles is covered by [sub807BA28]'s own blanking, so the capture cannot test it
+     * alone.
+     *
+     * Main path verified against `ram_trace_prologue_clear`; the [overflow] (`>= 100` HP) branch
+     * (`src/bmlib.c:320-329`) is transcribed from decomp (not yet exercised by a capture;
+     * capture verification remains tracked under `EP-21b`).
      *
      * Ported from src/bmlib.c: sub_8013168
      */
@@ -447,11 +452,15 @@ public class MapAnimInfoBox(
         for (k in 0 until len) tilemap[dst - k] = 0
 
         var at = dst
-        if (overflow) TODO("sub_8013168: the HP overflow glyph is not exercised by the capture")
-        var src = last
-        while (digits[src] != ' ') {
-            tilemap[at--] = (digits[src].code + base - '0'.code).toShort()
-            --src
+        if (overflow) {
+            tilemap[at--] = (base + 10).toShort()
+            tilemap[at] = (base + 10).toShort()
+        } else {
+            var src = last
+            while (digits[src] != ' ') {
+                tilemap[at--] = (digits[src].code + base - '0'.code).toShort()
+                --src
+            }
         }
     }
 

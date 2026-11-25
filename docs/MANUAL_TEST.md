@@ -28,9 +28,7 @@ Nothing new to test yet (D-23 fix below still awaits a quick check).
   and survived never acted again (an unported AI "go to start" command). In 0.1.889: in the
   Prologue, let an enemy attack Eirika and survive, end turn 2 next to it, and it should attack again.
   Until then, to test game over: attack the boss with Eirika until his counterattack kills her.
-- **D-24 (found 11-25, not yet seen on a device):** a map battle can crash the app when a unit's HP bar
-  needs its one-segment minimum or the HP overflow glyph (two unported functions). Likelier now that enemies
-  keep fighting (D-23 fix). Report the HP values if it happens.
+- **D-24 (found 11-25): fixed after 0.1.889 (pending next APK), device check pending.** Map battles no longer crash on `TODO()` in `MapAnimInfoBox` when a unit's HP bar needs its one-segment minimum (`curHp = 1` at `maxHp >= 45`) or the HP overflow glyph (`>= 100` HP); both transcribed branches still need capture verification (`EP-21b`).
 
 ## 3. Known gaps (not bugs)
 

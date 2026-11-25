@@ -42,4 +42,6 @@ internal val M4A_UNCOVERED_RUNS: Set<String> = setOf(
     "ram_trace_prologue_gameover",
     // PC-cap2b: identical PRO_GAMEOVER prefix to f6133 with GameOverScreenHBlank tracecall.
     "ram_trace_prologue_gameover_hblank",
+    // PC-cap3 (Easy New Game): NEWGAME input prefix, diverges at f975 (channel 12) like ram_trace_newgame.
+    "ram_trace_newgame_easy",
 )

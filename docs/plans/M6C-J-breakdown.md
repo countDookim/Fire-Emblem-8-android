@@ -2268,3 +2268,98 @@ names one. Written: commands 05, 06, 0E, 12, 03 only (03 has D23-cap).
 
 Existing rows kept: heal, escape, berserk, ballista, rogue, staff, seal, antitoxin. New: EP12-script-cap, EP12-steal-cap,
 EP12-score-cap. Gaps not assigned: none; scenarios marked unconfirmed need a ROM-side scan of the chapter unit/AI tables first.
+
+### PC-11i result (2026-11-25)
+
+Inventory (not a port claim) of the title main menu and the two loads. Test: `TitleMenuInventoryTest` (proc rows per
+window from the `procs` watch, `SaveMenuProc` fields, tracecall order, `gPlaySt`, `nextAction`, SRAM diffs). Runs:
+`ram_trace_title_continue` (3 full slots + suspend; Restart Chapter, slot 1), `ram_trace_title_resume` (same fixture;
+Resume Chapter), `ram_trace_title_menu_items` (slot 1 + suspend only; cursor walk). Function names come from the proc
+script cursors, the decomp call chains and the `SaveMenuProc` fields; the captures have no per-function trace except the
+four `tracecall`s (`SaveMenu_NewGame`, `PostSaveMenuHandler`, `ReadGameSave`, `ReadSuspendSave`), so any other "runs"
+is inferred.
+
+**Windows** (`f` = step after the Nth frame; continue and resume have identical procs until the first A at `f1001`):
+
+| Window | continue | resume | menu_items |
+|---|---|---|---|
+| Title end, `ProcScr_SaveMenu` created | FadeCore `f903..919`, menu `f921` | same | same |
+| Slot data, `InitSaveMenuChoice` | `f927..943` (slots `f928/930/932`, suspend `f936`, options `f938..943`) | same | `f927..936` |
+| Menu settled (fade in) | `f944..961` | same | `f939..955` |
+| Cursor / A on the item | DOWN `f1002`, A `f1033` | A `f1002` | DOWN `f1002/32/62/92/122`, UP `f1152..1272` |
+| `SaveMenuScrollSlot` (14 frames) | `f1035..1048`, `HelpPromptSpr` `f1049` | `f1003..1016`, `HelpPromptSpr` `f1017` | none |
+| Slot select idle | `f1050..1093` | `f1018..1062` | none |
+| Confirm box (Restart only) | A `f1094` box, `HelpBoxTextScroll` `f1104..1128`, LEFT `f1155` | none | none |
+| Exit | A `f1176` `SaveMenu_NewGame`, `BmFadeOUT` `f1177..1211` | A `f1063`, `BmFadeOUT` `f1064..1097` | none |
+| Load | `PostSaveMenuHandler` `f1214`, `ReadGameSave(0)` `f1214..1215`, `nextAction` 1 `f1215` | `PostSaveMenuHandler` `f1099`, `ReadSuspendSave(3)` `f1099..1102`, `nextAction` 4 `f1102` | none |
+| Map | `BMapMain` `f1223`, `ChapterIntro` `f1225..1830`, event `f1831` | `BMapMain` `f1109`, `FadeFromBlack` `f1111..1127`, `PlayerPhase` `f1129` | none |
+
+**Observed functions by status.** Ported = `Ported from` KDoc, Partial = Transcribed or Ported with unexercised arms,
+Stand-in = hook or `error(...)`, Missing = no Kotlin.
+
+| Window | Function (file) | State |
+|---|---|---|
+| Title end | post-title branch to `LGAMECTRL_EXEC_SAVEMENU`, `GameControl_EnableSoundEffects` (`gamecontrol.c`) | Ported |
+| Setup | `StartSaveMenu` (`savemenu.c`: starts `ProcScr_SaveMenu` blocking, `main_sel_bitfile = 0x100`, text speed 2) | Missing (`GameControl.hooks.startSaveMenu` is `Fe8Boot.newGameSaveMenu`) |
+| Setup | `SaveMenu_Init` (LCD/BG setup), `SaveMenu_LoadExtraMenuGraphics`, `SaveMenu_JumpToTarget` (`savemenu.c`) | Missing (`SaveMenuNewGame.Hooks.funcs` by C name, empty) |
+| Setup | `SaveMenu_InitScreen`, `SaveMenuPutChapterTitle`, `SaveMenuCopyPalette` | Partial (Transcribed; differential on `ram_trace_prologue_end`; the title fixture has 3 filled slots) |
+| Setup | `SaveMenuInitSaveSlotData`, `SaveMenuInitSlotPalette` (`difficultymenu.c`) | Ported; the slot-3 suspend branch (`sus_slot_cur`, `total_time`) is new: `f936` |
+| Setup | `InitSaveMenuChoice`, `AddMainMenuOption`, `AddExtraMenuOption` (`savedraw.c`) | Ported; the title configuration (`unk_44 == 0x100`, count rules) is new |
+| Setup | `IsExtraLinkArenaEnabled`, `IsExtraSoundRoomEnabled`, `IsExtraSupportViewerEnabled`, `IsExtraFreeMapEnabled`, `IsExtraBonusClaimEnabled` (`bmsave-lib.c`) | Stand-in (`SaveMenuChoice.Hooks`); observed `extra_options == 3` |
+| Setup | `SaveMenuGetBitfile` (`savemenu.c`) | Partial (Transcribed; first window that calls it) |
+| Main loop | `SameMenu_CtrlLoop` (`savemenu.c`): UP/DOWN walk, A on Resume, A on Restart | Missing |
+| Main loop | `SaveMenuModifySaveSlot` (`savedraw.c`; Restart arm: `ReadLastGameSaveId()`, valid 1, +1 gives slot 0) | Stand-in (`SaveMenuSlotFlip.Hooks`) |
+| Main loop | `ReadLastGameSaveId` | Ported (valid slot 0 only) |
+| Main list | `sub_80AAE90` (list body), `sub_80AABC4`, `sub_80AADE0` (label, `unk_46 == 0`), `sub_80AB4F4` (cursor) (`savedraw.c`) | `sub_80AAE90` body Stand-in (`Hooks.mainOptions`); `sub_80AABC4` Missing; `sub_80AADE0` Partial; `sub_80AB4F4` Ported |
+| Main list | `SaveDrawCursor_Loop`, `SaveDraw_Loop_Main` | Partial (Transcribed; the main-list cursor is a new branch) |
+| Scroll | `SaveMenuScrollSlot`, `SaveMenuSlotSelDrawSprite` (`savemenu.c`) | Missing |
+| Prompt sprite | `StartHelpPromptSprite`, `HelpPrompt_OnIdle`, `gProcScr_HelpPromptSpr` (`statscreen.c`) | Missing |
+| Slot select | `SaveMenu_SaveSlotSelectLoop`, `ExecSaveMenuMiscOption`, `SaveMenuHandleHelpBox`, `SaveMenuWaitHelpBoxAnim` | Partial (Transcribed from `prologue_end`; Restart, Resume, LEFT and `cursor_config` 1 arms are new) |
+| Slot select | `SaveMenuDrawSubSelBox` (Transcribed), `SaveMenuDrawSubSelBoxExt` (Ported), `sub_80AB05C`, `sub_80AA7EC` (`total_time` branch, Resume), `sub_80AACBC` (`unk_44` spin/scale and hide, `f1176..1193`) | Partial |
+| Confirm box | `StartHelpBoxExt_NoHelpSprite`, `StartHelpBoxExt`, `HelpBox_OnOpen`, `HelpBox_OnLoop`, `HelpBox_OnClose`, `HelpBox_WaitClose`, `CloseHelpBox`, `LoadHelpBoxGfx` (`statscreen.c`, `helpbox.c`) | Missing (only the save menu's open hook) |
+| Confirm box | `ProcScr_HelpBoxIntro`, `HelpBoxIntroDrawTexts`, `HelpBoxSetupstringLines`, `HelpBoxDrawstring`, `gProcScr_HelpBoxTextScroll`, `HelpBoxTextScroll_OnLoop`, `DisplayHelpBoxObj` (`helpbox.c`) | Missing; the subset is inferred from procs `f1094..1128` |
+| Exit | `SaveMenu_NewGame` (traced `f1176` / `f1063`), `StartBgmVolumeChange` | Ported (`SaveMenuNewGame`) |
+| Exit | `PostSaveMenuHandler` (traced; `& 0x82` and `& 1` arms) | Ported (stand-in selection in `PostSaveMenuDifferentialTest`; the real bitfile is new) |
+| Load | `ReadGameSave` (traced), `InvalidateSuspendSave`, `WriteLastGameSaveId`, `ReadSuspendSave` (traced) | Ported / Transcribed; the "suspend invalidated" arm of `ReadGameSave` was unexercised before |
+| Switch | `GameControl_SwitchPostSaveMenu` (1 to `EXEC_BM`, 4 to resumed game), `GameCtrl_CheckNewGameAndBranch` | Ported (1 now run, 4 already verified) |
+| Map | `StartBattleMap`, `ChapterIntro`, `BmMain_SuspendBeforePhase` / `WriteSuspendSave` (`f1129`) | Ported (PC-5, EP rows) |
+
+**Resume vs Restart.** Both leave through `SaveMenu_NewGame`, but:
+- Resume (bitfile 1): A in `SameMenu_CtrlLoop` sets `sus_slot = sus_slot_cur` and scrolls (`SaveMenuScrollSlot`, `scroll_cnt`
+  1..14, `unk_2f` 0x1F..0xDC). The second A in `SaveMenu_SaveSlotSelectLoop` calls `SaveMenu_NewGame` directly: no `HelpBox`,
+  `cursor_config` stays 0, `unk_44` stays 0x100 (the suspend slot stays on screen). `PostSaveMenuHandler` takes the `& 1` arm:
+  `ReadSuspendSave(3)`, `nextAction` 4 (resumed game, no `ChapterIntro`). The load writes no SRAM; `PlayerPhase` at `f1129` rewrites
+  the suspend block (2932 bytes in `0xD4..0x1816`).
+- Restart (bitfile 2): A sets `sus_slot = SaveMenuModifySaveSlot(ReadLastGameSaveId(), 1, 1)` (slot 0) and scrolls. The slot-select
+  A runs `ExecSaveMenuMiscOption`: `cursor_config` 0 to 2 (Cancel), `SaveMenuDrawSubSelBox`, `SaveMenuHandleHelpBox` opens the
+  confirm `HelpBox` (`hb_en` 1). LEFT sets `cursor_config` 1 (Start). A: `unk_44 = 0xF0` (the slot box spins out, 0x10 per frame
+  `f1176..1193`), `SaveMenu_NewGame`, box closed. `PostSaveMenuHandler` takes the `& 0x82` arm: `ReadGameSave(sus_slot)` rewrites the
+  two suspend block descriptors (table entries 3 and 4, `0x94..0xB3`, 29 bytes; slot data and suspend data stay), `nextAction =
+  sus_slot + 1` = 1, `GameControl_SwitchPostSaveMenu` goes to `EXEC_BM`. The chapter state is the slot's (turn 3) at `f1214`, then
+  reset to the chapter start (turn 0, phase 0x40 at `f1218`); no world map; the Chapter 1 intro and beginning event follow.
+
+**Menu item set rules** (`InitSaveMenuChoice`, `SaveMenuInitSaveSlotData`; `count` = slots 0..2 with a valid save):
+
+| Item | Shown when | 3 slots + suspend (continue, resume) | 1 slot + suspend (menu_items) |
+|---|---|---|---|
+| Resume Chapter (bit 0) | `unk_44 == 0x100`, i.e. a valid suspend save (`SaveMenuInitSaveSlotData(3)` otherwise sets `unk_44 = 0xF0`) | yes | yes |
+| Restart Chapter (bit 1) | `count > 0` | yes | yes |
+| Copy Data (bit 2) | `0 < count < 3` | no | yes |
+| Erase Data (bit 3) | `count > 0` | yes | yes |
+| New Game (bit 4) | `count < 3` | no | yes |
+| Extras (bit 5) | any extra enabled (`IsExtraSoundRoomEnabled` is always 1, so always) | yes | yes |
+| `main_options` / `unk_31` | | `0x2B` / 4 | `0x3F` / 6 |
+
+`extra_options` bits: `EXTRA_MENU_OPTION_LINK_ARENA` (a non-first-chapter slot), `_SOUND_ROOM` (always), `_SUPPORT` (played through),
+`_MAP` (a completed slot), `_BONUS_CLAIM`; both fixtures read 3 (`LINK_ARENA | SOUND_ROOM`). The cursor starts on item 0 (`main_select` 0, bitfile
+`SaveMenuGetBitfile(main_options, 0)`). The no-suspend case (no Resume item, `unk_44 == 0xF0`) and an empty SRAM (New Game and Extras
+only) are source-derived; no run has them (CAP row PC-11cap2).
+
+**Not in these runs** (source only, so no PORT row before PC-11cap2): UP/DOWN wrap at the ends, B (`PL_SAVEMENU_NEW_GAME` with
+`main_sel_bitfile = EXIT`), A on Copy, Erase, New Game or Extras, D-pad and R (`LoadSaveMenuInfo`) in the slot select, B in the slot
+select (`SaveMenu_EndHelpPromptSprite`, `SaveMenuScrollBackToMain`), `SaveMenuTryMoveSaveSlotCursor`, the extras list (`sub_80AAF6C`,
+`sub_80A9A68`..`sub_80A9B90`), `SaveMenuStartExtraMiscScreen`. The difficulty select from the title is ported in PC-9. Open question
+for PC-11k: the Restart arm leaves the suspend data in SRAM through `f2400` (only the descriptors change), while the box text says
+it is lost. `sMusicProc2Script` runs `f921..975` (menu music); the function that starts it is not identified (check in PC-11a).
+
+PORT rows: PC-11a, PC-11b, PC-11c, PC-11d, PC-11e, PC-11f, PC-11g, PC-11h, PC-11j, PC-11k (docs/TASKS.md).

@@ -353,6 +353,7 @@ Scenario scopes and stop conditions: [M6 task scopes](plans/M6-task-scopes.md).
 | PP-enemy-cap | CAP | Prologue: A on a Soldier, then B (enemy range display) | Run published | — | todo |
 | PP-enemy | PORT | Enemy range on A (issue #8): `MainIdle` non-controllable branch, observed functions only | Range squares, windows and proc state match PP-enemy-cap; break-checked | PP-enemy-cap | todo |
 | D09-3 | PORT | Remaining item-popup branches (gold, full inventory, red/root, unit-name/number) | Each branch against a capture that reaches it, else not written | — | low priority; Rapier popup confirmed on device 11-11 |
+| APP-icon3 | APP | Issue #9 (low priority): launcher icon showing "FE8" in colours, font and background like the game's main menu; original art only (no ROM data or logo, rule 3) | New vector icon, `:app:assembleDebug`, `check_no_game_content.py`, owner OK on device | — | todo (low) |
 
 Readability remains owner-paused until ~2026-11-17 (HANDOFF).
 

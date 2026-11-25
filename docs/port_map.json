@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1474,
-    "implemented_unverified": 134
+    "implemented_unverified": 136
   },
   "functions": {
     "APProc_Create": {
@@ -2642,6 +2642,22 @@
         "fe8.testing.MapAnimFlowDifferentialTest#map anim popup checks and helpers reproduce captured trace steps f4880 to f4892",
         "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
       ]
+    },
+    "DifficultySelect_Init": {
+      "decomp_file": "src/difficultymenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenu.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "DifficultySelect_OnEnd": {
+      "decomp_file": "src/difficultymenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenu.kt",
+      "status": "implemented",
+      "tests": []
     },
     "DisplayBattleInfoBox": {
       "decomp_file": "src/mapanim_infobox.c",
@@ -5581,7 +5597,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "implemented",
       "tests": []
     },

@@ -20,7 +20,9 @@ Items are removed from this page once the owner confirms them; the history is in
 
 Everything up to 0.1.868 was tested earlier; new items carry their build.
 
-Nothing new to test yet (D-23 fix below still awaits a quick check).
+- **Prologue boss AI & enemy-phase events (`EP-11` / `EP-11-hooks` + `D-23`, pending next APK after `0.1.889`):**
+  1. Defeat the two Soldiers in the Prologue: the one-enemy-left event & dialogue now plays.
+  2. End Turn 2: O'Neill's turn event & dialogue plays, changing his AI so he moves toward you on Enemy Phase 2 and attacks when a player unit ends in range.
 
 ## 2. Open bugs (no fix yet)
 
@@ -42,8 +44,6 @@ Retest these only when a change to them is announced.
     the map.
   - There is no help box, inventory or status screen (M6-E, M6-F, M6-H).
   - Selecting an enemy shows no range (PP-enemy); the info windows closing then is normal.
-- **Prologue flow:**
-  - The boss never moves or attacks, even with a unit next to him (EP-11).
 - **Chapter 1 and saves:**
   - Selecting a unit and opening its menu crashes ("EvCheck05_LOCA is not ported yet", EP-35b).
   - Power-on always resumes the suspend save (Chapter 1's first player phase after the Prologue): there is

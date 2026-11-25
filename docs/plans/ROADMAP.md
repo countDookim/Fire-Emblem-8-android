@@ -93,7 +93,7 @@ What they reported and is still missing, and where it is tracked:
 | #5 item 2, #6 | Battle animations (Seth vs Valter first) | M6-G, `BA-w` |
 | #7 item 1 | Title-idle class showcase (the opening replays instead) | `BA-reel-inv` (after `BA-w`) |
 | #5 item 5, #6, #7 item 6 | Item command and the other unit/map menu commands | M6-F (`IS-*`), M6-H (`C14-item-cap`/`-inv`, trade, ...) |
-| #6, #8 | The boss never moves or attacks | `EP-11` |
+| #6, #8 | The boss never moves or attacks | Wired end-to-end (`EP-11-hooks` / `EP-11` verified in `PrologueBossEventWireTest`; device check pending after `0.1.889`) |
 | #6 | After the last enemy: no save menu, no Chapter 1 (save menu, intro and opening event confirmed on 0.1.868, #8) | Resolved (PC-6 confirmed on 0.1.889, 2026-11-25) |
 | #7 item 7, #8 | Eirika's death: no game over, enemies stop acting | Resolved (PC-8 confirmed on 0.1.889, 2026-11-25; idle timeout PC-cap2c open) |
 | #8 | Power-on resumes the Chapter 1 suspend; no title menu to Continue from a slot | `PC-11cap` → `PC-11i` → `PC-11` |

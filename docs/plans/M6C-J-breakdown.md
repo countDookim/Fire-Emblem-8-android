@@ -2363,3 +2363,39 @@ for PC-11k: the Restart arm leaves the suspend data in SRAM through `f2400` (onl
 it is lost. `sMusicProc2Script` runs `f921..975` (menu music); the function that starts it is not identified (check in PC-11a).
 
 PORT rows: PC-11a, PC-11b, PC-11c, PC-11d, PC-11e, PC-11f, PC-11g, PC-11h, PC-11j, PC-11k (docs/TASKS.md).
+
+### PC-10i-input result
+
+Run `ram_trace_newgame_easy` (PC-cap3), window `f18216..19560`; test `EasyTutorialInputInventoryTest`
+(proc rows per sub-window, cursor, unit state, TMP flags, PlayerPhase idle callback). Inputs: A f18540,
+RIGHT f18770, A f18800 (off tile), A f19020, A f19080 (+ A text pages). Status: ported / partial /
+transcribed (Transcribed from label, not verified) / missing (no code); `UNVERIFIED.md` lists the
+transcribed ones as "not in the prologue".
+
+| Sub-window | Frames | What runs | Functions (decomp) and our status |
+|---|---|---|---|
+| Tutorial text box, end of beginning scene | f18216..18454 | `ProcScr_StdEventEngine` (event `EventScr_Prologue_ExecTut`: `TUTORIALTEXTBOXSTART`, TEXTSHOW, `CURSOR_FLASHING_CHAR`, STAL 60, `EvtEnqueueConditionalTutCall(Tutorial0, ONSELECT)`); box procs `gProcScr_BoxDialogue`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `ProcScr_TalkBoxIdle`, `gProcScr_TalkWaitForInput` (pages f18240..18271, f18330..18361); `ProcScr_EventDisplayCursor` f18387..18446 | `EventDisplayCursor_Loop` ported; `Event19_Checks` sub 7 (tutorial) only result 0 verified before, result 1 branch is first seen here (CallOnTutorialMode); `Event0B_EnqueueCall` / `EnqueueTutEvent` transcribed; text-type-3 box and the helpbox.c BoxDialogue procs: partial (`EventTextTalkHost`, `sub_808BB74` transcribed); `gPlaySt.tutorial_counter/exec_type` set (PlaySt fields exist) |
+| Phase intro, player phase | f18455..18540 | `ProcScr_PhaseIntro` + `gProcScr_ResetCursorPosition` f18455 (cursor (7,5) -> Eirika (9,5), gBmSt+0x14), `gProcScr_PlayerPhase` f18532 | ported in M6-B/EP lanes; `StartPlayerPhaseStartTutorialEvent` is a stand-in (`PlayerPhase.startTutorialEvent`, STANDINS) and finds no queued PLAYERPHASE event here |
+| Forced select (A f18540 on Eirika) | f18541..18760 | `TryCallSelectEvents` -> `RunTutorialEvent(ONSELECT)` -> event `EventScr_Prologue_Tutorial0` -> `EventScr_Tutorial_Exec0` success branch: `CHECK_ACTIVEID`, `sProcScr_MoveLimitView`(+Change) f18542, `CURSOR_FLASHING`, STAL 18, tutorial box (2 pages, A f18600/18720), `IGNORE_KEYS(R|START|B)`, enqueue DESTSELECTED (`Tutorial1`); event gone f18751 | `RunTutorialEvent` ported (KDoc, EventInfo.kt); `TryCallSelectEvents` stand-in (`PlayerPhase.kt`, "until M6-E"); `CHECK_ACTIVEID` ported (EventUnitState); `MoveLimitView` procs ported; `Event11_SetIgnoredKeys` transcribed, `SetKeyStatus_IgnoreMask` ported (KeyStatus.kt); `Event0B_EnqueueCall`/`EnqueueTutEvent` transcribed |
+| Refused off-tile A + hint | f18761..18999 | RIGHT f18770: cursor (9,5)->(10,5) at f18770 (free). A f18800: idle `PlayerPhase_RangeDisplayIdle` (0x0801CD1D) -> `StartDestSelectedEvent` -> `RunTutorialEvent(DESTSELECTED)` -> `Tutorial1` -> `Exec1` fail branch: `CHECK_CURSOR` != (4,5), `SET_CURSOR` (cursor (4,5) at f18800), CAMERA, `CURSOR_FLASHING`, STAL3 8, box (pages A f18870/18960), re-enqueue DESTSELECTED; event gone f18991 | `StartDestSelectedEvent` transcribed (EventInfo.kt; the PlayerPhase call site uses it, branch `ACT_EVENT`); `Event3C_MoveCursor` transcribed; `SetCursorMapPosition` ported (Camera.kt); `EnqueueTutEvent` transcribed |
+| Accepted destination, walk, Wait-only menu | f19000..19080 | A f19020: `Tutorial1`/`Exec1` success branch (event f19020..19023): `CHECK_CURSOR` == (4,5), `PlayPhaseForcePressAButtonInRangeDisp` ASMC -> `Proc_SetRepeatCb` swaps the idle callback to `PlayerPhase_RangeDisplayIdle_ForceAPress` (0x0801D819) f19021, then `PlayerPhase_WaitForUnitMovement` (0x0801D64D) f19030; `ProcScr_MuStepSe` walk f19026..19065 (Eirika (9,5) -> (4,5) f19068); `DISABLEOPTIONS(~WAIT)` = `Event3D_MenuOverride` (event f19068..19070), `sProc_Menu` + one `sProc_MenuItem` + `ProcScr_GreenTextColor` f19068..19079; A f19080 = Wait; Eirika state 0x1 -> 0x41 f19081 | `PlayPhaseForcePressAButtonInRangeDisp`, `PlayerPhase_RangeDisplayIdle_ForceAPress`: missing (UNVERIFIED notes `Proc_SetRepeatCb` as never run; it runs here); `Proc_SetRepeatCb` transcribed/ported in ProcEngine, first caller now observed; `Event3D_MenuOverride`, `AddMenuOverride`: missing (only the `Menu.kt` availability reader and `GetForceDisabledMenuItems` exist, transcribed, table was always empty); `ResetMenuOverrides` stand-in; `MenuAlwaysNotShown` missing |
+| Item give | f19081..19560 | `StdEventEngine` (Tutorial2/3 -> `EventScr_Prologue_GiveRapier`): `EventDisplayCursor` f19081..19140, `gProcScr_Talk` + `E_FACE` dialogue f19143..19394, `ProcScr_GotItem`/`ProcScr_Popup` f19399..19540, tutorial box f19543.. (temp flags 0x105, 0x106 set f19081; no other TMP flag in 0x103..0x107 changes in the window) | `Event37_GiveItem` transcribed (inventory/popup not trace-compared); popup procs covered by `ram_trace_item_popup`; talk/E_FACE ported earlier; `EvtEnqueueConditionalTutCall(Tutorial3, POSTACTION)` runs through `StartAfterUnitMovedEvent`/post-action dispatch (transcribed) |
+
+Where the forced-input checks live in decomp:
+- Dispatch: `src/eventinfo.c` `EnqueueTutEvent` (sets `gPlaySt.tutorial_counter`/`tutorial_exec_type`), `RunTutorialEvent`,
+  `TryCallSelectEvents` (ONSELECT, called from `ProcScr_PlayerPhase`, `src/playerphase.c:159`), `StartDestSelectedEvent`
+  (DESTSELECTED, `playerphase.c:502`), `StartAfterUnitMovedEvent` (AFTERMOVE, `playerphase.c:969`).
+- The checks themselves are event scripts: `EventScr_Tutorial_Exec0` / `Exec1` in `src/events_script_utils.c:562..660`
+  (macros `TutEventExecType0/1`, `include/EAstdlib.h:264`); per-chapter list `EventListScr_Prologue_Tutorial`
+  (`src/events/prologue-eventinfo.h`), scripts in `src/events/prologue-tutorials.h`.
+- Commands used: `CHECK_ACTIVEID`/`CHECK_CURSOR`/`SET_CURSOR` (`Event3C_MoveCursor`, `eventscr.c:3495`),
+  `IGNORE_KEYS` (`Event11_SetIgnoredKeys`, `eventscr.c:575`), `DISABLEOPTIONS` (`Event3D_MenuOverride`, `eventscr.c:3528`).
+
+Blocked inputs (from decomp, confirmed by the run): there is no input filter in the player phase. The scripts set
+the ignore mask `gKeyStatusIgnoredSt` (`SetKeyStatus_IgnoreMask`): `Exec0`/`Exec1`/`Tutorial1` end with
+`IGNORE_KEYS(R|START|B)` (cleared to 0 at the start of each tutorial event), so R, START and B are dropped for the whole
+sequence; the D-pad is not blocked (RIGHT f18770 moved the cursor). A on a wrong tile is not blocked either: the
+DESTSELECTED event runs, `CHECK_CURSOR` fails, and `Exec1` snaps the cursor to the forced tile and shows the hint
+(A f18800). The destination A is accepted only when the cursor equals the forced (4,5). The menu is limited by
+`DISABLEOPTIONS(~EVENT_MENUOVERRIDE_WAIT)` (all other unit-menu commands hidden). Not observed: B/START/R/D-pad at the
+destination idle or in the menu (CAP row PC-10cap).

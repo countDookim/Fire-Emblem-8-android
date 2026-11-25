@@ -25,6 +25,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- `PC-11c` claimed 2026-11-25 21:02Z (Antigravity): finishing title main menu loop/scroll port from `origin/wip/PC-11c`.
 
 ## Current state
 

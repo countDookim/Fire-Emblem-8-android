@@ -89,7 +89,6 @@ EP-cap1/2.
 | PC-6l-e | PORT | Per-frame `Event2F_MoveUnit`/`Event30_ENUN` `f15049..15084`, `f16019..16153`; KILL fade `f15526..15558`: `UnitKill`, `MU_StartDeathFade`, `MuDeathFade_OnLoop`, `StartMuHitFlash` | Unit maps and x/y per frame equal PC-cap1; slot clear f15560 | PC-6l-c, PC-6e-a | todo |
 | PC-6 | WIRE | Chapter 1 opening integration | Units, map, flags and idle player-phase state equal PC-cap1; MANUAL_TEST | PC-5, PC-6e-a..c, PC-6l-a..e | todo |
 | PC-cap2c | CAP | `ram_trace_prologue_gameover_timeout`: PC-cap2 inputs without the last A; idle timeout (`counter2 < 0`, ~`f7624`) fades out and returns to the title | Run published | PC-cap2 | todo |
-| PC-8h | PORT | `GameOverScreenHBlank` (per-scanline BLDALPHA from `VCOUNT`) | Per-call BLDALPHA equals PC-cap2b | PC-cap2b, PC-8a | todo (needs PC-cap2b) |
 | PC-8 | WIRE | Lord death to game-over screen to title | Headless replay matches state and display; allocation check; MANUAL_TEST | PC-7a, PC-7b, PC-8b, PC-8h | todo; `GameControl` already maps `GAME_ACTION_EVENT_RETURN` to the title (`f6295..6297`) |
 | PC-9cap | CAP | Fill PC-9i gaps: difficulty directions, B cancel, Normal confirm and empty-slot write | Dense menu/proc/display state; chosen difficulty and SRAM write; skip only with documented existing coverage | PC-9i | conditional: only missing evidence |
 | PC-9a | PORT | Difficulty screen lifecycle; [scope](plans/M6-task-scopes.md#pc-9a-difficulty-screen-lifecycle) | Proc lifecycle, BG tiles, palettes and display restore | PC-9i, PC-9cap | blocked: inventory first |
@@ -362,6 +361,7 @@ Readability remains owner-paused until ~2026-11-17 (HANDOFF).
 
 ## Done
 
+- **Gemini 2026-11-25:** PC-8h (`28f582cc`; `GameOverScreenHBlank` Ported in `GameOverScreen.kt` & `GameOverScreenHBlankDifferentialTest` over 912 `PC-cap2b` calls / 7 break-checks, `GameOver*` 19 ok, `:game:jvmTest` 89 ok, Dokka green).
 - **Gemini 2026-11-25:** PC-6l-b (`93d3262a`; `MuCtr_StartDefinedMove` & `sub_807A300` Ported; `MuCtr_InitDefinedMove`/`sub_807A0E4`/`sub_807A194`/`sub_807A294`/`sub_807A324`/`MuCtr_ExecREDA_807A358`/`MuCtr_OnEnd`/`IsMuActive` Partially ported; `Chapter1MuCtrlDifferentialTest` W1/W2/W4 3 ok / 55 mutations, `:game:jvmTest` 89 ok, Dokka green).
 - **Claude 2026-11-25:** BA-i5 (`BattlePanelsInventoryTest` f1478..1993: gauge/dispup/weapon-icon/HP-colour procs; rows BA-p9a-d; no-run steps f1582/f1752/f1789; draws unverified without BA-cap1; eff != 0, HP > 0x50 arms uncaptured).
 - **Gemini 2026-11-25:** PC-cap2b (`assets-8ddc758`, ROM repo `8ddc758`; `mgba-harness` ARM-return `tracecall` hook + `ram_trace_prologue_gameover_hblank` `912/912` HBlank calls `f6130..6133`, `M4a*` 19 ok).

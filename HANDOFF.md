@@ -24,11 +24,12 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- PC-8h: Gemini owner PC, until ~05:59Z (`wip/pc8h`, 2026-11-25).
 - PC-6l-d: Gemini owner PC, until ~05:59Z (`wip/pc6ld`, 2026-11-25).
 
 
 ## Current state
+
+- 2026-11-25 05:52Z owner PC Gemini (Pro agent): **PC-8h done (`28f582cc`).** Ported `GameOverScreenHBlank` (`GameOverScreen.kt`, replacing `NO_HBLANK` default with `DEFAULT_HBLANK` -> `gameOverScreenHBlank`). Verified in `GameOverScreenHBlankDifferentialTest` against all 912 `PC-cap2b` calls (`f6130..6133`, `VCOUNT` `0..227`, direct + `hardware.hblank.active`, full `0x60` IO parity, 7 break-check mutations); `GameOver*` (5 suites, 19 ok), `:game:jvmTest` (89 ok), `:game:dokkaGenerate`, `standins.py`/`unverified.py --check`, game-text guard green.
 
 - 2026-11-25 ~05:35Z scheduled (Sonnet agents): **BA-i1, BA-i5 done (inventories only).** `BattleEntryInventoryTest`
   (attack f1463..1500, scripted f14429..14469; "BA-i1 result"; rows BA-p1a..c) and `BattlePanelsInventoryTest` (f1478..1993:

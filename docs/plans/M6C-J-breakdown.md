@@ -2527,3 +2527,20 @@ the queue entry written at the end of `TutMessageTurn2` (f22137) is Tutorial4 (P
 window: 0x52/0x64 (f19886), 0x106 off (f19890), 0x103 off (f20479), 0x4F/0x50 on (f20725), 0x105 off (f21429), 0x01 off and
 0x77 on (f22076). New rows: PC-10m (spawn/Turn1 gate), PC-10n (tutorial boxes in turn events), PC-10o (turn-2 event and
 phase flips), CAP PC-10cap4 (AI decisions of the three units, which this run does not watch).
+
+### PC-10i-turn3 result
+
+Run `ram_trace_newgame_easy`, windows `f24870..25147` and `f25750..26391`; test `EasyTutorialTurn3InventoryTest` (proc rows per
+sub-window without `ekr*`/`efx*`/`eobj*`; queue, phase/turn, unit and flag state). The O'Neill vs Seth scripted battle
+`f25148..25750` is PC-10i-battle (row PC-10j). Tutorial queue: 0/0 over both windows until f26308, when the select-Eirika script
+enqueues ONSELECT(2), counter 11 (TutorialA; run at f26401, PC-10i-end). No flag in 0x000..0x17F changes in either window, and
+no unit moves or changes HP except the scripted battle between them (Seth HP 13 -> 11).
+
+| Sub-window | Frames | What runs | Status / Easy-specific |
+|---|---|---|---|
+| Attack-script event | f24870..25045 | `ProcScr_StdEventEngine` f24870..25041 (`EventScr_Prologue_ONeillAttack`: music, dialogue `gProcScr_Talk` + `gProcScr_E_FACE` f24870..25034 with `TalkBubbleOpen` f24885, `TalkShiftClear` f24937/f24961, two `TalkWaitForInput` waits f24902, f24991); `gProcScr_ResetCursorPosition` f25045 | no battle proc, no flag change: the script's `CHECK_TUTORIAL`/`DISABLEOPTIONS`/`ENUT`/`StartBattle..FIGHT_SCRIPT` tail is not visible here. Decomp: `StartBattle .. FIGHT_SCRIPT` (`EvtSetScriptedBattle`) only stores the hit list; the same pattern appears in `TutMessageTurn2` (PC-10i-turn) and `TutEirikaAttack`. Normal has no such event (CAP PC-10cap5) |
+| Enemy phase 2 | f25046..25147 | `ProcScr_PhaseIntro` f25046..25115; `CpPhase` f25122..25125 with `CpOrder`, one-frame `CpDecide` and no `CpPerform` (nobody acts); `BerserkCpPhase` f25127; faction 0x80 -> 0x40 f25130; empty green `CpPhase` f25139..25141; `BerserkCpPhase` f25143; `UpdateTraps` f25146; turn 3 at f25148 | the same machinery as Normal EP rows with no AI action: O'Neill (10,8) holds (his AI is never switched in the tutorial, `CHAI` skipped); AI data not watched (CAP PC-10cap4/5) |
+| Seth/Eirika dialogue, select box | f25750..26310 | `StdEventEngine` f25750..26310: `EventDisplayCursor` f25750..25807 (Seth), dialogue `gProcScr_Talk` + `E_FACE` f25810..26163 (four speaker segments, `TalkOpen`/`TalkBubbleOpen` x4, `TalkShiftClear` f25981, 5 waits); `TutEirikaAttack`: tutorial box `gProcScr_BoxDialogue` f26180..26243 (one page f26191..26221), `EventDisplayCursor` f26247..26306 (Eirika), `StartBattle..FIGHT_SCRIPT` setup (no proc), enqueue ONSELECT/TutorialA f26308 | box procs as PC-10e/PC-10n; the enqueue as PC-10a; scripted hit setup is consumed by the f27634 fight (PC-10l) |
+| Turn-3 phase intro | f26311..26391 | `ProcScr_PhaseIntro` (+BlendBox, Squares, Text, Unk) f26315..26385; PlayerPhase at f26392 (PC-10i-end) | as Normal PhaseIntro |
+
+New rows: PC-10p (attack-script event), PC-10q (enemy phase 2, no AI action), PC-10r (turn-3 select hint script); CAP PC-10cap5.

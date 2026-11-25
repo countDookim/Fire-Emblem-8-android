@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1476,
-    "implemented_unverified": 140
+    "implemented_unverified": 144
   },
   "functions": {
     "APProc_Create": {
@@ -10844,6 +10844,22 @@
       "status": "implemented",
       "tests": []
     },
+    "SaveMenu_Init": {
+      "decomp_file": "src/savemenu.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuStart.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SaveMenu_JumpToTarget": {
+      "decomp_file": "src/savemenu.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuStart.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "SaveMenu_NewGame": {
       "decomp_file": "src/savemenu.c",
       "system": "save",
@@ -12125,6 +12141,14 @@
       "tests": [
         "fe8.testing.SaveDrawCursorDifferentialTest#cursor proc state, sprite layers, and OAM match PC-cap1 f9459 to f9863"
       ]
+    },
+    "StartSaveMenu": {
+      "decomp_file": "src/savemenu.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuStart.kt",
+      "status": "implemented",
+      "tests": []
     },
     "StartSemiCenteredOrphanMenu": {
       "decomp_file": "src/uimenu.c",
@@ -14584,6 +14608,14 @@
       "tests": [
         "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
       ]
+    },
+    "sub_8009AD8": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
+      "status": "implemented",
+      "tests": []
     },
     "sub_800A42C": {
       "decomp_file": "src/spline.c",

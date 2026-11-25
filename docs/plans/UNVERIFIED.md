@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 727 across 108 decomp files (missing reason: 0).
+Total entries: 728 across 108 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -773,6 +773,16 @@ Total entries: 727 across 108 decomp files (missing reason: 0).
 | `ProcScr_PopupUpdateIcon` | `game/src/commonMain/kotlin/fe8/game/ui/PopupScript.kt` | no @VerifiesPort test names it |
 | `ProcScr_Popup` | `game/src/commonMain/kotlin/fe8/game/ui/PopupScript.kt` | no @VerifiesPort test names it |
 
+## src/bmsave-lib.c (5)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SaveBonusContentData` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero bonus block, so no run shows its checksum or data |
+| `SaveRankings` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero ranking block, so no run shows its checksum or data |
+| `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
+| `GGM_IsAnyCharacterKnown` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | the only caller, `IsExtraSupportViewerEnabled`, ANDs it with `IsGamePlayedThrough`, which is false in every run, so no run shows its result |
+| `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
+
 ## src/rng.c (5)
 
 | Function | Kotlin file | Reason |
@@ -838,15 +848,6 @@ Total entries: 727 across 108 decomp files (missing reason: 0).
 | `GetUnitSupportLevel` | `game/src/commonMain/kotlin/fe8/game/bm/SupportReliance.kt` | every traced support exp is 80 or less, so only level 0 is compared |
 | `GetUnitTotalSupportLevel` | `game/src/commonMain/kotlin/fe8/game/bm/SupportReliance.kt` | every traced support level is 0, so only the empty sum is compared |
 | `GetUnitSupportBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/SupportReliance.kt` | the traced units have no supporter on the map, so only the empty sum is compared |
-
-## src/bmsave-lib.c (4)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SaveBonusContentData` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero bonus block, so no run shows its checksum or data |
-| `SaveRankings` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero ranking block, so no run shows its checksum or data |
-| `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
-| `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
 
 ## src/bmtarget.c (4)
 

@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 256 across 59 Kotlin files.
+Total entries: 256 across 60 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -408,10 +408,10 @@ Total entries: 256 across 59 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `mapAnimStoleItemPopup` | Transcribed from src/mapanim.c: MapAnim_StoleItemPopup (not verified: no steal in the capture; the branch is the stolen item popup, a stand-in hook) Shows the stolen item's popup for a steal animat... |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `newMapPoisonEffect` | Stand-in until the poison effect is ported (no capture holds a poisoned hit): nothing happens. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold, together with a stand-in for the availability callback of any other command (none is left; see [Hooks.u... |
+| `game/src/commonMain/kotlin/fe8/game/save/SaveExtras.kt` | `multiArenaSaveReady` | `IsMultiArenaSaveReady()` (`src/bmsave-multiarena.c`), the Link Arena fallback when no game save is past the first chapter; a stand-in (false) until the Link Arena save is ported, which no title ru... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenu.kt` | `newNewGameDifficultySelect` | Transcribed from src/difficultymenu.c: NewNewGameDifficultySelect (not verified: the capture shows the child's parent and the save menu's cursor holding at 23 while it runs, but the test's parent i... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | `Hooks` | Stand-ins for the parts of `sub_80AAE90` / `sub_80AAF6C` that no capture runs (the option lists, which need `sub_80AABC4` / `sub_80AAC40`) and for `sub_80AB514`; each fails loudly until ported. |
-| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuChoice.kt` | `Hooks` | Stand-ins (not ported): each answers false until its owning task is ported. |
-| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuChoice.kt` | `initSaveMenuChoice` | Checked at f9844 with three used slots, no `RESUME` and two Extras; the `count` 1..2 / 0 and `RESUME` branches are not observed and the `IsExtra*Enabled` queries are [hooks] stand-ins. |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuChoice.kt` | `Hooks` | A null entry uses [SaveExtras] when given; without it the fixed stand-in answers apply (link arena, support viewer, free map and bonus claim false, the sound room true). |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `loadSaveMenuInfo` | Stand-in (not ported). |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `newGame` | Stand-in (not ported). |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `writeNewGame` | Stand-in (not ported). |

@@ -7,6 +7,7 @@ import fe8.game.bm.PlaySt
 import fe8.game.flags.Fe8EventFlags
 import fe8.game.save.BmSaveLib
 import fe8.game.save.NewGameRam
+import fe8.game.save.SaveExtras
 import fe8.game.savemenu.SaveMenuChoice
 import fe8.game.savemenu.SaveMenuNewGame
 import fe8.game.savemenu.SaveMenuPostChapter
@@ -60,9 +61,12 @@ class TitleSaveMenuSetupDifferentialTest {
         val menu = SaveMenuPostChapter(
             engine, hardware, playSt, BmSt(), GmData(ByteArray(0x8000), RngService()), lib, fade,
         )
-        // The capture's fixture enables the link arena and the sound room (`extra_options` 3);
-        // the queries are PC-11b's stand-ins.
-        val choice = SaveMenuChoice(SaveMenuChoice.Hooks(linkArena = { true }))
+        val choice = SaveMenuChoice(extras = SaveExtras(lib))
+        init {
+            lib.sram.copyIn(run.sram("s01000"))
+            lib.sramInit()
+        }
+
         val start = SaveMenuStart(
             engine, hardware, rom, playSt, bridge.script, menu, choice,
         )

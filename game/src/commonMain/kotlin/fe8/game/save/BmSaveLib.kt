@@ -715,6 +715,59 @@ public class BmSaveLib(public val sram: CartSram) {
         playSt.chapterStateBits and PLAY_FLAG_COMPLETE != 0 || playSt.chapterIndex != 0
 
     /**
+     * Partially ported from src/bmsave.c: IsGameSaveNotFirstChapter (verified: a valid slot past
+     * chapter index 0, in `ram_trace_title_continue` and `ram_trace_title_menu_items`; not
+     * verified: the invalid-slot arm and a slot on chapter 0, which the title runs do not reach
+     * first)
+     *
+     * True when save slot [slot] is valid and [isGameNotFirstChapter] holds for its `PlaySt`.
+     */
+    public fun isGameSaveNotFirstChapter(slot: Int): Boolean {
+        if (!isSaveValid(slot)) return false
+        readGameSavePlaySt(slot, scratchPlaySt)
+        return isGameNotFirstChapter(scratchPlaySt)
+    }
+
+    /**
+     * Partially ported from src/bmsave.c: IsGameSaveComplete (verified: false for valid slots
+     * with an incomplete chapter and for erased slots in the title runs; not verified: the
+     * complete-chapter arm)
+     *
+     * True when save slot [slot] is valid and its `PlaySt` has `PLAY_FLAG_COMPLETE` set.
+     */
+    public fun isGameSaveComplete(slot: Int): Boolean {
+        if (!isSaveValid(slot)) return false
+        readGameSavePlaySt(slot, scratchPlaySt)
+        return scratchPlaySt.chapterStateBits and PLAY_FLAG_COMPLETE != 0
+    }
+
+    /**
+     * Transcribed from src/bmsave-lib.c: GGM_IsAnyCharacterKnown (not verified: the only
+     * caller, `IsExtraSupportViewerEnabled`, ANDs it with `IsGamePlayedThrough`, which is false in
+     * every run, so no run shows its result)
+     *
+     * True when any byte of `charKnownFlags` is set in the global info (read when [buf] is null).
+     */
+    public fun ggmIsAnyCharacterKnown(buf: ByteArray? = null): Boolean {
+        val info = buf ?: infoBuffer.also { readGlobalSaveInfo(it) }
+        for (i in 0 until CHAR_KNOWN_BYTES) {
+            if (info[L.HEADER_CHAR_KNOWN_FLAGS + i].toInt() != 0) return true
+        }
+        return false
+    }
+
+    /**
+     * Partially ported from src/bmsave-lib.c: IsGamePlayedThrough (verified: false from an
+     * unfinished fixture header; not verified: the invalid-header arm and a finished game)
+     *
+     * True when the global save info is valid and its `completed` bit (bit 0 of byte 0x0E) is set.
+     */
+    public fun isGamePlayedThrough(): Boolean {
+        if (!readGlobalSaveInfo(infoBuffer)) return false
+        return infoBuffer[L.HEADER_FLAGS0].toInt() and 1 != 0
+    }
+
+    /**
      * Transcribed from src/bmsave-bwl.c: IsPlaythroughIdUnique (not verified: no @VerifiesPort
      * test names it)
      *
@@ -1222,6 +1275,7 @@ public class BmSaveLib(public val sram: CartSram) {
 
         /** Permanent flag 0x8A, which `LoadSavedEid8A` tests (name not known). */
         const val PERMANENT_FLAG_8A = 0x8A
+        const val CHAR_KNOWN_BYTES = 0x20
         // 0x19 flag bytes padded to 0x1C so the u32 `bonusClaimFlags` is word-aligned.
         const val GAME_BONUS_CLAIM = GAME_PERMANENT_FLAGS + 0x1C
         const val GAME_WM_STUFF = GAME_BONUS_CLAIM + 4

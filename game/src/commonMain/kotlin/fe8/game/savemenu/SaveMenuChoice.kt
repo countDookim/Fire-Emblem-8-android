@@ -1,31 +1,53 @@
 package fe8.game.savemenu
 
+import fe8.game.save.SaveExtras
+
 /**
  * The option bitfields of the save menu (`AddMainMenuOption`, `AddExtraMenuOption`,
  * `InitSaveMenuChoice`, `src/savedraw.c`) and `SaveMenuGetBitfile` (`src/savemenu.c`).
  *
- * @param hooks the `IsExtra*Enabled` queries of `src/bmsave-lib.c`
+ * @param hooks overrides of the Extras queries (mods, tests); an unset one falls back to [extras]
+ * @param extras the `IsExtra*Enabled` queries of `src/bmsave-lib.c` on the save RAM; null keeps the
+ *   fixed answers of [Hooks]' defaults
  */
 public class SaveMenuChoice(
-    /** The Extras availability queries. */
+    /** Overrides of the Extras availability queries. */
     public val hooks: Hooks = Hooks(),
+    /** The save-RAM backed queries. */
+    private val extras: SaveExtras? = null,
 ) {
     /**
-     * `IsExtra*Enabled` queries from `src/bmsave-lib.c`. Stand-ins (not ported): each answers
-     * false until its owning task is ported.
+     * Overrides of the `IsExtra*Enabled` queries of `src/bmsave-lib.c`. A null entry uses
+     * [SaveExtras] when given; without it the fixed stand-in answers apply (link arena, support
+     * viewer, free map and bonus claim false, the sound room true).
      */
     public class Hooks(
         /** `IsExtraLinkArenaEnabled(0)`. */
-        public var linkArena: () -> Boolean = { false },
+        public var linkArena: (() -> Boolean)? = null,
         /** `IsExtraSoundRoomEnabled()` (the original always answers 1). */
-        public var soundRoom: () -> Boolean = { true },
+        public var soundRoom: (() -> Boolean)? = null,
         /** `IsExtraSupportViewerEnabled()`. */
-        public var supportViewer: () -> Boolean = { false },
+        public var supportViewer: (() -> Boolean)? = null,
         /** `IsExtraFreeMapEnabled()`. */
-        public var freeMap: () -> Boolean = { false },
+        public var freeMap: (() -> Boolean)? = null,
         /** `IsExtraBonusClaimEnabled()`. */
-        public var bonusClaim: () -> Boolean = { false },
+        public var bonusClaim: (() -> Boolean)? = null,
     )
+
+    private fun linkArenaEnabled() =
+        hooks.linkArena?.invoke() ?: extras?.isExtraLinkArenaEnabled(0) ?: false
+
+    private fun soundRoomEnabled() =
+        hooks.soundRoom?.invoke() ?: extras?.isExtraSoundRoomEnabled() ?: true
+
+    private fun supportViewerEnabled() =
+        hooks.supportViewer?.invoke() ?: extras?.isExtraSupportViewerEnabled() ?: false
+
+    private fun freeMapEnabled() =
+        hooks.freeMap?.invoke() ?: extras?.isExtraFreeMapEnabled() ?: false
+
+    private fun bonusClaimEnabled() =
+        hooks.bonusClaim?.invoke() ?: extras?.isExtraBonusClaimEnabled() ?: false
 
     /**
      * Sets [option] in `main_options` and counts it in `unk_31`.
@@ -54,7 +76,7 @@ public class SaveMenuChoice(
      *
      * Ported from src/savedraw.c: InitSaveMenuChoice. Checked at f9844 with three used slots,
      * no `RESUME` and two Extras; the `count` 1..2 / 0 and `RESUME` branches are not observed and
-     * the `IsExtra*Enabled` queries are [hooks] stand-ins.
+     * the `IsExtra*Enabled` queries come from [extras], checked in `TitleSaveMenuExtrasDifferentialTest`.
      */
     public fun initSaveMenuChoice(state: SaveMenuState) {
         var count = 0
@@ -80,11 +102,11 @@ public class SaveMenuChoice(
         state.extraOptions = 0
         state.maxChoice = 0
 
-        if (hooks.linkArena()) addExtraMenuOption(state, PostSaveMenu.EXTRA_MENU_OPTION_LINK_ARENA)
-        if (hooks.soundRoom()) addExtraMenuOption(state, EXTRA_MENU_OPTION_SOUND_ROOM)
-        if (hooks.supportViewer()) addExtraMenuOption(state, EXTRA_MENU_OPTION_SUPPORT)
-        if (hooks.freeMap()) addExtraMenuOption(state, PostSaveMenu.EXTRA_MENU_OPTION_MAP)
-        if (hooks.bonusClaim()) addExtraMenuOption(state, EXTRA_MENU_OPTION_BONUS_CLAIM)
+        if (linkArenaEnabled()) addExtraMenuOption(state, PostSaveMenu.EXTRA_MENU_OPTION_LINK_ARENA)
+        if (soundRoomEnabled()) addExtraMenuOption(state, EXTRA_MENU_OPTION_SOUND_ROOM)
+        if (supportViewerEnabled()) addExtraMenuOption(state, EXTRA_MENU_OPTION_SUPPORT)
+        if (freeMapEnabled()) addExtraMenuOption(state, PostSaveMenu.EXTRA_MENU_OPTION_MAP)
+        if (bonusClaimEnabled()) addExtraMenuOption(state, EXTRA_MENU_OPTION_BONUS_CLAIM)
 
         if (state.extraOptions != 0) {
             state.mainOptions = (state.mainOptions or PostSaveMenu.MAIN_MENU_OPTION_EXTRAS) and 0xFF

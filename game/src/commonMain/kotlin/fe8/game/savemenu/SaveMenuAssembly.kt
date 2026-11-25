@@ -7,6 +7,7 @@ import fe8.game.bm.PlaySt
 import fe8.game.mapanim.ApProcs
 import fe8.game.save.BmSaveLib
 import fe8.game.save.NewGameRam
+import fe8.game.save.SaveExtras
 import fe8.game.ui.UiHand
 import fe8.game.worldmap.GmData
 import gbafe.core.rng.LcgRng
@@ -117,7 +118,8 @@ public object SaveMenuAssembly {
         )
         menu.wireScreen(screen, lifecycle, postSaveMenu, slots, effects)
         val flip = SaveMenuSlotFlip(
-            d.engine, d.rom, d.oam, d.chapterTitle, slotData, SaveMenuChoice(),
+            d.engine, d.rom, d.oam, d.chapterTitle, slotData,
+            SaveMenuChoice(extras = SaveExtras(d.saveLib)),
         ).also { it.hooks.playSoundEffect = d.playSoundEffect }
         menu.wireSlotFlip(flip)
         val loop = SaveMenuSelectLoop(

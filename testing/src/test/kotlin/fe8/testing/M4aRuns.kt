@@ -40,4 +40,6 @@ internal val M4A_UNCOVERED_RUNS: Set<String> = setOf(
     "ram_trace_prologue_end",
     // PC-cap2: same resume save and clear-run inputs up to f3700; diverges at f5456 (channel 4).
     "ram_trace_prologue_gameover",
+    // PC-cap2b: identical PRO_GAMEOVER prefix to f6133 with GameOverScreenHBlank tracecall.
+    "ram_trace_prologue_gameover_hblank",
 )

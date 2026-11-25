@@ -27,10 +27,11 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 - BA-i1: scheduled, until ~05:40Z.
 - BA-i5: scheduled, until ~05:40Z.
 - PC-6l-b: Gemini owner PC, until ~05:25Z (`wip/pc6lb`, 2026-11-25).
-- PC-cap2b: Gemini owner PC, until ~05:25Z (ROM repo, 2026-11-25).
 
 
 ## Current state
+
+- 2026-11-25 05:10Z owner PC Gemini (Pro agent): **PC-cap2b captured (`assets-8ddc758`).** Patched `mgba-harness` (`ARMStep` + `ThumbStep` hooks and ARM/Thumb `ARM_PC` offset) so `tracecall` captures Thumb HBlank callbacks returning to `IrqMain` (`ram_trace_fade_start` unchanged), captured `ram_trace_prologue_gameover_hblank` (`PRO_GAMEOVER` `f6130..6133`, `912/912` `GameOverScreenHBlank` calls matching `VCOUNT` `0..227` and exit `BLDALPHA`), preserved all `65,170` baseline archive files, published ROM repo `8ddc758` / `assets-8ddc758`, refreshed `.assets/`, added run to `M4aRuns.kt` (`M4a*` 13 suites / 19 ok).
 
 - 2026-11-25 04:32Z owner PC Gemini (Pro agent): **PC-6e-c done (`997d7e4e`).** Extracted `gProcScr_TalkSkipListener` into `fe8.game.scene.TalkSkipListener` (`TalkScene`/`TalkRig` share it; `TalkSkipListener_OnIdle` Partially ported against `PC-cap1` `f10534..10820` & `f25390..25405`), verified `ProcScr_EventDisplayCursor` (`EventDisplayCursor_Loop`/`PutMapCursor`) across all 5 Ch1 cursor windows + `OAM[0..3]` (`f15600`, `f20300`), and wired `Fe8Boot.endEventTalk` (`endTalk`/`endCgText`/`endBoxDialogue`). `EndTalk`, `EndCgText`, `sub_808BB74`, `ResetBkselPalette`, `ResumeMenu`, and `ChangeUnitSpritePalette` stay Transcribed per Rule 4 (target procs never exist in `PC-cap1` `f10297..25580` and `mapSpritePalIdOverride == 0`; tail teardown `f25420 -> f25422` verified). `Chapter1TeardownDifferentialTest` (3 ok, 5 break-checks), `Chapter1*` (6 suites, 19 ok), `:game:jvmTest` (89 ok), `:game:dokkaGenerate`, `standins.py`/`unverified.py --check`, game-text guard green.
 

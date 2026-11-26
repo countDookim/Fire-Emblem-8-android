@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1499,
+    "verified": 1502,
     "implemented_unverified": 157
   },
   "functions": {
@@ -4613,7 +4613,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -5703,7 +5703,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -5958,7 +5958,7 @@
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHandles.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
       "status": "implemented",
       "tests": []
     },
@@ -9579,6 +9579,16 @@
         "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
       ]
     },
+    "PlayPhaseForcePressAButtonInRangeDisp": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ForceAPressRangeDisplayDifferentialTest#idle callback swaps to the forced A press and then the wait for movement"
+      ]
+    },
     "PlaySeSpacial": {
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
@@ -9680,6 +9690,16 @@
         "fe8.testing.PlayerPhaseMoveSelectDifferentialTest#move to the right in select_move matches the game f1259 to f1296"
       ]
     },
+    "PlayerPhase_RangeDisplayIdle_ForceAPress": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ForceAPressRangeDisplayDifferentialTest#idle callback swaps to the forced A press and then the wait for movement"
+      ]
+    },
     "PlayerPhase_WaitForUnitMovement": {
       "decomp_file": "src/playerphase.c",
       "system": "battle_map",
@@ -9687,6 +9707,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.ForceAPressRangeDisplayDifferentialTest#idle callback swaps to the forced A press and then the wait for movement",
         "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in attack matches the game f1330 to f1365",
         "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in select_move matches the game f1295 to f1314"
       ]
@@ -10087,6 +10108,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcMarkedDifferentialTest#the scripted battle sets and restores the event engine's mark"
+      ]
+    },
+    "Proc_SetRepeatCb": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "in_scope": true,
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ForceAPressRangeDisplayDifferentialTest#idle callback swaps to the forced A press and then the wait for movement"
       ]
     },
     "Proc_Start": {
@@ -11596,7 +11627,7 @@
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
       "status": "implemented",
       "tests": []
     },

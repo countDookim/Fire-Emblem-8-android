@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1497,
+    "verified": 1499,
     "implemented_unverified": 157
   },
   "functions": {
@@ -663,6 +663,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.EasyTutorialMenuOverrideDifferentialTest#Attack-only unit menu lists Attack only at f22448 and stays open until A",
         "fe8.testing.UnitActionMenuDifferentialTest#unit menu with an enemy in range lists Attack Item and Wait",
         "fe8.testing.UnitActionMenuDifferentialTest#unit menu without a target lists Item and Wait and Wait sets the action"
       ]
@@ -3062,6 +3063,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.EasyTutorialMenuOverrideDifferentialTest#Wait-only unit menu lists Wait only at f19068 and A at f19080 selects it",
         "fe8.testing.UnitActionMenuDifferentialTest#unit menu without a target lists Item and Wait and Wait sets the action"
       ]
     },
@@ -4611,7 +4613,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -5701,7 +5703,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -5956,7 +5958,7 @@
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHandles.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
       "status": "implemented",
       "tests": []
     },
@@ -8511,7 +8513,19 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.EasyTutorialMenuOverrideDifferentialTest#Wait-only unit menu lists Wait only at f19068 and A at f19080 selects it",
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "MenuAlwaysNotShown": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EasyTutorialMenuOverrideDifferentialTest#Attack-only unit menu lists Attack only at f22448 and stays open until A",
+        "fe8.testing.EasyTutorialMenuOverrideDifferentialTest#Wait-only unit menu lists Wait only at f19068 and A at f19080 selects it"
       ]
     },
     "MenuCancelSelect": {
@@ -10868,6 +10882,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.KeyStatusDifferentialTest#boot key status matches ResetKeyStatus plus idle updates"
+      ]
+    },
+    "ResetMenuOverrides": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/MenuOverrides.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EasyTutorialMenuOverrideDifferentialTest#Event3D_MenuOverride rebuilds sMenuOverrides to the Attack-only table",
+        "fe8.testing.EasyTutorialMenuOverrideDifferentialTest#Event3D_MenuOverride rebuilds sMenuOverrides to the Wait-only table"
       ]
     },
     "ResetText": {

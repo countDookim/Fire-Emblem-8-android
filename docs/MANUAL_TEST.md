@@ -24,20 +24,7 @@ Everything up to 0.1.868 was tested earlier; new items carry their build.
   1. Defeat the two Soldiers in the Prologue: the one-enemy-left event & dialogue now plays.
   2. End Turn 2: O'Neill's turn event & dialogue plays, changing his AI so he moves toward you on Enemy Phase 2 and attacks when a player unit ends in range.
 
-- **Title menu (`PC-11`, Build: pending):** power on with a suspend save and at least one chapter slot, then
-  press START on the title.
-  1. The main menu lists the entries your save allows: with a suspend save and one chapter slot that is Resume
-     Chapter, Restart Chapter, Copy Data, Erase Data, New Game, Extras (with all three slots used, Copy Data
-     and New Game are not shown); the cursor starts on Resume Chapter, UP / DOWN move it.
-  2. Resume Chapter then A on the suspend slot: the suspended map returns (Chapter 1's first player phase after
-     the Prologue).
-  3. Restart Chapter, A on slot 1, A on Start in the confirm box (LEFT moves the cursor from Cancel): slot 1
-     loads and Chapter 1's opening plays (title card, then the beginning scene).
-  4. With no save at all, New Game shows the difficulty select and the slot select as on the device.
-  Known limits: Copy Data, Erase Data and Extras have no capture (Copy and Erase do nothing after the slot
-  select; A on Extras returns to the main list); B on the slot select slides back to the main list and B in
-  the main list returns to the title, both unchecked; wrapping the cursor past the ends and R (help) are
-  unchecked; menu music and sound effects are not compared.
+
 
 ## 2. Open bugs (no fix yet)
 
@@ -60,6 +47,8 @@ Retest these only when a change to them is announced.
   - There is no help box, inventory or status screen (M6-E, M6-F, M6-H).
   - Selecting an enemy shows no range (PP-enemy); the info windows closing then is normal.
 - **Chapter 1 and saves:**
+  - Power-on always resumes the suspend save: the real title menu is built but kept off in the app
+    until New Game through it works (PC-11b2).
   - Selecting a unit and opening its menu crashes ("EvCheck05_LOCA is not ported yet", EP-35b).
   - Battle animations in the Chapter 1 opening are skipped (M6-G).
 - **Map events and rules:** no staff range, traps, after-move or tutorial events, dialogue during the

@@ -2,8 +2,8 @@ package fe8.game.bm
 
 /**
  * `gBattleDeamonActive` (src/banim-ekrbattle.c, EWRAM `0x0203E0F4`): set while the battle
- * animation system (`ProcScr_ekrBattleDeamon`) runs. The animation system is not ported, so
- * nothing sets it yet; hosts read it through [isBattleDeamonActive].
+ * animation system (`gProc_ekrBattleDeamon`) runs. [EkrBattleStarting.newEkrBattleDeamon] sets it
+ * to 1; hosts read it through [isBattleDeamonActive].
  */
 public class BattleDeamonFlag {
     /** `gBattleDeamonActive`: non-zero while the battle animation system runs. */

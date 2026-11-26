@@ -10,10 +10,17 @@ import gbafe.proc.ProcScripts.end
 import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.sleep
+import gbafe.text.Font
 import gbafe.text.MsgStrings
+import gbafe.text.Text
 import gbafe.text.TextSystem
 
-/** Per-proc state of `gProcScr_BoxDialogue`: `struct ProcBoxDialogue` (`+0x2C..`). */
+/**
+ * Per-proc state of `gProcScr_BoxDialogue`: `struct ProcBoxDialogue` (`x` at `+0x2C`, `y` at
+ * `+0x30`, `msg` at `+0x34`, `unk_38` at `+0x38`, `unk_3c` at `+0x3C`, `pad_idx` at `+0x40`,
+ * placed by the capture of `ram_trace_newgame_easy` f18230: the pointer `unk_3c` cannot share
+ * `+0x3C` with the byte `pad_idx`, and `+0x40` holds `0xFF` there).
+ */
 public class BoxDialogueState {
     /** `x` and `y`: the box position. */
     public var x: Int = 0
@@ -53,10 +60,17 @@ public class BoxDialogue(
 ) {
     /** The callees of the box procs that are not ported; each throws until ported. */
     public class Hooks {
-        /** `InitBoxDialogue(vram_dst, pad_idx)`. */
-        public var initBoxDialogue: (Int, Int) -> Unit = { _, _ ->
-            throw NotImplementedError("not ported: InitBoxDialogue")
-        }
+        /** `Decompress(src, dst)` of a box graphic: ROM address, VRAM address. */
+        public var decompress: (Int, Int) -> Unit = { _, _ -> }
+
+        /** `ApplyPalette(src, palId)`: ROM address of 16 colours, palette bank. */
+        public var applyPalette: (Int, Int) -> Unit = { _, _ -> }
+
+        /** `ClearAllTalkFlags()`. */
+        public var clearAllTalkFlags: () -> Unit = {}
+
+        /** `PlaySoundEffect(SONG_2E6)`: the box opening sound. */
+        public var playOpenSound: () -> Unit = {}
 
         /** `DrawBoxDialogueText(x, y, msg)`. */
         public var drawBoxDialogueText: (Int, Int, Int) -> Unit = { _, _, _ ->
@@ -65,6 +79,11 @@ public class BoxDialogue(
 
         /** `PlaySoundEffect(SONG_2E7)`. */
         public var playCloseSound: () -> Unit = {}
+
+        /** `sub_808A9F0()` (`PC-11b2b`). */
+        public var sub808A9F0: () -> Unit = {
+            throw NotImplementedError("not ported: sub_808A9F0 (PC-11b2b)")
+        }
     }
 
     /** The not-yet-ported callees. */
@@ -72,6 +91,16 @@ public class BoxDialogue(
 
     /** `gBoxDialogueConf.unk_42`: the dialogue box config bits. */
     private var config: Int = 0
+
+    /** `gBoxDialogueConf.font`. */
+    public val font: Font = Font()
+
+    /** `gBoxDialogueConf.texts`. */
+    public val texts: List<Text> = List(TEXT_COUNT) { Text() }
+
+    /** `gBoxDialogueConf.unk_40`: tile number of the box font plus its palette. */
+    public var unk40: Int = 0
+        private set
 
     /**
      * Sets the dialogue box config.
@@ -98,8 +127,9 @@ public class BoxDialogue(
     /**
      * `gProcScr_BoxDialogue`: draws the box, waits for B or START, then plays the close sound.
      *
-     * Transcribed from src/helpbox.c: gProcScr_BoxDialogue (not verified: the procs watch cannot
-     * tag the script position beyond the first frame)
+     * Partially ported from src/helpbox.c: gProcScr_BoxDialogue (the commands up to the repeat
+     * are verified by the script position of f18230..f18240; the block, labels 1 to 3, the
+     * sleeps after them, the close call and the end are not)
      */
     public val script: ProcScript = ProcScript(
         "gProcScr_BoxDialogue",
@@ -123,23 +153,70 @@ public class BoxDialogue(
     /**
      * Initialises the box graphics and draws the text.
      *
-     * Transcribed from src/helpbox.c: sub_808A848 (not verified: not run in
-     * the f18230 window; the drawing callees are stand-ins)
+     * Partially ported from src/helpbox.c: sub_808A848 (the `pad_idx != 0xFF` arm is not exercised)
      */
     public fun sub808A848(proc: Proc) {
         val s = proc.state as BoxDialogueState
         if (s.padIdx == 0xFF) {
-            hooks.initBoxDialogue(0, -1)
+            initBoxDialogue(0, -1)
         } else {
-            hooks.initBoxDialogue(s.vramDst, s.padIdx)
+            initBoxDialogue(s.vramDst, s.padIdx)
         }
         hooks.drawBoxDialogueText(s.x, s.y, s.msg)
     }
 
     /**
+     * Loads the box graphics at [vramDst] (0: the default `0x06013000`) and palette [padIdx]
+     * (negative: 5), claims the sprite text strips and sets `gBoxDialogueConf.unk_40`.
+     *
+     * Partially ported from src/helpbox.c: InitBoxDialogue (the config 0x110 path of the Easy
+     * tutorial box is verified: font, strips, `unk_40`, palette; the graphics destinations, the
+     * open sound, config bits 0x20 and 1 (the `Pal_Text` arm) are not)
+     */
+    public fun initBoxDialogue(vramDst: Int, padIdx: Int) {
+        val dst = if (vramDst == 0) DEFAULT_VRAM else vramDst
+        val pad = (if (padIdx < 0) 5 else padIdx).and(0xF) + 0x10
+        val yellow = getDialogueBoxConfig() and 0x10 != 0
+        if (yellow) {
+            hooks.decompress(G_GFX_YELLOW_TEXT_BOX, dst + 0x360)
+            hooks.decompress(G_GFX_YELLOW_TEXT_BOX2, dst + 0x760)
+            hooks.decompress(G_GFX_YELLOW_TEXT_BOX3, dst + 0xB60)
+            hooks.decompress(G_GFX_YELLOW_TEXT_BOX4, dst + 0xF80)
+            hooks.decompress(G_GFX_YELLOW_TEXT_BOX5, dst + 0x1380)
+        } else {
+            hooks.decompress(G_GFX_HELP_TEXT_BOX, dst + 0x360)
+            hooks.decompress(G_GFX_HELP_TEXT_BOX2, dst + 0x760)
+            hooks.decompress(G_GFX_HELP_TEXT_BOX3, dst + 0xB60)
+            hooks.decompress(G_GFX_HELP_TEXT_BOX4, dst + 0xF60)
+            hooks.decompress(G_GFX_HELP_TEXT_BOX5, dst + 0x1360)
+        }
+        hooks.clearAllTalkFlags()
+        if (getDialogueBoxConfig() and 1 == 0) {
+            textSystem.initSpriteTextFont(font, dst, pad)
+            for (i in 0..2) textSystem.initSpriteText(texts[i])
+            if (yellow && getDialogueBoxConfig() and 0x20 == 0) {
+                textSystem.initSpriteText(texts[3])
+                textSystem.initSpriteText(texts[4])
+            }
+            textSystem.setTextFont(null)
+            hooks.applyPalette(if (yellow) G_PAL_YELLOW_TEXT_BOX else G_PAL_HELP_TEXT_BOX, pad)
+        } else {
+            textSystem.initSpriteTextFont(font, dst, pad)
+            for (i in 0 until (getDialogueBoxConfig() ushr 8)) {
+                textSystem.initSpriteText(texts[i])
+            }
+            textSystem.setTextFont(null)
+            hooks.applyPalette(PAL_TEXT, pad)
+        }
+        unk40 = (((dst shl 17) ushr 22) + (pad and 0xF) * 0x1000) and 0xFFFF
+        if (yellow) hooks.playOpenSound()
+    }
+
+    /**
      * Jumps to label 2 when B or START is pressed, unless the config has bit 1 or 7 set.
      *
-     * Transcribed from src/helpbox.c: sub_808A87C (not verified: no B/START press in the window)
+     * Partially ported from src/helpbox.c: sub_808A87C (the not-pressed wait is verified; the
+     * config 0x82 early return and the B/START arm are not exercised: no press in the window)
      */
     public fun sub808A87C(proc: Proc) {
         if (getDialogueBoxConfig() and 0x82 != 0) return
@@ -147,13 +224,16 @@ public class BoxDialogue(
     }
 
     /**
-     * Plays the close sound if the config has bit 4 set.
+     * Plays the close sound if the config has bit 4 set, selects the system glyphs and runs
+     * `sub_808A9F0`.
      *
-     * Transcribed from src/helpbox.c: sub_808A8AC (not verified: the close
-     * sound is a stand-in and the proc has not ended in the window)
+     * Transcribed from src/helpbox.c: sub_808A8AC (not verified: the proc has not ended in the
+     * window)
      */
     public fun sub808A8AC() {
         if (getDialogueBoxConfig() and 0x10 != 0) hooks.playCloseSound()
+        textSystem.setTextFontGlyphs(TextSystem.GLYPHS_SYSTEM)
+        hooks.sub808A9F0()
     }
 
     /**
@@ -248,5 +328,26 @@ public class BoxDialogue(
 
         /** `PROC_TREE_3`. */
         const val TREE = 3
+
+        /** `gBoxDialogueConf.texts` length. */
+        const val TEXT_COUNT = 5
+
+        /** The default OBJ tile address of the box font. */
+        const val DEFAULT_VRAM = 0x06013000
+
+        /** ROM addresses (FE8U) of the box graphics and palettes. */
+        const val G_GFX_YELLOW_TEXT_BOX = 0x08A029A8
+        const val G_GFX_YELLOW_TEXT_BOX2 = 0x08A02A1C
+        const val G_GFX_YELLOW_TEXT_BOX3 = 0x08A02A94
+        const val G_GFX_YELLOW_TEXT_BOX4 = 0x08A02B3C
+        const val G_GFX_YELLOW_TEXT_BOX5 = 0x08A02BAC
+        const val G_GFX_HELP_TEXT_BOX = 0x08A0285C
+        const val G_GFX_HELP_TEXT_BOX2 = 0x08A02884
+        const val G_GFX_HELP_TEXT_BOX3 = 0x08A028AC
+        const val G_GFX_HELP_TEXT_BOX4 = 0x08A02914
+        const val G_GFX_HELP_TEXT_BOX5 = 0x08A02980
+        const val G_PAL_YELLOW_TEXT_BOX = 0x0859EF80
+        const val G_PAL_HELP_TEXT_BOX = 0x0859EF60
+        const val PAL_TEXT = 0x0859EF00
     }
 }

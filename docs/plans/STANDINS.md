@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 264 across 62 Kotlin files.
+Total entries: 262 across 62 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -39,7 +39,7 @@ Total entries: 264 across 62 Kotlin files.
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 45 |
+| unassigned | 43 |
 
 ## M6-B (13)
 
@@ -385,7 +385,7 @@ Total entries: 264 across 62 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (45)
+## unassigned (43)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -426,8 +426,6 @@ Total entries: 264 across 62 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `biosPlaySt` | Stand-in for the BIOS bytes `IsGameNotFirstChapter` reads: a non-zero `chapterIndex`. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `saveMenuInitSaveSlotData` | The port passes [biosPlaySt], a stand-in `PlaySt` that gives that answer, so bit 0 of `unk_3a` is always set for a valid game slot. |
 | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | `BoxDialogue` | Stand-ins ([Hooks]): the drawing (`InitBoxDialogue` graphics, `DrawBoxDialogueText`) is not ported yet. @param engine proc scheduler running the box procs @param textSystem text system whose active... |
-| `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | `sub808A848` | Transcribed from src/helpbox.c: sub_808A848 (not verified: not run in the f18230 window; the drawing callees are stand-ins) |
-| `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | `sub808A8AC` | Transcribed from src/helpbox.c: sub_808A8AC (not verified: the close sound is a stand-in and the proc has not ended in the window) |
 | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `drawExtInfoLabels` | Stand-in (PC-11cap2): draws nothing; no capture runs these (a CAP row, PC-11cap2, is needed). |
 | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `drawExtInfoStats` | Stand-in (PC-11cap2): draws nothing; no capture runs these (a CAP row, PC-11cap2, is needed). |
 | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `itemInfoKind` | Stand-in (PC-11cap2): only the `item == 0` and save info cases (no item data). |

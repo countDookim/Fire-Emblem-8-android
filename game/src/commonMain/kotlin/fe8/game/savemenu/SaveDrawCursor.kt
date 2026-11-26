@@ -161,11 +161,13 @@ public class SaveDrawCursor(
      * previous position while [SaveDrawCursorProc.susSlot] is below `4`, and puts [cursorSprite]
      * on sprite layer 4 with `oam2 = 0x3000`.
      *
-     * Transcribed from src/savedraw.c: SaveDrawCursor_Loop (not verified: PC-cap1 exercises only
-     * parent cursorDrawActive != 0, susSlot < 4, cursorEn != 0, unk3a == 1, and unk38 == 0;
-     * unexercised branches are parent cursorDrawActive == 0 early return, susSlot >= 4 settled
-     * motion, cursorEn == 0 idle branch, unk3a == 0 dual horizontal bracket cursors, and
-     * unk38 != 0 static copy cursor)
+     * Partially ported from src/savedraw.c: SaveDrawCursor_Loop. Verified (`PC-11g`, title
+     * menu_items, continue and resume runs, sprites and the cursor proc fields per frame): the
+     * `unk_3a == 0` bracket pair with the vertical half-step glide, the `unk_3a == 1` slot cursor,
+     * and the idle frames with `cursor_en == 0` (`sus_slot` counting up to its limit).
+     * Unverified: the horizontal half-step glide (the x target never moves in a window with
+     * `sus_slot < 4`), the early return for a zero byte `+0x29` of the parent and the `unk_38`
+     * static copy cursor with its `unk_39` reset (no run draws either).
      */
     public fun saveDrawCursorLoop(proc: Proc) {
         val parent = checkNotNull(proc.parent) { "SaveDrawCursor requires a SaveDrawProc parent" }

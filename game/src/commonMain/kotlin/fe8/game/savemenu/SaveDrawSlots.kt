@@ -152,8 +152,10 @@ public class SaveDrawSlots(
     /**
      * Draws the banner box and the label of the chosen main (or extras) option on layer 4.
      *
-     * Transcribed from src/savedraw.c: sub_80AADE0 (not verified: PC-cap1 runs only the
-     * `unk_46 == 0` main option label; the extras label branch is unexercised)
+     * Partially ported from src/savedraw.c: sub_80AADE0. Verified (`PC-11g`, title resume run
+     * `f1003..f1062`, sprite output per frame): the banner position while scrolling and settled,
+     * and the main option label for `unk_46 == 0`. Unverified: the `unk_46 != 0` extras label
+     * (no run scrolls into the extras menu).
      */
     public fun sub80AADE0(proc: Proc) {
         val menu = parent(proc)
@@ -292,8 +294,13 @@ public class SaveDrawSlots(
      * @param scrollFog `SaveDraw_ScrollFogBG`
      * @param particles `sub_80AB56C` (`PC-4c2`), given [SaveDrawProc.unk2a]
      *
-     * Transcribed from src/savedraw.c: SaveDraw_Loop_Main (not verified: it runs the `PC-4c2`
-     * steps through parameters, and PC-cap1 never has `unk_29 == 0`)
+     * Partially ported from src/savedraw.c: SaveDraw_Loop_Main. Verified (`PC-11g`, title
+     * menu_items, continue and resume runs): the `unk_29 != 0` path with
+     * `main_sel_bitfile < 0x100` and not `0x20` (`unk_33` against the captured proc, the `unk_2a`
+     * argument of `sub_80AB56C`, each step called once, and the sprites of `sub_80AAE90` and
+     * `sub_80AB05C`; the order of the steps is not observable). Unverified:
+     * `unk_29 == 0` and the `0x20` extras arm (no run reaches them); the effects behind the
+     * [paletteCycle], [scrollFog] and [particles] parameters are not run by these tests.
      */
     public fun loopMain(
         proc: Proc,

@@ -7,6 +7,7 @@ import fe8.game.scene.TalkBubble
 import fe8.game.scene.TalkBubbleHost
 import fe8.game.scene.TalkFace
 import fe8.game.scene.TalkHost
+import fe8.game.ui.BoxDialogue
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
@@ -44,6 +45,8 @@ public class EventTextTalkHost(
     private val resumeMapDisp: () -> Unit = {},
     /** `ChangeUnitSpritePalette(id)`; the default does nothing. */
     private val changeSpritePalette: (Int) -> Unit = {},
+    /** The ported box dialogue; null: the box dialogue members throw `not ported`. */
+    private val boxDialogue: BoxDialogue? = null,
     private val stringFromIndex: (Int) -> Int,
 ) : EventTextHost {
     private val cgText: CgText = CgText(procs)
@@ -289,14 +292,16 @@ public class EventTextTalkHost(
         throw NotImplementedError("not ported: StartCgText")
     }
 
-    /** Not ported: throws, `GetBoxDialogueSize` does not exist yet. */
+    /** `GetBoxDialogueSize` of message [msg]; throws `not ported` without a [boxDialogue]. */
     override fun boxDialogueSize(msg: Int): Pair<Int, Int> {
-        throw NotImplementedError("not ported: GetBoxDialogueSize")
+        val box = boxDialogue ?: throw NotImplementedError("not ported: GetBoxDialogueSize")
+        return box.getBoxDialogueSize(msg)
     }
 
-    /** Not ported: throws, `sub_808AA04` does not exist yet. */
+    /** `sub_808AA04(x, y, msg, null)`; throws `not ported` without a [boxDialogue]. */
     override fun startBoxDialogue(x: Int, y: Int, msg: Int, flags: Int) {
-        throw NotImplementedError("not ported: sub_808AA04")
+        val box = boxDialogue ?: throw NotImplementedError("not ported: sub_808AA04")
+        box.startBoxDialogue(x, y, msg)
     }
 
     private companion object {

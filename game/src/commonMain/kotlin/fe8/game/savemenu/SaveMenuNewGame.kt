@@ -185,8 +185,10 @@ public class SaveMenuNewGame(
      * Jumps the save menu to its new game exit (fade out, then `PostSaveMenuHandler`) and fades
      * the music out.
      *
-     * Ported from src/savemenu.c: SaveMenu_NewGame (verified: the jump to the label at f1174; not
-     * verified: the `StartBgmVolumeChange` arguments, music is not in the dumps)
+     * Ported from src/savemenu.c: SaveMenu_NewGame (verified: the jump to the label at f1174, and
+     * the script position at the `SaveMenu_NewGame` call dumps of the title continue run
+     * `f1176` and resume run `f1063` (`PC-11j`); not verified: the `StartBgmVolumeChange`
+     * arguments, music is not in the dumps)
      */
     public fun saveMenuNewGame(proc: Proc) {
         engine.goto(proc, PL_NEW_GAME)

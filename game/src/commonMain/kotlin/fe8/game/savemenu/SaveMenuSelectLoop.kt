@@ -74,9 +74,13 @@ public class SaveMenuSelectLoop(
      * the sub-box selection (otherwise), and on `A` / `B` runs [execSaveMenuMiscOption] or
      * cancels.
      *
-     * Transcribed from src/savemenu.c: SaveMenu_SaveSlotSelectLoop (not verified:
-     * `ram_trace_prologue_end` presses only `A` with `MAIN_MENU_OPTION_INVALID`, so the D-pad,
-     * `B`, and the other main option branches are not exercised)
+     * Partially ported from src/savemenu.c: SaveMenu_SaveSlotSelectLoop. Verified (`PC-11j`,
+     * title continue run `f1050..1176` and resume run `f1018..1063`, `SaveMenuProc` fields per
+     * frame): `A` on `MAIN_MENU_OPTION_RESTART` with a suspend save (into
+     * [execSaveMenuMiscOption]), `LEFT` with `cursor_config` 2, `A` on
+     * `MAIN_MENU_OPTION_RESUME` (`SaveMenu_NewGame`), and idle frames; `PC-cap1` covers
+     * `MAIN_MENU_OPTION_INVALID`. Unverified: `UP` / `DOWN`, `RIGHT`, `B`, and the
+     * `MAIN_MENU_OPTION_7`, `NEW_GAME`, copy and erase arms (no capture presses them)
      */
     public fun saveMenuSaveSlotSelectLoop(proc: Proc) {
         val state = proc.state as SaveMenuState
@@ -185,10 +189,12 @@ public class SaveMenuSelectLoop(
      * `MAIN_MENU_OPTION_INVALID`, `WriteGameSave` of `sus_slot`, then the jump to
      * `PL_SAVEMENU_SLOT_SELECTED`) and any other value cancels.
      *
-     * Transcribed from src/savemenu.c: ExecSaveMenuMiscOption (not verified:
-     * `ram_trace_prologue_end` runs only the `MAIN_MENU_OPTION_INVALID` branches, with
-     * `cursor_config` 0 -> 1 -> write; copy, erase, restart, extras, new game and the cancel
-     * branch are not exercised)
+     * Partially ported from src/savemenu.c: ExecSaveMenuMiscOption. Verified (`PC-11j`, title
+     * continue run `f1094` open and `f1176` confirm; `PC-cap1` for
+     * `MAIN_MENU_OPTION_INVALID`): the `MAIN_MENU_OPTION_RESTART` open (`cursor_config` 2) and
+     * confirm (`unk_44` 0xF0, `SaveMenu_NewGame`, sub-box clear, help box close), and the
+     * `MAIN_MENU_OPTION_INVALID` branches. Unverified: copy, erase, extras, new game and the
+     * cancel branch of restart (no capture reaches them)
      */
     public fun execSaveMenuMiscOption(proc: Proc) {
         val state = proc.state as SaveMenuState
@@ -293,8 +299,10 @@ public class SaveMenuSelectLoop(
      * (`ctrl_timer` counts down from 8). `B`, `R` or a D-pad press with the box open closes it;
      * `R` otherwise opens the slot info box.
      *
-     * Transcribed from src/savemenu.c: SaveMenuWaitHelpBoxAnim (not verified:
-     * `ram_trace_prologue_end` only runs it with `ctrl_timer == 0` and no `R` / `B` / D-pad press)
+     * Partially ported from src/savemenu.c: SaveMenuWaitHelpBoxAnim. Verified (`PC-11j`,
+     * title continue and resume runs, and `PC-cap1`): the idle `ctrl_timer == 0` path, every
+     * frame. Unverified: the `R` slot info box, the close on `B` / `R` / D-pad and the
+     * 8-frame countdown (no capture presses `R` or has `ctrl_timer` non-zero)
      */
     public fun saveMenuWaitHelpBoxAnim(state: SaveMenuState): Boolean {
         val keys = hooks.newKeys()
@@ -323,8 +331,11 @@ public class SaveMenuSelectLoop(
      * options while the confirm sub-box is open, and closes the help box when there is no
      * suspend save or no sub-box.
      *
-     * Transcribed from src/savemenu.c: SaveMenuHandleHelpBox (not verified:
-     * `ram_trace_prologue_end` only runs the close branch, `sus_slot_cur == 0xFF`)
+     * Partially ported from src/savemenu.c: SaveMenuHandleHelpBox. Verified (`PC-11j`, title
+     * continue run): the open for `MAIN_MENU_OPTION_RESTART` (`f1094`, `hb_en` set), the
+     * no-repeat while `hb_en` (`f1155`), the close with `cursor_config` 0 (`f1176`), and the
+     * `sus_slot_cur == 0xFF` close (`PC-cap1`). Unverified: the new game and extras open (same
+     * code path, no capture)
      */
     public fun saveMenuHandleHelpBox(state: SaveMenuState) {
         if (state.susSlotCur == NO_SLOT || state.cursorConfig == 0) {

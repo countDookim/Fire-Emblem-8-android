@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-26 11:26Z (Antigravity: BA-p1a done); earlier 2026-11-26 05:58Z (scheduled: PC-11e, PC-11h done); earlier 2026-11-26 23:20Z (scheduled: PC-11d, PC-11k done, PC-11g partial); earlier 2026-11-25 21:33Z (Antigravity: finished WIP PC-11c, full tests/Dokka green, cleaned old branches); earlier 2026-11-25 20:40Z (owner PC: PC-11cap, PC-cap3, PC-11i, PC-10i-input/-battle/-end/-turn/-turn3, PC-11a, PC-11b; PC-11c WIP); earlier 17:08Z (scheduled: PC-6e-c-speed, M7-24, PC-9 partial, EP-12 partial); earlier 14:10Z (scheduled: PC-9d, BUG-deadmovestat); earlier 12:53Z (owner PC: D-24, PC-9c, EP-11); earlier 11:45Z (scheduled: EP-11-hooks, PC-9b partial); earlier 08:50Z (owner PC: PC-6l-c/d/e, PC-8, PC-9a, PC-6, EP-drift, D-23); earlier 05:35Z (scheduled: BA-i1, BA-i5); earlier 2026-11-24 23:28Z (scheduled: PC-8b, BA-p8a, BA-p8b); earlier 2026-11-24 22:40Z (owner PC: PC-7b, PC-6e-a, PC-8a, PC-6e-b); earlier 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-26 11:28Z (scheduled: PC-11f, PC-11j done); earlier 2026-11-26 11:26Z (Antigravity: BA-p1a done); earlier 2026-11-26 05:58Z (scheduled: PC-11e, PC-11h done); earlier 2026-11-26 23:20Z (scheduled: PC-11d, PC-11k done, PC-11g partial); earlier 2026-11-25 21:33Z (Antigravity: finished WIP PC-11c, full tests/Dokka green, cleaned old branches); earlier 2026-11-25 20:40Z (owner PC: PC-11cap, PC-cap3, PC-11i, PC-10i-input/-battle/-end/-turn/-turn3, PC-11a, PC-11b; PC-11c WIP); earlier 17:08Z (scheduled: PC-6e-c-speed, M7-24, PC-9 partial, EP-12 partial); earlier 14:10Z (scheduled: PC-9d, BUG-deadmovestat); earlier 12:53Z (owner PC: D-24, PC-9c, EP-11); earlier 11:45Z (scheduled: EP-11-hooks, PC-9b partial); earlier 08:50Z (owner PC: PC-6l-c/d/e, PC-8, PC-9a, PC-6, EP-drift, D-23); earlier 05:35Z (scheduled: BA-i1, BA-i5); earlier 2026-11-24 23:28Z (scheduled: PC-8b, BA-p8a, BA-p8b); earlier 2026-11-24 22:40Z (owner PC: PC-7b, PC-6e-a, PC-8a, PC-6e-b); earlier 17:40Z (scheduled: BA-p5c, BA-i8); earlier 16:40Z (scheduled: BA-p4c, BA-p4d, BA-i4b, BA-p5a, BA-p5b); earlier 11:30Z (scheduled: BA-p3d, BA-p4a, BA-p4b); earlier 05:35Z (scheduled: BA-p3b, BA-i4, BA-p3c); earlier 2026-11-24 23:35Z (scheduled: BA-p2b, BA-i3, BA-p2c, BA-p3a); earlier 2026-11-23 17:25Z (scheduled: D-17 partial, AUD-SYNC, BA-i2, BA-p2a, BUG-suspinval closed); earlier 11:20Z (scheduled: PC-4 partial, BA-0, BUG-charknown); earlier 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -25,8 +25,6 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-PC-11f: scheduled, until ~11:30Z
-PC-11j: scheduled, until ~11:30Z
 PC-10a: owner PC, until ~14:10Z
 PC-10b: owner PC, until ~14:10Z
 BA-p1b: owner PC, until ~14:10Z
@@ -35,6 +33,8 @@ BA-p9b: owner PC, until ~14:10Z
 
 
 ## Current state
+
+- 2026-11-26 11:28Z scheduled (Sonnet agents): **PC-11f, PC-11j done.** PC-11f: help-box text path in `HelpBox` (intro/scroll procs, `GetStringTextBox` from ROM disasm, `SpriteText_DrawBackground` fills 0x360 B/row vs Ext 0x800); `HelpBox` ctor now takes `messages`, `textSpeed`; only text speed 2 and HB_EXTINFO_NONE captured. PC-11j: test-only + KDoc; four loop functions stay Partially ported (U/D/R/B, copy/erase arms uncaptured -> PC-11cap2). Decomp `.assets/decomp` is a sparse git checkout: `git show HEAD:src/x.c` to extract. Ran changed tests + `:game:jvmTest` + Dokka. No new issues; nothing device-visible until PC-11. Next: PC-11g rest, then PC-11 WIRE.
 
 - 2026-11-26 11:26Z Antigravity: **BA-p1a done.** Added `fe8.game.bm.EkrBattleStarting` (`NewEkrBattleDeamon`, `nullsub_35`, `NewEkrBattleStarting`, `ekrBaStart_InitScreen` Ported; `ekrBaStart_SreenFailIn`, `ekrBaStart_InitBattleScreen` (`debug == 0`, CLOSE), `ekrBaStart_ExecEkrBattle6C` (`gBanimBG == 0`) Partially ported; updated `BattleDeamonFlag` KDoc) and `EkrBattleStartingDifferentialTest` (2 ok over `ram_trace_prologue_attack` `f1464..1496` & `ram_trace_prologue_battle` `f14431..14467`, 8 break-checks, `:game:dokkaGenerate` & `standins`/`unverified --check` green). Starting `BA-p1b`.
 

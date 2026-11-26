@@ -32,14 +32,13 @@ Total entries: 261 across 60 Kotlin files.
 | EP-34a | 2 |
 | EP-7 | 2 |
 | IS-2 | 1 |
-| PC-11f | 6 |
 | PC-4f | 1 |
 | PC-cap1 | 2 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 34 |
+| unassigned | 40 |
 
 ## M6-B (13)
 
@@ -345,17 +344,6 @@ Total entries: 261 across 60 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until IS-2 (help boxes): nothing happens (the selection's `onHelp`). |
 
-## PC-11f (6)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `drawExtInfoLabels` | Stand-in (PC-11f): draws nothing; no capture runs these (a CAP row, PC-11cap2, is needed). |
-| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `drawExtInfoStats` | Stand-in (PC-11f): draws nothing; no capture runs these (a CAP row, PC-11cap2, is needed). |
-| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `itemInfoKind` | Stand-in (PC-11f): only the `item == 0` and save info cases (no item data). |
-| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `stringInsertSpecialPrefix` | Stand-in (PC-11f): a copy of the message; the capture's message has no control codes (its bytes equal the captured result buffer). |
-| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `stringTextLen` | Stand-in (PC-11f). |
-| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `uiHandPrevDisplay` | Stand-in (PC-11f). |
-
 ## PC-4f (1)
 
 | Kotlin file | Declaration | Stand-in |
@@ -393,7 +381,7 @@ Total entries: 261 across 60 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (34)
+## unassigned (40)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -431,3 +419,9 @@ Total entries: 261 across 60 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuStart.kt` | `saveMenuLoadExtraMenuGraphics` | Partially ported from src/savemenu.c: SaveMenu_LoadExtraMenuGraphics (verified: the fresh-start branch (`main_sel_bitfile` 0x100) and the main loop label at f943 of the title runs; not verified: th... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `biosPlaySt` | Stand-in for the BIOS bytes `IsGameNotFirstChapter` reads: a non-zero `chapterIndex`. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `saveMenuInitSaveSlotData` | The port passes [biosPlaySt], a stand-in `PlaySt` that gives that answer, so bit 0 of `unk_3a` is always set for a valid game slot. |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `drawExtInfoLabels` | Stand-in (PC-11cap2): draws nothing; no capture runs these (a CAP row, PC-11cap2, is needed). |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `drawExtInfoStats` | Stand-in (PC-11cap2): draws nothing; no capture runs these (a CAP row, PC-11cap2, is needed). |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `itemInfoKind` | Stand-in (PC-11cap2): only the `item == 0` and save info cases (no item data). |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `stringInsertSpecialPrefix` | Stand-in (PC-11cap2): a copy of the message; the capture's message has no control codes (its bytes equal the captured result buffer). |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `stringTextLen` | Stand-in (PC-11cap2). |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `uiHandPrevDisplay` | Stand-in (PC-11cap2). |

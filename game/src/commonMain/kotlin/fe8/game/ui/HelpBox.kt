@@ -157,29 +157,31 @@ public class HelpBox(
         public var playSoundEffect: (songId: Int) -> Unit = {},
         /**
          * `StringInsertSpecialPrefixByCtrl()`: the message just read by `GetStringFromIndex` with
-         * its control codes expanded. Stand-in (PC-11f): a copy of the message; the capture's
+         * its control codes expanded. Stand-in (PC-11cap2): a copy of the message; the capture's
          * message has no control codes (its bytes equal the captured result buffer).
          */
         public var stringInsertSpecialPrefix: (message: ByteArray) -> ByteArray = { it.copyOf() },
         /**
          * `GetHelpBoxItemInfoKind(item)`: 0 none, 1 weapon, 2 staff, 3 save info. Stand-in
-         * (PC-11f): only the `item == 0` and save info cases (no item data).
+         * (PC-11cap2): only the `item == 0` and save info cases (no item data).
          */
         public var itemInfoKind: (item: Int) -> Int = { if (it == SAVE_INFO_ITEM) 3 else 0 },
-        /** `GetStringTextLen(GetStringFromIndex(msgId))`, for weapon boxes. Stand-in (PC-11f). */
+        /**
+         * `GetStringTextLen(GetStringFromIndex(msgId))`, for weapon boxes. Stand-in (PC-11cap2).
+         */
         public var stringTextLen: (msgId: Int) -> Int = { 0 },
         /**
          * `DrawHelpBoxWeaponLabels` / `DrawHelpBoxStaffLabels` / `DrawHelpBoxSaveMenuLabels` for
-         * [kind] 1, 2, 3 of `GetHelpBoxItemInfoKind`. Stand-in (PC-11f): draws nothing; no
+         * [kind] 1, 2, 3 of `GetHelpBoxItemInfoKind`. Stand-in (PC-11cap2): draws nothing; no
          * capture runs these (a CAP row, PC-11cap2, is needed).
          */
         public var drawExtInfoLabels: (kind: Int, item: Int) -> Unit = { _, _ -> },
         /**
          * `DrawHelpBoxWeaponStats` / `DrawHelpBoxSaveMenuStats` for [kind] 1 and 3. Stand-in
-         * (PC-11f): draws nothing; no capture runs these (a CAP row, PC-11cap2, is needed).
+         * (PC-11cap2): draws nothing; no capture runs these (a CAP row, PC-11cap2, is needed).
          */
         public var drawExtInfoStats: (kind: Int, item: Int) -> Unit = { _, _ -> },
-        /** `GetUiHandPrevDisplayX/Y`, for a negative position. Stand-in (PC-11f). */
+        /** `GetUiHandPrevDisplayX/Y`, for a negative position. Stand-in (PC-11cap2). */
         public var uiHandPrevDisplay: () -> Pair<Int, Int> = { 0 to 0 },
     )
 

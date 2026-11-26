@@ -41,8 +41,9 @@ import org.junit.jupiter.api.Timeout
  * `proc_lockCnt`, `SaveMenuProc.hb_en`, and the box objects of the layer 0 sprite pool. At
  * `f1154` and `f1175` also the hardware OAM, the box tiles in OBJ VRAM and `Pal_HelpBox`.
  *
- * `GetStringTextBox` (the message's content size) is a stand-in fed from the capture's
- * `wBoxFinal` / `hBoxFinal`; the text procs are PC-11f. Capture steps that repeat the previous
+ * The content size comes from the ported `GetStringTextBox` (PC-11f), checked through `wBoxFinal` /
+ * `hBoxFinal` of every step; the text procs are checked by [TitleHelpBoxTextDifferentialTest].
+ * Capture steps that repeat the previous
  * step's box proc row while the box is animating are lag frames (the game loop did not run the
  * proc) and are not run.
  */
@@ -61,6 +62,7 @@ class TitleHelpBoxDifferentialTest {
     @VerifiesPort(
         "StartHelpBoxExt_NoHelpSprite", "HelpBox_OnOpen", "HelpBox_OnLoop", "HelpBox_OnClose",
         "HelpBox_WaitClose", "CloseHelpBox", "LoadHelpBoxGfx", "DisplayHelpBoxObj",
+        "GetStringTextBox",
     )
     fun `continue run confirm help box matches f1094 to f1183`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
@@ -82,11 +84,6 @@ class TitleHelpBoxDifferentialTest {
         val oam = OamBuffer()
         val textSystem = TextSystem(romBytes, TextVram(), Fe8Text.CONFIG)
         val prompt = HelpPromptSprite(engine, layers, hardware, view)
-        val box = HelpBox(engine, layers, hardware, view, textSystem, prompt)
-        val parent = engine.start(
-            ProcScript("ProcScr_SaveMenu", listOf(block())) { Any() },
-            3,
-        )
         val messages = MsgStrings(
             romBytes,
             MsgHuffman(
@@ -96,16 +93,22 @@ class TitleHelpBoxDifferentialTest {
             ),
             0x0815D48C - 0x08000000,
         )
+        textSystem.resetText()
+        val box = HelpBox(
+            engine, layers, hardware, view, textSystem, prompt, messages, textSpeed = { 2 },
+        )
+        val parent = engine.start(
+            ProcScript("ProcScr_SaveMenu", listOf(block())) { Any() },
+            3,
+        )
         val loop = SaveMenuSelectLoop(
             engine, hardware, textSystem, messages, Font(), Text(),
             bitfileToIndex = { bits -> (0 until 8).firstOrNull { (bits shr it) and 1 != 0 } ?: -1 },
         )
         val watch = run.watch("procs")
 
-        // The box's content size stands in for GetStringTextBox: the capture's final size.
         val first = ProcArrayDump.ofWatch(watch, FIRST, names).find(PROC)
         assertNotNull(first, "box proc row f$FIRST")
-        box.hooks.stringTextBox = { _ -> first!!.u16(0x44) to first.u16(0x46) }
         loop.hooks.closeHelpBox = box::closeHelpBox
         loop.hooks.startSuspendLostHelpBox = {
             box.loadHelpBoxGfx(

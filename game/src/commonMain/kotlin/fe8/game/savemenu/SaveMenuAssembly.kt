@@ -203,7 +203,10 @@ public object SaveMenuAssembly {
         mainLoop.hooks.startHelpPromptSprite = { x, y, z, parent ->
             helpPrompt.startHelpPromptSprite(x, y, z, parent)
         }
-        val helpBox = HelpBox(d.engine, d.layers, d.hardware, d.rom, d.text, helpPrompt)
+        val helpBox = HelpBox(
+            d.engine, d.layers, d.hardware, d.rom, d.text, helpPrompt, d.messages,
+            textSpeed = { d.playSt.textSpeed },
+        )
         helpBox.hooks.playSoundEffect = d.playSoundEffect
         result.selectLoop.hooks.closeHelpBox = helpBox::closeHelpBox
         result.selectLoop.hooks.startSuspendLostHelpBox = {

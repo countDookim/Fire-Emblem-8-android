@@ -367,6 +367,27 @@ public class TextSystem(
     }
 
     /**
+     * Resets the pen and fills the first 0x360 bytes of each of the two tile rows of [text]'s
+     * strip (the second row is 0x400 bytes on) with colour index 4 (`0x44444444`, the help box
+     * background). The last 0xA0 bytes of a row stay: the help box keeps its frame tiles there.
+     * (Whether the C function calls [spriteTextDrawBackgroundExt] is not known; the Prologue
+     * brown box clears the full 0x800 bytes of its strip with it.)
+     *
+     * Ported from src/fontgrp.c: SpriteText_DrawBackground
+     * (verified through the help box strips of ram_trace_title_continue at `f1154`, `f1175` and
+     * `f1176`, `TitleHelpBoxTextDifferentialTest`; the capture does not show the 0xA0 bytes at
+     * the end of a row being written)
+     */
+    public fun spriteTextDrawBackground(text: Text) {
+        text.x = 0
+        val dest = getTextDrawDest(text)
+        for (i in 0 until 0x360 step 4) {
+            host.writeVram32(dest + i, 0x44444444)
+            host.writeVram32(dest + 0x400 + i, 0x44444444)
+        }
+    }
+
+    /**
      * VRAM address of the OBJ tile under [text]'s pen: the `get_draw_dest` callback of a sprite
      * font. Unlike [getTextDrawDest] it advances `CHR_SIZE` bytes per tile column, since the two
      * rows of a sprite strip are 0x400 bytes apart rather than interleaved.

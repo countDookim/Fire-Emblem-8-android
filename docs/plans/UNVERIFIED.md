@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 726 across 109 decomp files (missing reason: 0).
+Total entries: 728 across 109 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -978,6 +978,14 @@ Total entries: 726 across 109 decomp files (missing reason: 0).
 | `AiTryDoSpecialItems` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs once, for Red 0, and changes nothing; its result is discarded by the caller |
 | `sub_8040C5C` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the non-rogue return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a stand-in, EP-12 |
 
+## src/helpbox.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` exists in `f3706..3722` or `f4894..4912` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580` |
+| `gProcScr_HelpBoxTextScroll` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the proc's step, string offset and strip counts match the capture |
+| `ProcScr_HelpBoxIntro` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the script position matches the capture every frame |
+
 ## src/mapanim_lvup.c (3)
 
 | Function | Kotlin file | Reason |
@@ -1195,12 +1203,6 @@ Total entries: 726 across 109 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GameOverScreen_LoopIdle` | `game/src/commonMain/kotlin/fe8/game/bm/GameOverScreen.kt` | the capture ends the idle with A, the timeout branch is not captured, PC-cap2c |
-
-## src/helpbox.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` exists in `f3706..3722` or `f4894..4912` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580` |
 
 ## src/m4a_1.s (1)
 

@@ -52,13 +52,13 @@ public interface EventUnitStateHooks {
 }
 
 /**
- * The unit state command of `src/eventscr.c`, `Event34_MessWithUnitState` (`EV_CMD_CHANGESTATE`
- * 0x34): hides, reveals, kills, removes or changes the faction, HP or state of a unit named by an
- * event character parameter, on the unit arrays of [table].
+ * The unit query and state commands of `src/eventscr.c`: `Event2E_CheckAt` (`EV_CMD_GET_PID` 0x2E,
+ * active/tile character id), `Event33_CheckUnitVarious` (`EV_CMD_CHECKSTATE` 0x33) and
+ * `Event34_MessWithUnitState` (`EV_CMD_CHANGESTATE` 0x34) on the unit arrays of [table].
  *
  * @param state the event slots.
  * @param memory script words (the command arguments).
- * @param table the unit arrays the command changes.
+ * @param table the unit arrays the command reads or changes.
  * @param loader the unit loader (`UnitChangeFaction`, `ClearUnit`, `GetUnitMaxHp`).
  * @param hooks the game state around the unit arrays.
  */
@@ -69,10 +69,34 @@ public class EventUnitState(
     private val loader: UnitLoader,
     private val hooks: EventUnitStateHooks,
 ) {
-    /** Registers 0x34 on [engine]. */
+    /** Registers 0x2E, 0x33 and 0x34 on [engine]. */
     public fun registerOn(engine: EventEngine) {
+        engine.register(0x2E, event2eCheckAt)
         engine.register(0x33, event33CheckUnitVarious)
         engine.register(0x34, event34MessWithUnitState)
+    }
+
+    /**
+     * Gets the character id (`pCharacterData->number`) of the unit at `(x, y)` (sub 0, `CHECK_AT`)
+     * or the active unit (sub 1, `CHECK_ACTIVE`), storing it (or 0 if none) in slot C.
+     *
+     * Partially ported from src/eventscr.c: Event2E_CheckAt
+     *
+     * Verified: sub 1 (`CHECK_ACTIVE`) with `CHARACTER_EIRIKA` (PID 1) in `Tutorial0` /
+     * `EventScr_Tutorial_Exec0` at `f18542` of `ram_trace_newgame_easy`
+     * (`EasyTutorialCommandsDifferentialTest`). Sub 0 (`CHECK_AT`) and `activeUnit == 0` are
+     * unverified (no capture test runs them).
+     */
+    public val event2eCheckAt: EventHandler = EventHandler { proc ->
+        val cur = proc.pEventCurrent
+        val arg = memory.u16(cur + 2)
+        val unit = when (memory.u16(cur) and 0xF) {
+            SUB_CHECK_AT -> hooks.unitAt(arg and 0xFF, (arg ushr 8) and 0xFF)
+            SUB_CHECK_ACTIVE -> hooks.activeUnit()
+            else -> 0
+        }
+        state.slots[0xC] = if (unit != 0 && table.isValid(unit)) table.charId(unit) else 0
+        EVC_ADVANCE_CONTINUE
     }
 
     /**
@@ -317,6 +341,10 @@ public class EventUnitState(
     }
 
     private companion object {
+        // Sub-commands of Event2E (`EVSUBCMD_CHECK_AT`, `EVSUBCMD_CHECK_ACTIVE`).
+        const val SUB_CHECK_AT = 0
+        const val SUB_CHECK_ACTIVE = 1
+
         // Sub-commands of Event33 (`EVSUBCMD_CHECK_*`).
         const val CHECK_EXISTS = 0
         const val CHECK_STATUS = 1

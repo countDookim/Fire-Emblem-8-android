@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 722 across 109 decomp files (missing reason: 0).
+Total entries: 720 across 109 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -422,24 +422,6 @@ Total entries: 722 across 109 decomp files (missing reason: 0).
 | `MapRoute_TransitionLoop` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
 | `MapRoute_TransitionEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
 
-## src/eventscr.c (13)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `Event13_BgmFadeIn` | `game/src/commonMain/kotlin/fe8/game/event/EventBgm.kt` | `Sound_FadeOutBGM(2)` leaves no state a trace shows without an audio player; only the dispatch and the yield are checked in WorldMapEventHostTest |
-| `Event3C_MoveCursor` | `game/src/commonMain/kotlin/fe8/game/event/EventCursorCamera.kt` | opcode 0x3C is only in tutorial scripts and never runs in available mGBA reference traces |
-| `Event37_GiveItem` | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | inventory/gold effects and popups not trace-compared |
-| `Event2A_MoveToChapter` | `game/src/commonMain/kotlin/fe8/game/event/EventMoveToChapter.kt` | only EVSUBCMD_MNC2 with non-negative chapter argument runs in PC-cap1 f9424; MNTS, MNCH, MNC3, MNC4 and the negative chapter slot-2 fallback never run in captures |
-| `Event00_NULL` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `Event04_CheckRandom` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `Event06_SlotOperation` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | PC-cap1 `f10534`, `f13201` and `f16310` (Chapter1ScriptCoreDifferentialTest) run only SADD with slot 0 as second source, so it proves the destination and first-source indices but not the operator; a broken SADD (`a - b`, `a or b`) and every other operator survive |
-| `Event10_ModifyEvBit` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | only args 0 and 1 are traced; the skipping branch and args 2-4 survive breaks |
-| `Event11_SetIgnoredKeys` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `Event0F_CounterOps` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `sub_800E290` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no CG text in any trace |
-| `sub_800E31C` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no box dialogue in any trace |
-| `Event2B_ConfigLoadUnit` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates C semantics; no trace comparison yet |
-
 ## src/mu.c (13)
 
 | Function | Kotlin file | Reason |
@@ -556,6 +538,22 @@ Total entries: 722 across 109 decomp files (missing reason: 0).
 | `EventEngine_CanStartSkip` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the captured events never press START, so the result is not observable; the engine only acts on it together with START |
 | `SetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | the only reference value is 0, so a no-op survives |
 | `GetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | no test checks it against a trace yet |
+
+## src/eventscr.c (11)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `Event13_BgmFadeIn` | `game/src/commonMain/kotlin/fe8/game/event/EventBgm.kt` | `Sound_FadeOutBGM(2)` leaves no state a trace shows without an audio player; only the dispatch and the yield are checked in WorldMapEventHostTest |
+| `Event37_GiveItem` | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | inventory/gold effects and popups not trace-compared |
+| `Event2A_MoveToChapter` | `game/src/commonMain/kotlin/fe8/game/event/EventMoveToChapter.kt` | only EVSUBCMD_MNC2 with non-negative chapter argument runs in PC-cap1 f9424; MNTS, MNCH, MNC3, MNC4 and the negative chapter slot-2 fallback never run in captures |
+| `Event00_NULL` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+| `Event04_CheckRandom` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+| `Event06_SlotOperation` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | PC-cap1 `f10534`, `f13201` and `f16310` (Chapter1ScriptCoreDifferentialTest) run only SADD with slot 0 as second source, so it proves the destination and first-source indices but not the operator; a broken SADD (`a - b`, `a or b`) and every other operator survive |
+| `Event10_ModifyEvBit` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | only args 0 and 1 are traced; the skipping branch and args 2-4 survive breaks |
+| `Event0F_CounterOps` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+| `sub_800E290` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no CG text in any trace |
+| `sub_800E31C` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no box dialogue in any trace |
+| `Event2B_ConfigLoadUnit` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates C semantics; no trace comparison yet |
 
 ## src/worldmap_main.c (11)
 

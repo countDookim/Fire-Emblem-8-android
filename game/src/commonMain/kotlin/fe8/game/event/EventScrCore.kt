@@ -516,7 +516,12 @@ public class EventScrCore(
     /**
      * Makes the game ignore some buttons while the event runs (the argument is the button mask).
      *
-     * Transcribed from src/eventscr.c: Event11_SetIgnoredKeys (not verified: not in the prologue)
+     * Partially ported from src/eventscr.c: Event11_SetIgnoredKeys
+     *
+     * Verified: sub command 0 (`IGNORE_KEYS`) setting [KeyStatus.ignoreMask] to `R | START | B`
+     * (`0x010A`) at `f18747` and `f18988` and clearing it to `0` at `f18800` in
+     * `ram_trace_newgame_easy` (`EasyTutorialCommandsDifferentialTest`). The `subCmd == 0` guard
+     * (`subCmd != 0` no-op) is unverified: no capture executes a non-zero sub command.
      *
      * Sub command 0 sets the key ignore mask ([KeyStatus.applyIgnoreMask]) to the argument.
      */
@@ -529,9 +534,12 @@ public class EventScrCore(
     /**
      * Partially ported from src/eventscr.c: Event19_Checks
      *
-     * Verified: sub 7 (tutorial mode) by Chapter1ScriptCoreDifferentialTest on PC-cap1
-     * (`f16019`, `f25419`: slot C 0 and the branch after it). Only the result 0 occurs; subs 0-6,
-     * 8, 9 and 0xA are Transcribed (not verified: no capture runs them).
+     * Verified: sub 7 (`CHECK_TUTORIAL`) returning `0` via `playSt.controller != 0` in
+     * `Chapter1ScriptCoreDifferentialTest` (`ram_trace_prologue_end` `f16019`, `f25419`) and
+     * returning `1` (`controller == 0 && !hard`, entering `EventScr_Prologue_ExecTut`) in
+     * `EasyTutorialCommandsDifferentialTest` (`ram_trace_newgame_easy` `f18229`). The
+     * `PLAY_FLAG_HARD` arm inside sub 7 and subs 0-6, 8, 9 and 0xA are unverified (no capture
+     * test exercises them).
      *
      * The CHECK commands: store a game-state query in slot C. Sub commands: 0 mode, 1
      * chapter number, 2 hard mode, 3 turn number, 4 enemy units, 5 other (green) units, 6

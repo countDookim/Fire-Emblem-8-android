@@ -629,6 +629,8 @@ public class Fe8Boot(
             val unitState = EventUnitState(
                 state, memory, units, loader,
                 object : EventUnitStateHooks {
+                    override fun activeUnit(): Int = activeUnit?.unit ?: 0
+
                     override fun unitAt(x: Int, y: Int): Int = battleBmMap.unit[y, x]
 
                     override fun refreshMapAndSprites() {
@@ -1057,6 +1059,9 @@ public class Fe8Boot(
     internal var playerWiring: PlayerPhaseWiring? = null
         private set
 
+    /** The active unit (`gActiveUnit`), set by the battle map wiring. */
+    private var activeUnit: ActiveUnit? = null
+
     /** `RefreshUnitSprites` of the battle map, set by [wireUnitSprites]. */
     private var refreshSprites: () -> Unit = {}
 
@@ -1252,6 +1257,7 @@ public class Fe8Boot(
         ) { battleMap.hooks.getBattleMapKind() }
         val entityBmMaps = battleEntityMaps
         val active = ActiveUnit()
+        activeUnit = active
         val moves = MovementMap(rom, map, units, control.playSt)
         val arrow = PathArrow(
             map, units, moves, active, bm, rng = rng, sprites = loop.sprites, hardware = hw,

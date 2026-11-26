@@ -67,9 +67,10 @@ public interface EventCursorCameraHooks {
  * the camera to a tile or unit), 0x3B (`Event3B_DisplayCursor`, show or hide the event cursor)
  * and 0x3C (`Event3C_MoveCursor`, read or set the player cursor).
  *
- * Verification: none claimed. The differential test compares the cursor fields of `gBmSt` after
- * 0x26 (one pair) and 0x3B (no cursor write); 0x3C never runs in the trace and the camera is not
- * compared. The commands are transcribed.
+ * Verification: `Event26_CameraControl`, `Event3B_DisplayCursor`, and `eventDisplayCursorLoop` are
+ * verified in `EventCursorCameraTest`; `Event3C_MoveCursor` is partially verified in
+ * `EasyTutorialCommandsDifferentialTest` (`CHECK_CURSOR` and slot-B `SET_CURSOR`; literal
+ * coordinates and non-`0..1` subcommands are unverified).
  *
  * @param state the event slots.
  * @param memory script words (the command arguments).
@@ -199,8 +200,14 @@ public class EventCursorCamera(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event3C_MoveCursor (not verified: opcode 0x3C is only
-     * in tutorial scripts and never runs in available mGBA reference traces)
+     * Partially ported from src/eventscr.c: Event3C_MoveCursor
+     *
+     * Verified in `ram_trace_newgame_easy` (`EasyTutorialCommandsDifferentialTest`): subcommand 0
+     * (`EVSUBCMD_CHECK_CURSOR`) storing `(10, 5)` at `f18800` and `(4, 5)` at `f19020` in slot 0xC,
+     * and subcommand 1 (`EVSUBCMD_SET_CURSOR`) with `-1` (`0xFFFF`) reading `(4, 5)` from slot 0xB
+     * and snapping the cursor at `f18800`. Unverified: subcommand 1 with literal non-negative
+     * coordinates (`x >= 0 && y >= 0`), `x >= 0 && y < 0`, and remaining subcommands (no capture
+     * executes them).
      *
      * Subcommand 0 (`EVSUBCMD_CHECK_CURSOR`) stores the player cursor tile in slot 0xC (X low
      * half, Y high half); 1 (`EVSUBCMD_SET_CURSOR`) moves the cursor to a tile (slot 0xB when an
@@ -215,8 +222,8 @@ public class EventCursorCamera(
                 var x = argX(cur)
                 var y = argY(cur)
                 if (x < 0 || y < 0) {
-                    x = state.slots[0xB] and 0xFFFF
-                    y = state.slots[0xB] ushr 16
+                    x = (state.slots[0xB] and 0xFFFF).toByte().toInt()
+                    y = (state.slots[0xB] ushr 16).toByte().toInt()
                 }
                 Camera.setCursorMapPosition(bm, x, y)
             }

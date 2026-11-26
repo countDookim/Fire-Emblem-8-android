@@ -239,11 +239,12 @@ public class EventInfos(
     }
 
     /**
-     * Transcribed from src/eventinfo.c: CheckTutorialEvent (not verified: not reached by a
-     *   capture; its caller is CheckBattleForecastTutorialEvent, EP-35)
+     * Ported from src/eventinfo.c: CheckTutorialEvent
      *
      * True when a tutorial event is queued (`tutorial_counter` is not 0) for [type]
-     * (`tutorial_exec_type`).
+     * (`tutorial_exec_type`). Verified against the queue of `ram_trace_newgame_easy` for
+     * `FORECAST` (`f22524..22565`) and `POSTACTION` (`f23366`) queued, other types queued and
+     * the queue empty (`EasyTutorialTurn2DispatchDifferentialTest`).
      */
     public fun checkTutorialEvent(type: Int): Boolean =
         playSt.tutorialCounter != 0 && playSt.tutorialExecType == type
@@ -339,22 +340,24 @@ public class EventInfos(
         startSpecialEvent(TUTORIAL_EVT_TYPE_DESTSELECTED, DEST_SELECTED_EVENTS)
 
     /**
-     * Transcribed from src/eventinfo.c: StartAfterUnitMovedEvent (not verified: no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one)
+     * Partially ported from src/eventinfo.c: StartAfterUnitMovedEvent
      *
      * After a unit moved: as [startDestSelectedEvent] for the `AFTERMOVE` tutorial event and the
-     * chapter's `specialEventsAfterUnitMoved` list.
+     * chapter's `specialEventsAfterUnitMoved` list. Verified for the queued `AFTERMOVE` tutorial
+     * branch (`f22447 -> f22448` of `ram_trace_newgame_easy`) and for other types queued; the
+     * skirmish guard and non-empty `specialEventsAfterUnitMoved` lists are Transcribed (not
+     * verified: Prologue's list is empty and no capture reaches skirmish).
      */
     public fun startAfterUnitMovedEvent(): Boolean =
         startSpecialEvent(TUTORIAL_EVT_TYPE_AFTERMOVE, AFTER_UNIT_MOVED_EVENTS)
 
     /**
-     * Transcribed from src/eventinfo.c: StartPlayerPhaseStartTutorialEvent (not verified: no
-     *   `PLAYERPHASE` tutorial is queued at `f18532` of `ram_trace_newgame_easy`, so a no-op
-     *   survives; `EasyTutorialDispatchDifferentialTest` checks that `f18532` leaves the pending
-     *   `ONSELECT` tutorial queued)
+     * Partially ported from src/eventinfo.c: StartPlayerPhaseStartTutorialEvent
      *
      * Runs the queued `PLAYERPHASE` tutorial event at the start of player phase; does nothing on
-     * skirmish maps.
+     * skirmish maps. Verified for the queued `PLAYERPHASE` tutorial (`f24209 -> f24210` of
+     * `ram_trace_newgame_easy`) and for other types queued (`f18532`, `f24198`); the skirmish
+     * guard is Transcribed (not verified: no capture reaches skirmish).
      */
     public fun startPlayerPhaseStartTutorialEvent() {
         if (hooks.getBattleMapKind() == KIND_SKIRMISH) return
@@ -376,14 +379,28 @@ public class EventInfos(
     }
 
     /**
-     * Transcribed from src/eventinfo.c: CheckBattleForecastTutorialEvent (not verified: no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one)
+     * Partially ported from src/eventinfo.c: CheckBattleForecastTutorialEvent
      *
      * True when the `FORECAST` tutorial event is queued ([checkTutorialEvent]); false on skirmish
-     * maps.
+     * maps. Verified true while `FORECAST` is queued (`f22524..22565` of
+     * `ram_trace_newgame_easy`) and false otherwise; the skirmish guard is Transcribed (not
+     * verified: no capture reaches skirmish).
      */
     public fun checkBattleForecastTutorialEvent(): Boolean {
         if (hooks.getBattleMapKind() == KIND_SKIRMISH) return false
         return checkTutorialEvent(TUTORIAL_EVT_TYPE_FORECAST)
+    }
+
+    /**
+     * Partially ported from src/eventinfo.c: StartBattleForecastTutorialEvent
+     *
+     * Runs the queued `FORECAST` tutorial event; does nothing on skirmish maps. Verified for the
+     * queued `FORECAST` tutorial (`f22565 -> f22566` of `ram_trace_newgame_easy`); the skirmish
+     * guard is Transcribed (not verified: no capture reaches skirmish).
+     */
+    public fun startBattleForecastTutorialEvent() {
+        if (hooks.getBattleMapKind() == KIND_SKIRMISH) return
+        runTutorialEvent(TUTORIAL_EVT_TYPE_FORECAST)
     }
 
     /**

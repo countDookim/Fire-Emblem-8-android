@@ -62,7 +62,9 @@ public class Fe8Game(
             m4a = sound,
             pcm = pcm,
             saveStorage = saveStorage,
-            realTitleMenu = true,
+            // Off until New Game through the real menu works: it reaches the unported
+            // sub_808AA04 / GetBoxDialogueSize (PC-11b2). Resume / Restart are verified.
+            realTitleMenu = false,
         )
     }
 

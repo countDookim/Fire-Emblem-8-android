@@ -36,12 +36,13 @@ import gbafe.text.TextSystem
  * which [MenuProc.def] and [MenuItemProc.def] hold as GBA addresses. The def's callbacks and the
  * item defs' callbacks (availability, draw, select, idle, switch in and out) are called through
  * [callbacks], keyed by the ROM address of the original function. Registered by default are the
- * `uimenu.c` ones: `MenuAlwaysEnabled` and `MenuCancelSelect`. The others are stand-ins until
- * their port: the unit menu's are registered by `fe8.game.bm.UnitActionMenu.install` (PP-10), and
+ * `uimenu.c` ones: `MenuAlwaysEnabled`, `MenuAlwaysNotShown` and `MenuCancelSelect`. The
+ * others are stand-ins until their port: the unit menu's are registered by
+ * `fe8.game.bm.UnitActionMenu.install` (PP-10), and
  * the remaining ones of the unit and map menus are no-op or refusal stand-ins registered by
  * `PlayerPhaseWiring`. An unregistered address fails loudly instead of guessing. The help-box
- * procs of `uimenu.c` (`sProc_MenuAutoHelpBox`, `sProc_MenuFrozenHelpBox`, `sProc_MenuFrozen`),
- * the menu overrides (`AddMenuOverride` and friends) and `EndAllMenus` are not ported here.
+ * procs of `uimenu.c` (`sProc_MenuAutoHelpBox`, `sProc_MenuFrozenHelpBox`, `sProc_MenuFrozen`)
+ * and `EndAllMenus` are not ported here. The menu overrides are in [MenuOverrides].
  */
 public class Menu(
     private val engine: ProcEngine,
@@ -261,6 +262,8 @@ public class Menu(
     init {
         callbacks[MENU_ALWAYS_ENABLED] =
             MenuFunc { _, _, itemDef, number -> menuAlwaysEnabled(itemDef, number) }
+        callbacks[MenuOverrides.MENU_ALWAYS_NOT_SHOWN] =
+            MenuFunc { _, _, itemDef, number -> menuAlwaysNotShown(itemDef, number) }
         callbacks[MENU_CANCEL_SELECT] =
             MenuFunc { menu, item, _, _ -> menuCancelSelect(menu!!, item!!) }
     }
@@ -399,7 +402,7 @@ public class Menu(
         var i = 0
         while (rom.u32(items + ITEM_DEF_SIZE * i + 0xC) != 0) {
             val itemDef = items + ITEM_DEF_SIZE * i
-            var availability = overriddenMenuAvailability()
+            var availability = overriddenMenuAvailability(itemDef, i)
 
             if (availability == 0) {
                 val isAvailable = rom.u32(itemDef + 0xC)
@@ -737,7 +740,7 @@ public class Menu(
         if (keys.newKeys and A_BUTTON != 0) {
             // A Button press
 
-            result = overriddenMenuSelected()
+            result = overriddenMenuSelected(menu, item)
 
             val onSelected = rom.u32(item.def + 0x14)
             if (result == 0xFF && onSelected != 0) {
@@ -796,19 +799,38 @@ public class Menu(
      * Availability that a menu override forces on an item (`AddMenuOverride` with
      * `MENU_OVERRIDE_ISAVAILABLE`, matched on the item def's `overrideId`), or 0 for no override.
      *
-     * Transcribed from src/uimenu.c: OverriddenMenuAvailability (not verified: the override
-     * table is empty in the captures and AddMenuOverride is not ported)
+     * Partially ported from src/uimenu.c: OverriddenMenuAvailability
+     * Verified in `ram_trace_newgame_easy` (`EasyTutorialMenuOverrideDifferentialTest`): the
+     * Wait-only unit menu at `f19068` (the `MenuAlwaysNotShown` override of every other item).
+     * Overrides with another callback are unverified.
      */
-    private fun overriddenMenuAvailability(): Int = 0
+    private fun overriddenMenuAvailability(itemDef: Int, number: Int): Int {
+        val func = overrides.availabilityOverride(rom.u8(itemDef + ITEM_DEF_OVERRIDE_ID))
+        if (func == 0) return 0
+        return invokeCallback(func, null, null, itemDef, number) and 0xFF
+    }
 
     /**
      * The select result of an overridden item (`MENU_OVERRIDE_ONSELECT`), or `0xFF` when no
      * override replaces the item's own select callback.
      *
-     * Transcribed from src/uimenu.c: OverriddenMenuSelected (not verified: see
-     * [overriddenMenuAvailability])
+     * Transcribed from src/uimenu.c: OverriddenMenuSelected (not verified: no capture adds an
+     * `MENU_OVERRIDE_ONSELECT` entry)
      */
-    private fun overriddenMenuSelected(): Int = 0xFF
+    private fun overriddenMenuSelected(menu: MenuProc, item: MenuItemProc): Int {
+        val func = overrides.selectOverride(rom.u8(item.def + ITEM_DEF_OVERRIDE_ID))
+        if (func == 0) return 0xFF
+        return invokeCallback(func, menu, item, 0, 0) and 0xFF
+    }
+
+    /**
+     * Availability callback for an item that is never shown: `MENU_NOTSHOWN`. [itemDef] and
+     * [number] are unused. The `MenuAlwaysNotShown` override callback of the event command
+     * `Event3D_MenuOverride`.
+     *
+     * Ported from src/uimenu.c: MenuAlwaysNotShown
+     */
+    public fun menuAlwaysNotShown(itemDef: Int, number: Int): Int = MENU_NOTSHOWN
 
     /**
      * Availability callback for an item that is always usable: `MENU_ENABLED`. [itemDef] and
@@ -910,6 +932,7 @@ public class Menu(
 
         /** `sizeof(struct MenuItemDef)`: last field `onSwitchOut` at +0x20, 4 bytes. */
         private const val ITEM_DEF_SIZE = 0x24
+        private const val ITEM_DEF_OVERRIDE_ID = 9
 
         /** `TEXT_COLOR_SYSTEM_GRAY` (= `TEXT_COLOR_0456`): the text colour of disabled items. */
         private const val TEXT_COLOR_SYSTEM_GRAY = 1

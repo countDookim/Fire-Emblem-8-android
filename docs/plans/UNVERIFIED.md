@@ -712,8 +712,8 @@ Total entries: 720 across 109 decomp files (missing reason: 0).
 | `ResumeMenu` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | no `sProc_Menu` proc exists when the boss turn event ends at `f3722` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580` |
 | `SyncMenuBgs` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the sync flags are consumed in VBlank before the RAM dumps |
 | `HasMenuChangedItem` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | only its callers' switch in and out branches use it, and no item of the captured menus has such callbacks |
-| `OverriddenMenuAvailability` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the override table is empty in the captures and AddMenuOverride is not ported |
-| `OverriddenMenuSelected` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | see [overriddenMenuAvailability] |
+| `OverriddenMenuSelected` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | no capture adds an `MENU_OVERRIDE_ONSELECT` entry |
+| `OverriddenMenuSelected` | `game/src/commonMain/kotlin/fe8/game/ui/MenuOverrides.kt` | no capture adds a `MENU_OVERRIDE_ONSELECT` entry |
 | `GetForceDisabledMenuItems` | `game/src/commonMain/kotlin/fe8/game/ui/MenuOverrides.kt` | `sMenuOverrides` is all zeros in every reference capture, which proves the 16-byte `MENU_ITEM_NONE` write into SRAM / `gGenericBuffer`, not the `MenuAlwaysNotShown` filter branch |
 
 ## src/bmmap.c (6)

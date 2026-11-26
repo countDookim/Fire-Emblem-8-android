@@ -35,13 +35,69 @@ public class MenuOverrides {
     /** Returns the callback ROM address (`func`) stored at [index]. */
     public fun func(index: Int): Int = funcs[index]
 
-    /** Clears all [MENU_OVERRIDE_MAX] override slots (`kind = MENU_OVERRIDE_NONE`). */
-    public fun clear() {
-        for (i in 0 until MENU_OVERRIDE_MAX) {
-            cmdIds[i] = 0
-            kinds[i] = MENU_OVERRIDE_NONE
-            funcs[i] = 0
+    /**
+     * Ported from src/uimenu.c: ResetMenuOverrides
+     *
+     * Marks every slot unused (`kind = MENU_OVERRIDE_NONE`). Like the original, it leaves the
+     * stale `cmdid` and `func` words in place.
+     */
+    public fun resetMenuOverrides() {
+        for (i in 0 until MENU_OVERRIDE_MAX) kinds[i] = MENU_OVERRIDE_NONE
+    }
+
+    /**
+     * Partially ported from src/uimenu.c: AddMenuOverride
+     *
+     * Verified in `ram_trace_newgame_easy` (`EasyTutorialMenuOverrideDifferentialTest`): adding
+     * 14 distinct (`cmdid`, `MENU_OVERRIDE_ISAVAILABLE`) entries to a reset table fills slots 0..13
+     * in order. Unverified: replacing an existing entry with the same [cmdId] and [kind] (no
+     * capture adds a duplicate). The original's search is unbounded; a full table drops the new
+     * entry here (unreachable: the event command adds at most 15 entries to a reset table).
+     *
+     * Stores ([cmdId], [kind], [func]) in the first unused slot, or in the slot that already
+     * holds the same [cmdId] and [kind].
+     */
+    public fun addMenuOverride(cmdId: Int, kind: Int, func: Int) {
+        var i = 0
+        while (i < MENU_OVERRIDE_MAX && kinds[i] != MENU_OVERRIDE_NONE &&
+            !(kinds[i] == kind && cmdIds[i] == cmdId)
+        ) {
+            i++
         }
+        if (i == MENU_OVERRIDE_MAX) return
+        setOverride(i, cmdId, kind, func)
+    }
+
+    /**
+     * Partially ported from src/uimenu.c: OverriddenMenuAvailability (lookup half)
+     *
+     * Verified in `ram_trace_newgame_easy` (`EasyTutorialMenuOverrideDifferentialTest`, `f19068`):
+     * every unit menu item with an override resolves to `MenuAlwaysNotShown`; the item without one
+     * (Wait) resolves to none. Returns the callback address of the first
+     * `MENU_OVERRIDE_ISAVAILABLE` entry whose `cmdid` is [overrideId] (an item def's `overrideId`),
+     * or 0 when none matches; the caller runs it. Scanning stops at the first unused slot.
+     */
+    public fun availabilityOverride(overrideId: Int): Int =
+        findOverride(MENU_OVERRIDE_ISAVAILABLE, overrideId)
+
+    /**
+     * Transcribed from src/uimenu.c: OverriddenMenuSelected (lookup half; not verified: no
+     * capture adds a `MENU_OVERRIDE_ONSELECT` entry)
+     *
+     * Returns the callback address of the first `MENU_OVERRIDE_ONSELECT` entry whose `cmdid` is
+     * [overrideId], or 0 when none matches; the caller runs it, or its own select callback
+     * (result `0xFF`) when there is none.
+     */
+    public fun selectOverride(overrideId: Int): Int =
+        findOverride(MENU_OVERRIDE_ONSELECT, overrideId)
+
+    private fun findOverride(kind: Int, overrideId: Int): Int {
+        var i = 0
+        while (i < MENU_OVERRIDE_MAX && kinds[i] != MENU_OVERRIDE_NONE) {
+            if (kinds[i] == kind && cmdIds[i] == overrideId) return funcs[i]
+            i++
+        }
+        return 0
     }
 
     /**

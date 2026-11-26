@@ -89,6 +89,7 @@ import fe8.game.event.EventTextBgHost
 import fe8.game.event.EventTextTalkHost
 import fe8.game.event.EventCursorCamera
 import fe8.game.event.EventCursorCameraHooks
+import fe8.game.event.EventMenuOverride
 import fe8.game.event.MapCursorProc
 import fe8.game.event.createProcScrEventDisplayCursor
 import fe8.game.event.EventEngineProc
@@ -586,6 +587,7 @@ public class Fe8Boot(
                     }
                 },
             ).registerOn(it)
+            EventMenuOverride(memory) { playerWiring?.menu?.overrides }.registerOn(it)
             EventUnitLoads(
                 state, memory, rom, units, loader, rng,
                 { x, y -> battleBmMap.terrain[y, x] },
@@ -1674,7 +1676,7 @@ public class Fe8Boot(
         start.hooks.applyUnitSpritePalettes = { sprites.applyUnitSpritePalettes() }
         // `ResetMenuOverrides` (`sMenuOverrides`, owned by the player phase menu) and
         // `ClearTemporaryUnits` (then `RefreshEntityBmMaps`, `RefreshUnitSprites`).
-        start.hooks.resetMenuOverrides = { playerWiring?.menu?.overrides?.clear() }
+        start.hooks.resetMenuOverrides = { playerWiring?.menu?.overrides?.resetMenuOverrides() }
         start.hooks.clearTemporaryUnits = {
             units.clearTemporaryUnits()
             battleEntityMaps.refreshEntityBmMaps()

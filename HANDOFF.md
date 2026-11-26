@@ -27,6 +27,12 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 PC-11f: scheduled, until ~11:30Z
 PC-11j: scheduled, until ~11:30Z
+PC-10a: owner PC, until ~14:10Z
+PC-10b: owner PC, until ~14:10Z
+BA-p1a: owner PC, until ~14:10Z
+BA-p1b: owner PC, until ~14:10Z
+BA-p9a: owner PC, until ~14:10Z
+BA-p9b: owner PC, until ~14:10Z
 
 
 ## Current state

@@ -146,7 +146,7 @@ public class HelpBox(
     private val text: TextSystem,
     private val helpPrompt: HelpPromptSprite,
     private val messages: MsgStrings,
-    /** `gPlaySt.config.textSpeed`: 0 default, 1 slow, 2 fast, 3 all at once. */
+    /** `gPlaySt.config.textSpeed`: 0 default, 1 slow, 2 fast, 3 whole text immediately. */
     private val textSpeed: () -> Int = { 0 },
     /** Callbacks for the parts that later tasks own. */
     public val hooks: Hooks = Hooks(),
@@ -497,7 +497,7 @@ public class HelpBox(
     /**
      * Sets the strips' colour, ends any running text scroll and starts a new one for the
      * message with the speed from the text speed option (0 two frames per character, 1 slow,
-     * 2 two characters a frame, 3 all at once).
+     * 2 two characters a frame, 3 whole text immediately).
      *
      * Ported from src/helpbox.c: HelpBoxIntroDrawTexts
      * (verified for text speed 2, the captured option; the other speeds are not exercised)

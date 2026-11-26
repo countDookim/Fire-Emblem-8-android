@@ -8,8 +8,8 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1477,
-    "implemented_unverified": 149
+    "verified": 1497,
+    "implemented_unverified": 157
   },
   "functions": {
     "APProc_Create": {
@@ -2054,6 +2054,16 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "ClearHelpBoxText": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxTextDifferentialTest#continue run confirm box text matches f1094 to f1176"
+      ]
+    },
     "ClearMenuBgs": {
       "decomp_file": "src/uimenu.c",
       "system": "menus",
@@ -2214,6 +2224,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "CloseHelpBox": {
+      "decomp_file": "src/statscreen.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxDifferentialTest#continue run confirm help box matches f1094 to f1183"
       ]
     },
     "ColorFadeSetupFromBlack": {
@@ -2659,6 +2679,14 @@
       "status": "implemented",
       "tests": []
     },
+    "DisableEkrGauge": {
+      "decomp_file": "src/banim-ekrgauge.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrGauge.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "DisplayBattleInfoBox": {
       "decomp_file": "src/mapanim_infobox.c",
       "system": "map_anim",
@@ -2688,6 +2716,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleQuoteDifferentialTest#defeat event at f4636 starts battle engine proc and sets boss defeat flag"
+      ]
+    },
+    "DisplayHelpBoxObj": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxDifferentialTest#continue run confirm help box matches f1094 to f1183"
       ]
     },
     "DisplayMoveRangeGraphics": {
@@ -3027,6 +3065,54 @@
         "fe8.testing.UnitActionMenuDifferentialTest#unit menu without a target lists Item and Wait and Wait sets the action"
       ]
     },
+    "EkrGauge_Clr323A": {
+      "decomp_file": "src/banim-ekrgauge.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrGauge.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EkrGauge_Clr4C50": {
+      "decomp_file": "src/banim-ekrgauge.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrGauge.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EkrGauge_ClrInitFlag": {
+      "decomp_file": "src/banim-ekrgauge.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrGauge.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EkrGauge_SetInitFlag": {
+      "decomp_file": "src/banim-ekrgauge.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrGauge.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EkrGauge_Setup44": {
+      "decomp_file": "src/banim-ekrgauge.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrGauge.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EkrGauge_Setxy323A": {
+      "decomp_file": "src/banim-ekrgauge.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrGauge.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "EnableKeyComboResetEN": {
       "decomp_file": "src/time.c",
       "system": "core",
@@ -3073,6 +3159,14 @@
       "system": "battle_map",
       "in_scope": true,
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgVerticalScroll.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EndEkrGauge": {
+      "decomp_file": "src/banim-ekrgauge.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrGauge.kt",
       "status": "implemented",
       "tests": []
     },
@@ -5621,6 +5715,16 @@
         "fe8.testing.MsgStringsRomTest#getStringFromIndex reproduces sMsgString and caches the active id"
       ]
     },
+    "GetStringTextBox": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxDifferentialTest#continue run confirm help box matches f1094 to f1183"
+      ]
+    },
     "GetStringTextCenteredPos": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -6777,6 +6881,86 @@
         "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
       ]
     },
+    "HelpBoxDrawstring": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxTextDifferentialTest#continue run confirm box text matches f1094 to f1176"
+      ]
+    },
+    "HelpBoxIntroDrawTexts": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxTextDifferentialTest#continue run confirm box text matches f1094 to f1176"
+      ]
+    },
+    "HelpBoxSetupstringLines": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxTextDifferentialTest#continue run confirm box text matches f1094 to f1176"
+      ]
+    },
+    "HelpBoxTextScroll_OnLoop": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxTextDifferentialTest#continue run confirm box text matches f1094 to f1176"
+      ]
+    },
+    "HelpBox_OnClose": {
+      "decomp_file": "src/statscreen.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxDifferentialTest#continue run confirm help box matches f1094 to f1183"
+      ]
+    },
+    "HelpBox_OnLoop": {
+      "decomp_file": "src/statscreen.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxDifferentialTest#continue run confirm help box matches f1094 to f1183"
+      ]
+    },
+    "HelpBox_OnOpen": {
+      "decomp_file": "src/statscreen.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxDifferentialTest#continue run confirm help box matches f1094 to f1183"
+      ]
+    },
+    "HelpBox_WaitClose": {
+      "decomp_file": "src/statscreen.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxDifferentialTest#continue run confirm help box matches f1094 to f1183"
+      ]
+    },
     "HelpPrompt_OnIdle": {
       "decomp_file": "src/statscreen.c",
       "system": "menus",
@@ -7409,6 +7593,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "LoadHelpBoxGfx": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxDifferentialTest#continue run confirm help box matches f1094 to f1183"
       ]
     },
     "LoadIconObjectGraphics": {
@@ -8637,6 +8831,28 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "NewEkrBattleDeamon": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleStarting.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleStartingDifferentialTest#attack entry daemon and starting proc f1464 to f1496",
+        "fe8.testing.EkrBattleStartingDifferentialTest#scripted battle entry daemon and starting proc f14431 to f14467"
+      ]
+    },
+    "NewEkrBattleStarting": {
+      "decomp_file": "src/banim-ekrbattlestarting.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleStarting.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleStartingDifferentialTest#attack entry daemon and starting proc f1464 to f1496",
+        "fe8.testing.EkrBattleStartingDifferentialTest#scripted battle entry daemon and starting proc f14431 to f14467"
       ]
     },
     "NewEkrbattleending": {
@@ -10753,7 +10969,9 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.BossTurnEventDifferentialTest#the turn event start at f2964 reproduces the registry, flags and tutorial queue"
+        "fe8.testing.BossTurnEventDifferentialTest#the turn event start at f2964 reproduces the registry, flags and tutorial queue",
+        "fe8.testing.EasyTutorialDispatchDifferentialTest#destination select dispatches Tutorial1 hint at f18800 and success at f19020",
+        "fe8.testing.EasyTutorialDispatchDifferentialTest#phase start keeps ONSELECT queued and unit select dispatches Tutorial0 at f18541"
       ]
     },
     "RunWaitEvents": {
@@ -11600,6 +11818,16 @@
         "fe8.testing.BgmVolumeChangeTest#volume ramp matches the trace"
       ]
     },
+    "SpriteText_DrawBackground": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxTextDifferentialTest#continue run confirm box text matches f1094 to f1176"
+      ]
+    },
     "SramChecksum32": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -11929,6 +12157,26 @@
         "fe8.testing.GoalDisplayDifferentialTest#cancel_end goal window restarts after cancelling the selection",
         "fe8.testing.GoalDisplayDifferentialTest#select_move goal window starts after the unit waits",
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "StartHelpBoxExt_NoHelpSprite": {
+      "decomp_file": "src/statscreen.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxDifferentialTest#continue run confirm help box matches f1094 to f1183"
+      ]
+    },
+    "StartHelpBoxTextInit": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleHelpBoxTextDifferentialTest#continue run confirm box text matches f1094 to f1176"
       ]
     },
     "StartHelpPromptSprite": {
@@ -14054,6 +14302,17 @@
         "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
       ]
     },
+    "ekrBaStart_InitScreen": {
+      "decomp_file": "src/banim-ekrbattlestarting.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleStarting.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleStartingDifferentialTest#attack entry daemon and starting proc f1464 to f1496",
+        "fe8.testing.EkrBattleStartingDifferentialTest#scripted battle entry daemon and starting proc f14431 to f14467"
+      ]
+    },
     "ekrBattleEnding_8056228": {
       "decomp_file": "src/banim-ekrbattleending.c",
       "system": "battle_anim",
@@ -14420,6 +14679,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "nullsub_35": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EkrBattleStarting.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EkrBattleStartingDifferentialTest#attack entry daemon and starting proc f1464 to f1496",
+        "fe8.testing.EkrBattleStartingDifferentialTest#scripted battle entry daemon and starting proc f14431 to f14467"
       ]
     },
     "ply_endtie": {

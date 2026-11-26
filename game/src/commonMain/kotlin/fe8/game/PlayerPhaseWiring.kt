@@ -438,6 +438,8 @@ internal class PlayerPhaseWiring(
         }
         h.runWaitEvents = { infos.runWaitEvents(units.xPos(active.unit), units.yPos(active.unit)) }
         h.shouldCallEndEvent = { infos.shouldCallEndEvent() }
+        h.startTutorialEvent = ProcFunc { infos.startPlayerPhaseStartTutorialEvent() }
+        h.tryCallSelectEvents = ProcFunc { infos.tryCallSelectEvents() }
         h.startDestSelectedEvent = { infos.startDestSelectedEvent() }
         h.startAfterUnitMovedEvent = { infos.startAfterUnitMovedEvent() }
         forecast.hooks.tutorialPending = { infos.checkBattleForecastTutorialEvent() }

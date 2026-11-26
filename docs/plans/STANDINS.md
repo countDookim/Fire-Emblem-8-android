@@ -10,14 +10,14 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 261 across 60 Kotlin files.
+Total entries: 259 across 60 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 13 |
 | M6-C | 5 |
 | M6-D | 13 |
-| M6-E | 41 |
+| M6-E | 39 |
 | M6-F | 16 |
 | M6-G | 5 |
 | M6-H | 44 |
@@ -86,7 +86,7 @@ Total entries: 261 across 60 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11: the range of a unit the player does not control, `PLAYER_SELECT_NOCONTROL`). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (label 12: the danger zone, `GenerateDangerZoneRange`, reached when the resume finds no active unit). |
 
-## M6-E (41)
+## M6-E (39)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -119,8 +119,6 @@ Total entries: 261 across 60 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | `isGamePlayedThrough` | `IsGamePlayedThrough()` (reads the save, bmsave-lib.c; stand-in until the save library is ported, M6-E: no captured value depends on it); [Mu] builds `IsFirstPlaythrough()` on it. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `maybeCallEndEvent` | `MaybeCallEndEvent_`; stand-in until M6-E (the end event). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resumeRangeDisplay` | Stand-in until M6-E for `PlayerPhase_ResumeRangeDisplay` (label 6: back from the stat screen opened in the range display idle; redraws the map and the active unit's range). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startTutorialEvent` | Stand-in until M6-E for `StartPlayerPhaseStartTutorialEvent`: runs the chapter's pending tutorial event if it is of the player phase type (never in a skirmish). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `tryCallSelectEvents` | Stand-in until M6-E for `TryCallSelectEvents` (select events of the active unit). |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `colorFadeIn` | Stand-in (M6-E) for `NewColFadeIn(speed, 0, color, proc)`: fades the screen in from [color] (a colour word, format not checked here) at [speed]. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `colorFadeOut` | Stand-in (M6-E) for `NewColFadeOut(speed, 0, color, proc)`: fades the screen out to [color] at [speed]. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `displayCg` | Stand-in until M6-E for the `EVSUBCMD_0x1A22` case (text type 2): `DisplayCGfx( gBG3TilemapBuffer, ...)` shows CG picture [bgIndex] on BG3, then BG3 and palette sync. |

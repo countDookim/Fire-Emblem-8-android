@@ -130,8 +130,9 @@ public class PlayerPhase(
         public var refreshUnitSprites: ProcFunc = ProcFunc {}
 
         /**
-         * Stand-in until M6-E for `StartPlayerPhaseStartTutorialEvent`: runs the chapter's pending
-         * tutorial event if it is of the player phase type (never in a skirmish).
+         * `StartPlayerPhaseStartTutorialEvent` (src/eventinfo.c): runs the chapter's pending
+         * tutorial event if it is of the player phase type (never in a skirmish); set by
+         * `PlayerPhaseWiring`.
          */
         public var startTutorialEvent: ProcFunc = ProcFunc {}
 
@@ -248,7 +249,10 @@ public class PlayerPhase(
         /** `SetAutoMuDefaultFacing`; set by `PlayerPhaseWiring`. */
         public var setAutoMuDefaultFacing: ProcFunc = ProcFunc {}
 
-        /** Stand-in until M6-E for `TryCallSelectEvents` (select events of the active unit). */
+        /**
+         * `TryCallSelectEvents` (src/eventinfo.c): runs the `ONSELECT` tutorial event and any
+         * `specialEventsWhenUnitSelected` entry; set by `PlayerPhaseWiring`.
+         */
         public var tryCallSelectEvents: ProcFunc = ProcFunc {}
 
         /**

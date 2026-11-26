@@ -253,9 +253,9 @@ public class EventInfos(
      *
      * If a tutorial event is queued for [type], runs entry `tutorial_counter - 1` of the chapter's
      * `tutorialEvents` list as a cutscene event, clears the queue and returns true; else false.
-     * Verified on the nothing-queued path of the boss turn event's start (f2964): no
-     * event is called and the queue is unchanged. The queued branch is not seen in any capture
-     * (a break there survives).
+     * Verified on the nothing-queued path (`f2964`), mismatched-type path (`f18532` of
+     * `ram_trace_newgame_easy`, where `ONSELECT` is queued when `PLAYERPHASE` is checked), and
+     * queued paths (`f18541`, `f18800`, `f19020` of `ram_trace_newgame_easy`).
      */
     public fun runTutorialEvent(type: Int): Boolean {
         if (playSt.tutorialCounter != 0 && playSt.tutorialExecType == type) {
@@ -302,11 +302,38 @@ public class EventInfos(
     }
 
     /**
-     * Transcribed from src/eventinfo.c: StartDestSelectedEvent (not verified: no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one)
+     * Partially ported from src/eventinfo.c: TryCallSelectEvents
+     *
+     * When a unit is selected: clears [registry], runs the queued `ONSELECT` tutorial event and
+     * every matching entry of the chapter's `specialEventsWhenUnitSelected` list, returning true
+     * if any event started; false on skirmish maps. Verified for the queued `ONSELECT` tutorial
+     * branch at `f18541` of `ram_trace_newgame_easy`; the skirmish guard and non-empty
+     * `specialEventsWhenUnitSelected` lists are Transcribed (not verified: Prologue's list is
+     * empty and no capture reaches skirmish).
+     */
+    public fun tryCallSelectEvents(): Boolean {
+        if (hooks.getBattleMapKind() == KIND_SKIRMISH) return false
+        var ret = runTutorialEvent(TUTORIAL_EVT_TYPE_ONSELECT)
+        val info = EventInfo()
+        info.listScript = u32(hooks.chapterEventGroup(playSt.chapterIndex) + UNIT_SELECTED_EVENTS)
+        clearActiveEventRegistry()
+        while (searchAvailableEvent(info) != null) {
+            startEventFromInfo(info, EV_EXEC_CUTSCENE)
+            ret = true
+        }
+        return ret
+    }
+
+    /**
+     * Partially ported from src/eventinfo.c: StartDestSelectedEvent
      *
      * After the player picked a destination: runs the queued `DESTSELECTED` tutorial event and
      * the first matching entry of the chapter's `specialEventsWhenDestSelected` list (true when
-     * that one started); else true when the tutorial event ran. False on skirmish maps.
+     * that one started); else true when the tutorial event ran. False on skirmish maps. Verified
+     * for the queued `DESTSELECTED` tutorial branch at `f18800` and `f19020` of
+     * `ram_trace_newgame_easy`; the skirmish guard and non-empty
+     * `specialEventsWhenDestSelected` lists are Transcribed (not verified: Prologue's list is
+     * empty and no capture reaches skirmish).
      */
     public fun startDestSelectedEvent(): Boolean =
         startSpecialEvent(TUTORIAL_EVT_TYPE_DESTSELECTED, DEST_SELECTED_EVENTS)
@@ -319,6 +346,20 @@ public class EventInfos(
      */
     public fun startAfterUnitMovedEvent(): Boolean =
         startSpecialEvent(TUTORIAL_EVT_TYPE_AFTERMOVE, AFTER_UNIT_MOVED_EVENTS)
+
+    /**
+     * Transcribed from src/eventinfo.c: StartPlayerPhaseStartTutorialEvent (not verified: no
+     *   `PLAYERPHASE` tutorial is queued at `f18532` of `ram_trace_newgame_easy`, so a no-op
+     *   survives; `EasyTutorialDispatchDifferentialTest` checks that `f18532` leaves the pending
+     *   `ONSELECT` tutorial queued)
+     *
+     * Runs the queued `PLAYERPHASE` tutorial event at the start of player phase; does nothing on
+     * skirmish maps.
+     */
+    public fun startPlayerPhaseStartTutorialEvent() {
+        if (hooks.getBattleMapKind() == KIND_SKIRMISH) return
+        runTutorialEvent(TUTORIAL_EVT_TYPE_PLAYERPHASE)
+    }
 
     /** The shared body of [startDestSelectedEvent] and [startAfterUnitMovedEvent]. */
     private fun startSpecialEvent(tutorialType: Int, listOffset: Int): Boolean {
@@ -807,27 +848,29 @@ public class EventInfos(
         const val GOAL_TYPE_DEFEAT_ALL = 1
         const val GOAL_TYPE_DEFEAT_BOSS = 3
 
-        /** `RunTutorialEvent` type for a phase change. */
+        /** `RunTutorialEvent` types (`TUTORIAL_EVT_TYPE_*` in eventinfo.h). */
         const val TUTORIAL_EVT_TYPE_PHASECHANGE = 0
-
-        /** `EV_EXEC_CUTSCENE`: the exec type listed events run with. */
-        const val EV_EXEC_CUTSCENE = 1
-
-        /** `RunTutorialEvent` types for a chosen destination, after a move and the forecast. */
+        const val TUTORIAL_EVT_TYPE_POSTACTION = 1
+        const val TUTORIAL_EVT_TYPE_ONSELECT = 2
         const val TUTORIAL_EVT_TYPE_DESTSELECTED = 3
         const val TUTORIAL_EVT_TYPE_AFTERMOVE = 4
         const val TUTORIAL_EVT_TYPE_FORECAST = 5
+        const val TUTORIAL_EVT_TYPE_PLAYERPHASE = 6
+
+        /** `EV_EXEC_CUTSCENE`: the exec type listed events run with. */
+        const val EV_EXEC_CUTSCENE = 1
 
         /** Offsets of `characterBasedEvents`, `locationBasedEvents` in `ChapterEventGroup`. */
         const val CHARACTER_EVENTS = 0x04
         const val LOCATION_EVENTS = 0x08
 
-        /** Offsets of `specialEventsWhenDestSelected` and `specialEventsAfterUnitMoved`. */
+        /**
+         * Offsets of `specialEventsWhenUnitSelected`, `specialEventsWhenDestSelected` and
+         * `specialEventsAfterUnitMoved` in `ChapterEventGroup`.
+         */
+        const val UNIT_SELECTED_EVENTS = 0x10
         const val DEST_SELECTED_EVENTS = 0x14
         const val AFTER_UNIT_MOVED_EVENTS = 0x18
-
-        /** `RunTutorialEvent` type for after a unit action. */
-        const val TUTORIAL_EVT_TYPE_POSTACTION = 1
 
         /** `EVFLAG_GAMEOVER` and `EVFLAG_DEFEAT_ALL`. */
         const val EVFLAG_GAMEOVER = 0x65

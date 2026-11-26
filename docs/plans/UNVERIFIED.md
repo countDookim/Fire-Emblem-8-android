@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 724 across 109 decomp files (missing reason: 0).
+Total entries: 722 across 109 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -187,7 +187,7 @@ Total entries: 724 across 109 decomp files (missing reason: 0).
 | `DecayTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures |
 | `UnitHideIfUnderRoof` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 
-## src/eventinfo.c (24)
+## src/eventinfo.c (23)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -206,15 +206,14 @@ Total entries: 724 across 109 decomp files (missing reason: 0).
 | `CheckTutorialEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a capture; its caller is CheckBattleForecastTutorialEvent, EP-35 |
 | `CheckForCharacterEvents` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one |
 | `GetAvailableTileEventCommand` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one |
-| `StartDestSelectedEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one |
 | `StartAfterUnitMovedEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one |
+| `StartPlayerPhaseStartTutorialEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | no `PLAYERPHASE` tutorial is queued at `f18532` of `ram_trace_newgame_easy`, so a no-op survives; `EasyTutorialDispatchDifferentialTest` checks that `f18532` leaves the pending `ONSELECT` tutorial queued |
 | `CheckBattleForecastTutorialEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one |
 | `sub_80832D4` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | returns the constant 0; its caller `sub_8015434` is written without the call, see its KDoc |
 | `SearchNextAvailableEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | the Prologue's misc list reaches it, but skipping the step past the entry changes nothing there, as the started entry's flag is set and the entry is skipped anyway |
 | `EvCheck0C_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
 | `EvCheck0D_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
 | `ShouldCallBattleQuote` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | no capture checks it |
-| `EnqueueTutEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
 
 ## src/eventscr_gmap.c (23)
 
@@ -404,25 +403,6 @@ Total entries: 724 across 109 decomp files (missing reason: 0).
 | `WriteTraps` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | every trap in the reference is zero, which proves the target, not the data |
 | `WriteGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `WriteGameSave` is ported |
 
-## src/eventscr.c (14)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `Event13_BgmFadeIn` | `game/src/commonMain/kotlin/fe8/game/event/EventBgm.kt` | `Sound_FadeOutBGM(2)` leaves no state a trace shows without an audio player; only the dispatch and the yield are checked in WorldMapEventHostTest |
-| `Event3C_MoveCursor` | `game/src/commonMain/kotlin/fe8/game/event/EventCursorCamera.kt` | opcode 0x3C is only in tutorial scripts and never runs in available mGBA reference traces |
-| `Event37_GiveItem` | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | inventory/gold effects and popups not trace-compared |
-| `Event2A_MoveToChapter` | `game/src/commonMain/kotlin/fe8/game/event/EventMoveToChapter.kt` | only EVSUBCMD_MNC2 with non-negative chapter argument runs in PC-cap1 f9424; MNTS, MNCH, MNC3, MNC4 and the negative chapter slot-2 fallback never run in captures |
-| `Event00_NULL` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `Event04_CheckRandom` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `Event06_SlotOperation` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | PC-cap1 `f10534`, `f13201` and `f16310` (Chapter1ScriptCoreDifferentialTest) run only SADD with slot 0 as second source, so it proves the destination and first-source indices but not the operator; a broken SADD (`a - b`, `a or b`) and every other operator survive |
-| `Event0B_EnqueueCall` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `Event10_ModifyEvBit` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | only args 0 and 1 are traced; the skipping branch and args 2-4 survive breaks |
-| `Event11_SetIgnoredKeys` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `Event0F_CounterOps` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `sub_800E290` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no CG text in any trace |
-| `sub_800E31C` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no box dialogue in any trace |
-| `Event2B_ConfigLoadUnit` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates C semantics; no trace comparison yet |
-
 ## src/worldmap_path.c (14)
 
 | Function | Kotlin file | Reason |
@@ -441,6 +421,24 @@ Total entries: 724 across 109 decomp files (missing reason: 0).
 | `MapRoute_EnableBGSyncs` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
 | `MapRoute_TransitionLoop` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
 | `MapRoute_TransitionEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
+
+## src/eventscr.c (13)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `Event13_BgmFadeIn` | `game/src/commonMain/kotlin/fe8/game/event/EventBgm.kt` | `Sound_FadeOutBGM(2)` leaves no state a trace shows without an audio player; only the dispatch and the yield are checked in WorldMapEventHostTest |
+| `Event3C_MoveCursor` | `game/src/commonMain/kotlin/fe8/game/event/EventCursorCamera.kt` | opcode 0x3C is only in tutorial scripts and never runs in available mGBA reference traces |
+| `Event37_GiveItem` | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | inventory/gold effects and popups not trace-compared |
+| `Event2A_MoveToChapter` | `game/src/commonMain/kotlin/fe8/game/event/EventMoveToChapter.kt` | only EVSUBCMD_MNC2 with non-negative chapter argument runs in PC-cap1 f9424; MNTS, MNCH, MNC3, MNC4 and the negative chapter slot-2 fallback never run in captures |
+| `Event00_NULL` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+| `Event04_CheckRandom` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+| `Event06_SlotOperation` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | PC-cap1 `f10534`, `f13201` and `f16310` (Chapter1ScriptCoreDifferentialTest) run only SADD with slot 0 as second source, so it proves the destination and first-source indices but not the operator; a broken SADD (`a - b`, `a or b`) and every other operator survive |
+| `Event10_ModifyEvBit` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | only args 0 and 1 are traced; the skipping branch and args 2-4 survive breaks |
+| `Event11_SetIgnoredKeys` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+| `Event0F_CounterOps` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+| `sub_800E290` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no CG text in any trace |
+| `sub_800E31C` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no box dialogue in any trace |
+| `Event2B_ConfigLoadUnit` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates C semantics; no trace comparison yet |
 
 ## src/mu.c (13)
 

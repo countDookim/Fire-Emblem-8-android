@@ -372,11 +372,15 @@ public class EventScrCore(
     /**
      * Queues another event script to run after this one (or records a tutorial event).
      *
-     * Transcribed from src/eventscr.c: Event0B_EnqueueCall (not verified: not in the prologue)
+     * Partially ported from src/eventscr.c: Event0B_EnqueueCall
      *
      * A negative target is replaced by slot 2; a null target does nothing. Sub command 0 calls
      * the event with this engine's `execType` (needs the engine given to [registerAll]), 1
      * records it as the tutorial event ([enqueueTutEvent]) with the argument as exec type.
+     * Verified for sub-command 1 (`ENQUEUE_TUT`) with literal pointer (`f18448`) and negative
+     * pointer reading slot 2 (`f18747`, `f18988`, `f19021`) in `ram_trace_newgame_easy`;
+     * sub-command 0 (`CallEvent`) and null target (`ptr == 0`) are Transcribed (not verified:
+     * not reached in the window).
      */
     public val event0bEnqueueCall: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
@@ -395,11 +399,13 @@ public class EventScrCore(
      * Marks the tutorial event [ptr] of the current chapter as pending, so the game runs it
      * later at the moment of [eventEnqueueType].
      *
-     * Transcribed from src/eventinfo.c: EnqueueTutEvent (not verified: not in the prologue)
+     * Partially ported from src/eventinfo.c: EnqueueTutEvent
      *
      * Looks [ptr] up in the current chapter's tutorial event list ([EventScrHooks.tutorialEvent])
      * and, when found at index i, stores `tutorial_counter = i + 1` and
-     * `tutorial_exec_type = eventEnqueueType` (u8) in [PlaySt].
+     * `tutorial_exec_type = eventEnqueueType` (u8) in [PlaySt]. Verified for matching indices
+     * 0..2 (`f18448`, `f18747`, `f18988`, `f19021` of `ram_trace_newgame_easy`); the not-found
+     * terminator (`e == 0`) is Transcribed (not verified: every captured call finds [ptr]).
      */
     public fun enqueueTutEvent(ptr: Int, eventEnqueueType: Int) {
         var i = 0

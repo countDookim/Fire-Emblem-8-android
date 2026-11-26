@@ -15,6 +15,7 @@ Issue #8 (owner, 0.1.868, 11-24): PC-3a/4/5 confirmed (save menu, slot 1 save, C
 event, first player phase). New gaps: power-on resumes the Ch1 suspend, no title menu (PC-11); no enemy range
 (PP-enemy). Ch1 unit-menu crash (EP-35b), boss AI (EP-11), no game over (PC-7/8) as expected.
 Issue #10 (owner, 0.1.892, 11-25): EP-11 boss AI confirmed on device (one-enemy-left dialogue, boss moves and attacks).
+Owner 11-26, 0.1.889: D-23 fixed and the EP-11 manual test (one-enemy-left event, boss turn event, boss AI) confirmed; D23-cap closed.
 Extensive modding scope, separate vanilla tests and replaceable camera/controls/AI are accepted (ADR 0016).
 [M7 decisions](docs/plans/M7-modding.md): release staging (D2), API details (D5), layout/debug/storage/packaging
 (D4/D6/D8/D9) and executable runtime (D10) remain open; M6 and design inventories are not blocked.
@@ -399,7 +400,7 @@ Close an issue only after reference verification and owner confirmation; preserv
 
 | Issue | Latest evidence / status |
 |---|---|
-| D-23 enemy AI off | **Solved (owner confirmed on 0.1.889, 11-26):** cause = unported AI `AI_GOTO_START` (`AiScriptCmd_03_Goto`), fixed by `CpScript.cmdGoto` (`D23EnemyAiOffReproTest`). Ground-truth capture still open (D23-cap). |
+| D-23 enemy AI off | **Solved (owner confirmed on 0.1.889, 11-26):** cause = unported AI `AI_GOTO_START` (`AiScriptCmd_03_Goto`), fixed by `CpScript.cmdGoto` (`D23EnemyAiOffReproTest`). D23-cap closed by owner decision. |
 | D-07 audio | **Resolved for both reported castle events:** owner heard neither hitch on local 0.1.488 (`0a73f11`); normal trace PCM repetitions fell 4495→0 after the movement frontier change. Earlier cache/reserve changes alone failed. |
 | D-12 phase banner | **Player banner confirmed correct by the owner on 0.1.488 (11-11)**; reference: `PhaseIntroDifferentialTest`. Enemy/green banners open (D12-2, with M6-D). |
 | D-11 cinematic | **Confirmed by the owner on 0.1.622 (11-12):** monologue, Magvel world-map exposition and Start in the monologue (skip to the exposition with a fade-in) are correct. Follow-up D-14. |

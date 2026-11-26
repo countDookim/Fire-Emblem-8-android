@@ -20,10 +20,6 @@ Items are removed from this page once the owner confirms them; the history is in
 
 Everything up to 0.1.868 was tested earlier; new items carry their build.
 
-- **Prologue boss AI & enemy-phase events (`EP-11` / `EP-11-hooks` + `D-23`, pending next APK after `0.1.889`):**
-  1. Defeat the two Soldiers in the Prologue: the one-enemy-left event & dialogue now plays.
-  2. End Turn 2: O'Neill's turn event & dialogue plays, changing his AI so he moves toward you on Enemy Phase 2 and attacks when a player unit ends in range.
-
 
 
 ## 2. Open bugs (no fix yet)

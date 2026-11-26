@@ -71,7 +71,8 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
 12. **Manual testing.** Whenever there is new manually testable behaviour, update `docs/MANUAL_TEST.md` and proactively
     tell the owner in the final response what changed, concrete steps and expected outcome, known limits, the APK build
     hash, and whether it is published or CI is still pending. Never imply an older APK includes new changes. Mark a
-    device issue solved only after a reference test and owner confirmation on a device.
+    device issue solved only after a reference test and owner confirmation on a device; then also close its CAP row
+    (e.g. D23-cap) and remove its MANUAL_TEST entry (owner, 2026-11-26).
 13. **Keep assistant instructions synchronized.** Edit `docs/AGENT_INSTRUCTIONS.template.md` or the profiles in
     `tools/sync_agent_instructions.py`, then run `python3 tools/sync_agent_instructions.py --write` and
     `python3 tools/sync_agent_instructions.py --check`. Include all three generated files in the same commit when they

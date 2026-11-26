@@ -45,7 +45,8 @@ import org.junit.jupiter.api.Timeout
 
 /**
  * PC-10c: the Wait-only unit menu override of `ram_trace_newgame_easy`.
- * (a) The `Event3D_MenuOverride` command (`EvtOverrideUnitMenu(~EVENT_MENUOVERRIDE_WAIT)`) of
+ * (a) The `Event3D_MenuOverride` command (`EvtOverrideUnitMenu(~EVENT_MENUOVERRIDE_WAIT)`, and
+ * `~EVENT_MENUOVERRIDE_ATTACK` at f22441) of
  * `EventScr_Prologue_Tutorial1`, which runs at f18988 (not in f19068..19080: no capture executes
  * it there; the table is unchanged in that window), run from the `sMenuOverrides` table of
  * f17010 leaves the table of f18988. (b) The unit menu started at f19068 with that table lists
@@ -68,8 +69,36 @@ class EasyTutorialMenuOverrideDifferentialTest {
     @Test
     @VerifiesPort("Event3D_MenuOverride", "ResetMenuOverrides", "AddMenuOverride")
     fun `Event3D_MenuOverride rebuilds sMenuOverrides to the Wait-only table`() {
+        // `EventScr_Prologue_Tutorial1` runs the override in f18988 (the engine snapshot after
+        // it is past the command); the table before it is the older one of f17010 (2 entries).
+        assertOverrideCommand(
+            seedTag = "r17010", seedEntries = 2, step = 18987, mask = WAIT_ONLY_MASK,
+            wantEntries = 14, wantMissing = 0x6B,
+        )
+    }
+
+    @Test
+    @VerifiesPort("Event3D_MenuOverride", "ResetMenuOverrides", "AddMenuOverride")
+    fun `Event3D_MenuOverride rebuilds sMenuOverrides to the Attack-only table`() {
+        // The override runs in f22441 (the table changes there); the table before it is the
+        // Wait-only one (14 entries), so slots are overwritten, not appended.
+        assertOverrideCommand(
+            seedTag = "r22440", seedEntries = 14, step = 22440, mask = ATTACK_ONLY_MASK,
+            wantEntries = 14, wantMissing = 0x4F,
+        )
+    }
+
+    private fun assertOverrideCommand(
+        seedTag: String,
+        seedEntries: Int,
+        step: Int,
+        mask: Int,
+        wantEntries: Int,
+        wantMissing: Int,
+    ) {
         assumeInputs()
         val run = ref.run(RUN)
+        assumeTrue(run.dumps.containsKey(seedTag), "no $seedTag dump")
         val romBytes = romFile.readBytes()
         val trace = EventTrace.prologue(ref, RUN)
         assumeTrue(trace != null, "no per-step trace")
@@ -77,20 +106,16 @@ class EasyTutorialMenuOverrideDifferentialTest {
             val o = a - ROM_BASE
             (romBytes[o].toInt() and 0xFF) or ((romBytes[o + 1].toInt() and 0xFF) shl 8)
         }
-        // The override is in `EventScr_Prologue_Tutorial1`, which the engine runs through in
-        // f18988 (the snapshot after it is past the command): find it from the script start.
-        val step = 18987
-        val engineState = checkNotNull(trace!!.at(step + 1).engine) { "no engine at f18988" }
+        val engineState = checkNotNull(trace!!.at(step + 1).engine) { "no engine at f${step + 1}" }
         var cmd = engineState.pEventStart
-        while (cmd < engineState.pEventStart + 0x60 && mem.u16(cmd) != EVT_MENUOVERRIDE_WORD) {
+        while (cmd < engineState.pEventStart + 0x100 && mem.u16(cmd) != EVT_MENUOVERRIDE_WORD) {
             cmd += 2
         }
         assertEquals(EVT_MENUOVERRIDE_WORD, mem.u16(cmd), "override command in the script")
-        assertEquals(WAIT_ONLY_MASK, mem.u16(cmd + 2), "command argument")
+        assertEquals(mask, mem.u16(cmd + 2), "command argument")
 
-        // Seed the table of f17010 (two entries, an older override): the command must reset it.
-        val overrides = loadTable(run.region("r17010", "iwram"))
-        assertEquals(2, countUsed(overrides), "seed table entries")
+        val overrides = loadTable(run.region(seedTag, "iwram"))
+        assertEquals(seedEntries, countUsed(overrides), "seed table entries")
         val procs = ProcEngine()
         val state = EventState()
         val events = EventEngine(procs, state, mem, object : EventEngineHooks {})
@@ -112,11 +137,32 @@ class EasyTutorialMenuOverrideDifferentialTest {
 
         val want = loadTable(run.region(dumpTag(run, step + 1), "iwram"))
         assertTables(want, overrides, "after f$step")
-        assertEquals(14, countUsed(overrides), "entries")
-        for (i in 0 until 14) {
+        assertEquals(wantEntries, countUsed(overrides), "entries")
+        for (i in 0 until wantEntries) {
             assertEquals(MenuOverrides.MENU_ALWAYS_NOT_SHOWN, overrides.func(i), "func $i")
             assertEquals(MenuOverrides.MENU_OVERRIDE_ISAVAILABLE, overrides.kind(i), "kind $i")
+            assertTrue(overrides.cmdId(i) != wantMissing, "slot $i hides the kept command")
         }
+    }
+
+    @Test
+    @VerifiesPort(
+        "OverriddenMenuAvailability", "MenuAlwaysNotShown", "AttackCommandUsability",
+    )
+    fun `Attack-only unit menu lists Attack only at f22448 and stays open until A`() {
+        assumeInputs()
+        val sim = Sim(22448)
+        sim.start()
+        assertEquals(1, sim.items.size, "item count")
+        assertEquals(Menu.MENU_ENABLED, sim.items[0].second, "Attack availability")
+        assertEquals(emptyList<Int>(), sim.standInCalls, "stand-in usability calls")
+        sim.compareItems()
+        // The capture's A presses at f22469, f22499 and f22529 go to tutorial boxes (not
+        // ported here), and A at f22530 selects Attack (needs `MakeTargetListForWeapon`): the
+        // menu is run only up to f22468.
+        sim.run(22468)
+        assertEquals(emptyList<Int>(), sim.selectCallbacks, "select callbacks before A")
+        assertTrue(sim.engine.find(sim.menu.menuScript) != null, "menu still open at f22468")
     }
 
     @Test
@@ -230,11 +276,16 @@ class EasyTutorialMenuOverrideDifferentialTest {
                 Menu.MENU_NOTSHOWN
             }
             unitMenu.install(menu, rom)
-            val wait = menu.callbacks.getValue(UnitActionMenu.EFFECT_WAIT)
-            menu.callbacks[UnitActionMenu.EFFECT_WAIT] = Menu.MenuFunc { m, i, d, n ->
-                selectCallbacks.add(UnitActionMenu.EFFECT_WAIT)
-                wait.invoke(m, i, d, n)
+            for (callback in listOf(
+                UnitActionMenu.EFFECT_WAIT, UnitActionMenu.UNIT_ACTION_MENU_ATTACK,
+            )) {
+                val real = menu.callbacks.getValue(callback)
+                menu.callbacks[callback] = Menu.MenuFunc { m, i, d, n ->
+                    selectCallbacks.add(callback)
+                    real.invoke(m, i, d, n)
+                }
             }
+            unitMenu.hooks.weaponTargetCount = { unit, item -> enemiesInRange(unit, item) }
             keys.update(data.inputs[first - 1])
             clock = u32(iwram(first), CLOCK - IWRAM)
             val proc = menu.startSemiCenteredOrphanMenu(
@@ -259,6 +310,22 @@ class EasyTutorialMenuOverrideDifferentialTest {
             active.action.yMove = e[a + 0x0F].toInt() and 0xFF
             active.action.moveCount = e[a + 0x10].toInt() and 0xFF
             active.action.unitActionType = e[a + 0x11].toInt() and 0xFF
+        }
+
+        /** Stand-in for the target list: living enemy-faction units within the weapon's reach. */
+        fun enemiesInRange(unit: Int, item: Int): Int {
+            val x = units.xPos(unit)
+            val y = units.yPos(unit)
+            var count = 0
+            for (id in 0x81..0xB2) {
+                if (!units.isValid(id)) continue
+                if (units.state(id) and UnitTable.US_UNAVAILABLE != 0) continue
+                val distance = Math.abs(units.xPos(id) - x) + Math.abs(units.yPos(id) - y)
+                if (distance in itemInfo.getItemMinRange(item)..itemInfo.getItemMaxRange(item)) {
+                    count++
+                }
+            }
+            return count
         }
 
         fun compareItems() {
@@ -323,6 +390,9 @@ class EasyTutorialMenuOverrideDifferentialTest {
 
         /** Every `EVENT_MENUOVERRIDE_*` bit of the unit menu except `EVENT_MENUOVERRIDE_WAIT`. */
         const val WAIT_ONLY_MASK = 0xFFFB
+
+        /** Every unit menu bit except `EVENT_MENUOVERRIDE_ATTACK`. */
+        const val ATTACK_ONLY_MASK = 0xFFFE
 
         /** Item number of Wait in `gUnitActionMenuItems`. */
         const val WAIT_ITEM_NUMBER = 28

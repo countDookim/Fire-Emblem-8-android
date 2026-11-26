@@ -350,8 +350,10 @@ public class SaveMenuSelectLoop(
      * `SaveMenuSubSelBoxTexts` of the chosen main option and "Cancel" ([draw] true), or clears
      * it ([draw] false, which also resets `cursor_config`).
      *
-     * Transcribed from src/savedraw.c: SaveMenuDrawSubSelBox (not verified: only exercised for
-     * `MAIN_MENU_OPTION_INVALID`; the other labels are unexercised)
+     * Partially ported from src/savedraw.c: SaveMenuDrawSubSelBox. Verified (`PC-11h`, title
+     * continue run): the Restart label draw (`f1093` to `f1154`) and the clear that resets
+     * `cursor_config` (`f1175` to `f1176`), plus `MAIN_MENU_OPTION_INVALID` (`PC-cap1`).
+     * Unverified: the labels of the other main options.
      */
     public fun saveMenuDrawSubSelBox(state: SaveMenuState, draw: Boolean) {
         val index = bitfileToIndex(state.mainSelBitfile and 0xFF)

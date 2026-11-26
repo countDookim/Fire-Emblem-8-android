@@ -94,10 +94,11 @@ public class SaveDrawEffects(
      * (`unk44 != 0x100`), hides the bookmark once `unk44 < 0x10`, runs [sub80AA7AC], and
      * increments [SaveDrawProc.unk2a].
      *
-     * Transcribed from src/savedraw.c: sub_80AACBC (not verified: the slot-change branch
-     * unk_3c != sus_slot never runs in PC-cap1 where sus_slot stays 0, and
-     * SaveDrawSetDifficultSlotPalette never sees a PLAY_FLAG_HARD slot; sus_slot_cur != 0xFF,
-     * unk_44 != 0x100 spin/scale, unk_44 < 0x10 hide, sub_80AA7AC, and unk_2a++ match PC-cap1)
+     * Partially ported from src/savedraw.c: sub_80AACBC. Verified (`PC-11h`, title continue run
+     * `f1050..1213`, plus the `PC-cap1` frames): `sus_slot_cur != 0xFF` with `unk_44 != 0x100`
+     * (the 16-per-frame spin and OAM affine matrix 3), the `unk_44 < 0x10` hide, [sub80AA7AC]
+     * and `unk_2a++`. Unverified: the `unk_3c != sus_slot` slot-change branch (no captured run
+     * changes the slot there) and `SaveDrawSetDifficultSlotPalette` for a hard-mode slot.
      */
     public fun sub80AACBC(proc: Proc) {
         val state = proc.state as SaveDrawProc

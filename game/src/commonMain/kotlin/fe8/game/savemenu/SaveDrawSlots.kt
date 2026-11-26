@@ -109,9 +109,11 @@ public class SaveDrawSlots(
     /**
      * Draws the play time (hours, minutes and seconds) above the slot boxes on layer 13.
      *
-     * Transcribed from src/savedraw.c: sub_80AA7EC (not verified: PC-cap1 shows only a play time
-     * under 10 hours with `main_sel_bitfile != 1`; the hours > 9 / > 99 digits and the
-     * `total_time` branch are unexercised; `FormatTime` is inlined, also unverified)
+     * Partially ported from src/savedraw.c: sub_80AA7EC. Verified (`PC-11h`, title continue and
+     * resume runs): the `total_time` branch (`main_sel_bitfile == 1`), the `played_time` branch,
+     * and the slide-in y with the one-digit hours, minutes and seconds sprites. Unverified: the
+     * hours > 9 and hours > 99 digits (no captured play time is that long); `FormatTime` is
+     * inlined.
      */
     public fun sub80AA7EC(proc: Proc) {
         val menu = parent(proc)
@@ -218,9 +220,12 @@ public class SaveDrawSlots(
      * Draws the play time, the banner, the three slot boxes, the suspend bookmark, the confirm
      * prompt with its hand, and queues the slot cursor targets.
      *
-     * Transcribed from src/savedraw.c: sub_80AB05C (not verified: PC-cap1 never has the extras
-     * offset, `total_time`, `cursor_slot` or a spare cursor, and `APProc_SetParameters` / Delete
-     * are Transcribed)
+     * Partially ported from src/savedraw.c: sub_80AB05C. Verified (`PC-11h`, title continue and
+     * resume runs, sprite output per frame): the slot boxes and labels, the play time, the
+     * banner, the bookmark sprite for `unk_44 != 0x100` and for the `main_sel_bitfile != 1`
+     * resting case, and the confirm box. Unverified: the effect of `APProc_SetParameters` /
+     * `APProc_Delete` on the bookmark sprite proc (its own sprites are not compared), the
+     * `cursor_slot` static cursor hook and `DisplayUiHand`.
      */
     public fun sub80AB05C(proc: Proc) {
         val menu = parent(proc)

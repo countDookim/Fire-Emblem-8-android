@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 728 across 109 decomp files (missing reason: 0).
+Total entries: 726 across 109 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -460,24 +460,6 @@ Total entries: 728 across 109 decomp files (missing reason: 0).
 | `DisableMuCamera` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial setter, driven by the test only as the event code's input |
 | `EndMuMovement` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the function has no body |
 
-## src/savedraw.c (13)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `ProcScr_savedraw` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | script order and mark are checked against the procs watch in SaveDrawLifecycleDifferentialTest, which cannot tag a data array |
-| `SaveDraw_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | the `susSlotCur == 0xFF` branch is unexercised in PC-cap1 where `susSlotCur == 0`, `SetObjAffine(0..3)` writes identity over an already-identity OAM matrix buffer from `SaveMenu_InitScreen`, and `sub_8014EF4(0)` masks already-zeroed `mode[0]`; `SaveDrawProc` fields, child cursor and AP proc creation, `StartBgVerticalScroll`/`SetBgVerticalScrollPosition`, `SaveDraw_ScrollFogBG`, `scrollEnabled = true`, and `sub_80AB548` match `r09459` |
-| `gProcScr_SaveDrawCursor` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | script order checked against the procs watch in SaveDrawCursorDifferentialTest, which cannot tag a script |
-| `SaveDrawCursor_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | PC-cap1 observes only the clearing of unk2a, susSlot, mainOptions, unk34 and unk38; cursorEn, unk2e, unk32 and unk3a are overwritten by sub_80AB4F4 before the first dump, and unk37 is already zero |
-| `SaveDrawCursor_Loop` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | PC-cap1 exercises only parent cursorDrawActive != 0, susSlot < 4, cursorEn != 0, unk3a == 1, and unk38 == 0; unexercised branches are parent cursorDrawActive == 0 early return, susSlot >= 4 settled motion, cursorEn == 0 idle branch, unk3a == 0 dual horizontal bracket cursors, and unk38 != 0 static copy cursor |
-| `sub_80AACBC` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawEffects.kt` | the slot-change branch unk_3c != sus_slot never runs in PC-cap1 where sus_slot stays 0, and SaveDrawSetDifficultSlotPalette never sees a PLAY_FLAG_HARD slot; sus_slot_cur != 0xFF, unk_44 != 0x100 spin/scale, unk_44 < 0x10 hide, sub_80AA7AC, and unk_2a++ match PC-cap1 |
-| `sub_80AB56C` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawEffects.kt` | the bottom deactivation check unk_04 > 0xB3F is never taken and unk_0a += unk_0d is unobservable because unk_0d stays 0 across PC-cap1; active drawing/clipping, velocity/acceleration updates, horizontal/top deactivation, LCG spawning up to 19 particles, and layer 14 OAM output match PC-cap1 |
-| `sub_80AA7EC` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | PC-cap1 shows only a play time under 10 hours with `main_sel_bitfile != 1`; the hours > 9 / > 99 digits and the `total_time` branch are unexercised; `FormatTime` is inlined, also unverified |
-| `sub_80AADE0` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | PC-cap1 runs only the `unk_46 == 0` main option label; the extras label branch is unexercised |
-| `sub_80AAF6C` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | early exit only, `unk_46 == 0` is the only case PC-cap1 runs; the rest runs [Hooks.extraOptions] |
-| `sub_80AB05C` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | PC-cap1 never has the extras offset, `total_time`, `cursor_slot` or a spare cursor, and `APProc_SetParameters` / Delete are Transcribed |
-| `SaveDraw_Loop_Main` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | it runs the `PC-4c2` steps through parameters, and PC-cap1 never has `unk_29 == 0` |
-| `SaveMenuDrawSubSelBox` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | only exercised for `MAIN_MENU_OPTION_INVALID`; the other labels are unexercised |
-
 ## src/bm.c (12)
 
 | Function | Kotlin file | Reason |
@@ -651,6 +633,20 @@ Total entries: 728 across 109 decomp files (missing reason: 0).
 | `GetChapterWinPerc` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | the percentage is only seen through the combat rank 4, so the `* 100`, the 100 clamp, the `unk_8_1` split and the no-battle 40 survive mutation |
 | `GetChapterExpRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | the previous `unk_8_2` is 0 and only rank 4 occurs, so the difference, the 0xFFFFF clamp and the thresholds survive mutation |
 | `GetOverallRank` | `game/src/commonMain/kotlin/fe8/game/save/ChapterRankings.kt` | only all-4 ranks (sum 550, result 5) occur, so most weights and limits survive mutation |
+
+## src/savedraw.c (9)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ProcScr_savedraw` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | script order and mark are checked against the procs watch in SaveDrawLifecycleDifferentialTest, which cannot tag a data array |
+| `SaveDraw_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | the `susSlotCur == 0xFF` branch is unexercised in PC-cap1 where `susSlotCur == 0`, `SetObjAffine(0..3)` writes identity over an already-identity OAM matrix buffer from `SaveMenu_InitScreen`, and `sub_8014EF4(0)` masks already-zeroed `mode[0]`; `SaveDrawProc` fields, child cursor and AP proc creation, `StartBgVerticalScroll`/`SetBgVerticalScrollPosition`, `SaveDraw_ScrollFogBG`, `scrollEnabled = true`, and `sub_80AB548` match `r09459` |
+| `gProcScr_SaveDrawCursor` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | script order checked against the procs watch in SaveDrawCursorDifferentialTest, which cannot tag a script |
+| `SaveDrawCursor_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | PC-cap1 observes only the clearing of unk2a, susSlot, mainOptions, unk34 and unk38; cursorEn, unk2e, unk32 and unk3a are overwritten by sub_80AB4F4 before the first dump, and unk37 is already zero |
+| `SaveDrawCursor_Loop` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | PC-cap1 exercises only parent cursorDrawActive != 0, susSlot < 4, cursorEn != 0, unk3a == 1, and unk38 == 0; unexercised branches are parent cursorDrawActive == 0 early return, susSlot >= 4 settled motion, cursorEn == 0 idle branch, unk3a == 0 dual horizontal bracket cursors, and unk38 != 0 static copy cursor |
+| `sub_80AB56C` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawEffects.kt` | the bottom deactivation check unk_04 > 0xB3F is never taken and unk_0a += unk_0d is unobservable because unk_0d stays 0 across PC-cap1; active drawing/clipping, velocity/acceleration updates, horizontal/top deactivation, LCG spawning up to 19 particles, and layer 14 OAM output match PC-cap1 |
+| `sub_80AADE0` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | PC-cap1 runs only the `unk_46 == 0` main option label; the extras label branch is unexercised |
+| `sub_80AAF6C` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | early exit only, `unk_46 == 0` is the only case PC-cap1 runs; the rest runs [Hooks.extraOptions] |
+| `SaveDraw_Loop_Main` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | it runs the `PC-4c2` steps through parameters, and PC-cap1 never has `unk_29 == 0` |
 
 ## src/bmudisp.c (8)
 
@@ -1006,6 +1002,14 @@ Total entries: 728 across 109 decomp files (missing reason: 0).
 | `GetSpellAssocReturnBool` | `game/src/commonMain/kotlin/fe8/game/bm/SpellAssoc.kt` | its caller, the info box (EP-20), is not written, so no captured value shows the result |
 | `GetSpellAssocFlashColor` | `game/src/commonMain/kotlin/fe8/game/bm/SpellAssoc.kt` | its caller, the hit flash (EP-25), is not written, so no captured value shows the result |
 
+## src/statscreen.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `gProcScr_HelpBox` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the cursor positions match the capture every frame |
+| `StartHelpBoxExt` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the captures only start the no-help-sprite box |
+| `gProcScr_HelpPromptSpr` | `game/src/commonMain/kotlin/fe8/game/ui/HelpPromptSprite.kt` | the procs watch cannot tag a script; the one-frame yield shows as the proc's first drawn frame |
+
 ## src/uiselecttarget.c (3)
 
 | Function | Kotlin file | Reason |
@@ -1227,12 +1231,6 @@ Total entries: 728 across 109 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetPlayerLeaderPid` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no test checks it against a trace yet |
-
-## src/statscreen.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `gProcScr_HelpPromptSpr` | `game/src/commonMain/kotlin/fe8/game/ui/HelpPromptSprite.kt` | the procs watch cannot tag a script; the one-frame yield shows as the proc's first drawn frame |
 
 ## src/sysutil.c (1)
 

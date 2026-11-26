@@ -8,6 +8,7 @@ import fe8.game.mapanim.ApProcs
 import fe8.game.save.BmSaveLib
 import fe8.game.save.NewGameRam
 import fe8.game.save.SaveExtras
+import fe8.game.ui.HelpBox
 import fe8.game.ui.HelpPromptSprite
 import fe8.game.ui.UiHand
 import fe8.game.worldmap.GmData
@@ -202,6 +203,17 @@ public object SaveMenuAssembly {
         mainLoop.hooks.startHelpPromptSprite = { x, y, z, parent ->
             helpPrompt.startHelpPromptSprite(x, y, z, parent)
         }
+        val helpBox = HelpBox(d.engine, d.layers, d.hardware, d.rom, d.text, helpPrompt)
+        helpBox.hooks.playSoundEffect = d.playSoundEffect
+        result.selectLoop.hooks.closeHelpBox = helpBox::closeHelpBox
+        result.selectLoop.hooks.startSuspendLostHelpBox = {
+            val chr = HelpBox.OBJCHR_SAVEMENU_SLOTSEL_HELPBOX
+            helpBox.loadHelpBoxGfx(
+                HelpBox.OBJ_VRAM0 + chr * HelpBox.TILE_SIZE_4BPP,
+                HelpBox.OBJPAL_SAVEMENU_SLOTSEL_HELPBOX,
+            )
+            helpBox.startHelpBoxExtNoHelpSprite(48, 48, MSG_882)
+        }
         bridge.hooks.funcs["SameMenu_CtrlLoop"] = ProcFunc { mainLoop.sameMenuCtrlLoop(it) }
         bridge.hooks.funcs["SaveMenuScrollSlot"] = ProcFunc { mainLoop.saveMenuScrollSlot(it) }
         bridge.hooks.funcs["SaveMenuSlotSelDrawSprite"] =
@@ -215,6 +227,9 @@ public object SaveMenuAssembly {
         }
         return NewGameWiring(bridge, difficulty, sprites, mainLoop)
     }
+
+    /** `MSG_882`, the "suspended data will be lost" message of the confirm help box. */
+    private const val MSG_882 = 0x882
 
     /** `Make6C_SaveMenuPostChapter` for [GameControl.Hooks.makeSaveMenuPostChapter]. */
     public fun makeHook(result: Result): (Proc) -> Unit = { parent ->

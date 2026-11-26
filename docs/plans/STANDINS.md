@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 255 across 59 Kotlin files.
+Total entries: 262 across 60 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -32,13 +32,14 @@ Total entries: 255 across 59 Kotlin files.
 | EP-34a | 2 |
 | EP-7 | 2 |
 | IS-2 | 1 |
+| PC-11f | 6 |
 | PC-4f | 1 |
 | PC-cap1 | 2 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 34 |
+| unassigned | 35 |
 
 ## M6-B (13)
 
@@ -344,6 +345,17 @@ Total entries: 255 across 59 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until IS-2 (help boxes): nothing happens (the selection's `onHelp`). |
 
+## PC-11f (6)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `clearHelpBoxText` | `ClearHelpBoxText` (stand-in, PC-11f: clears the text, ends the text procs). |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `itemInfoKind` | Stand-in (PC-11f): only the `item == 0` and save info cases (no item data). |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `startHelpBoxTextInit` | `StartHelpBoxTextInit(item, msgId)`; stand-in (PC-11f): `ProcScr_HelpBoxIntro`. |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `stringTextBox` | Stand-in (PC-11f, not ported): needs game text; 0 x 0 for now. |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `stringTextLen` | Stand-in (PC-11f). |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `uiHandPrevDisplay` | Stand-in (PC-11f). |
+
 ## PC-4f (1)
 
 | Kotlin file | Declaration | Stand-in |
@@ -381,7 +393,7 @@ Total entries: 255 across 59 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (34)
+## unassigned (35)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -419,3 +431,4 @@ Total entries: 255 across 59 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuStart.kt` | `saveMenuLoadExtraMenuGraphics` | Partially ported from src/savemenu.c: SaveMenu_LoadExtraMenuGraphics (verified: the fresh-start branch (`main_sel_bitfile` 0x100) and the main loop label at f943 of the title runs; not verified: th... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `biosPlaySt` | Stand-in for the BIOS bytes `IsGameNotFirstChapter` reads: a non-zero `chapterIndex`. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `saveMenuInitSaveSlotData` | The port passes [biosPlaySt], a stand-in `PlaySt` that gives that answer, so bit 0 of `unk_3a` is always set for a valid game slot. |
+| `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `startHelpBoxExtNoHelpSprite` | Ported from src/statscreen.c: StartHelpBoxExt_NoHelpSprite (verified for (48, 48); the negative-position arm is not exercised and the content size is the [Hooks.stringTextBox] stand-in) |

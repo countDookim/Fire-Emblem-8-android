@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 718 across 109 decomp files (missing reason: 0).
+Total entries: 723 across 109 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -641,6 +641,19 @@ Total entries: 718 across 109 decomp files (missing reason: 0).
 | `GetCharTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
 | `EndGreenText` | `game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt` | only `sProc_MenuMain` calls it after the menu's idle callback breaks, which no capture does |
 
+## src/helpbox.c (8)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` exists in `f3706..3722` or `f4894..4912` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580` |
+| `gProcScr_BoxDialogue` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | the procs watch cannot tag the script position beyond the first frame |
+| `sub_808A848` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | not run in the f18230 window; the drawing callees are stand-ins |
+| `sub_808A87C` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | no B/START press in the window |
+| `sub_808A8AC` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | the close sound is a stand-in and the proc has not ended in the window |
+| `GetBoxDialogueSize` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | the captured box starts at (0, 0), so it is never called, and only the control-code paths are checked, no glyph width |
+| `gProcScr_HelpBoxTextScroll` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the proc's step, string offset and strip counts match the capture |
+| `ProcScr_HelpBoxIntro` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the script position matches the capture every frame |
+
 ## src/muctrl.c (8)
 
 | Function | Kotlin file | Reason |
@@ -959,14 +972,6 @@ Total entries: 718 across 109 decomp files (missing reason: 0).
 | `GetSpecialItemFuncIndex` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the result -1 runs, for Red 0's items, and it shows in no captured value; a wrong hit would enter a special item function, which the function trace of the Prologue says never runs |
 | `AiTryDoSpecialItems` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs once, for Red 0, and changes nothing; its result is discarded by the caller |
 | `sub_8040C5C` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the non-rogue return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a stand-in, EP-12 |
-
-## src/helpbox.c (3)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` exists in `f3706..3722` or `f4894..4912` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580` |
-| `gProcScr_HelpBoxTextScroll` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the proc's step, string offset and strip counts match the capture |
-| `ProcScr_HelpBoxIntro` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the script position matches the capture every frame |
 
 ## src/mapanim_lvup.c (3)
 

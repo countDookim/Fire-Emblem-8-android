@@ -28,10 +28,6 @@ Everything up to 0.1.868 was tested earlier; new items carry their build.
 
 ## 2. Open bugs (no fix yet)
 
-- **D-23 (0.1.886, owner 11-25): fixed in 0.1.889, device check pending.** Every enemy that attacked in an enemy phase
-  and survived never acted again (an unported AI "go to start" command). In 0.1.889: in the
-  Prologue, let an enemy attack Eirika and survive, end turn 2 next to it, and it should attack again.
-  Until then, to test game over: attack the boss with Eirika until his counterattack kills her.
 - **D-24 (found 11-25): fixed after 0.1.889 (pending next APK), device check pending.** Map battles no longer crash on `TODO()` in `MapAnimInfoBox` when a unit's HP bar needs its one-segment minimum (`curHp = 1` at `maxHp >= 45`) or the HP overflow glyph (`>= 100` HP); both transcribed branches still need capture verification (`EP-21b`).
 
 ## 3. Known gaps (not bugs)

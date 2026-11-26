@@ -771,6 +771,10 @@ public class Fe8Boot(
                     mapOf(
                         0x080CF460 to { _ -> bmGuideTextSetAllGreen(memory, flags) },
                         // `EventCallGameOverExt`: the ASMC of `EventScr_GameOver` (PC-8).
+                        // `PlayPhaseForcePressAButtonInRangeDisp` (PC-10d).
+                        0x0801D7E8 to { _ ->
+                            playerPhaseOrNull?.playPhaseForcePressAButtonInRangeDisp()
+                        },
                         0x08085374 to { p ->
                             gameOverCaller.eventCallGameOverExt(checkNotNull(p.proc))
                         },
@@ -1094,6 +1098,9 @@ public class Fe8Boot(
      */
     public var unitSprites: UnitSprites? = null
 
+    /** The player phase proc owner, set by the battle map wiring (null before it ran). */
+    private var playerPhaseOrNull: PlayerPhase? = null
+
     /** The player phase wiring (menu and battle forecast), set by the battle map wiring. */
     internal var playerWiring: PlayerPhaseWiring? = null
         private set
@@ -1309,6 +1316,7 @@ public class Fe8Boot(
             active = active, movementMap = moves, pathArrow = arrow,
         ).also { pp -> pp.hooks.startMapSongBgm = ProcFunc { music.startMapSongBgm() } }
         main.hooks.playerPhase = phase.script
+        playerPhaseOrNull = phase
         main.hooks.phaseIntro = PhaseIntro(
             engine, bm, control.playSt, units, rom, hw, loop.oam, loop.sprites,
         ).also {

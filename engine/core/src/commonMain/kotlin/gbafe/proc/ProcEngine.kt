@@ -294,9 +294,7 @@ public class ProcEngine(
     /**
      * Sets [proc]'s repeat callback.
      *
-     * Transcribed from src/proc.c: Proc_SetRepeatCb (not verified: its only caller,
-     *   PlayPhaseForcePressAButtonInRangeDisp in playerphase.c, never runs in the 41 reference
-     *   runs)
+     * Ported from src/proc.c: Proc_SetRepeatCb
      */
     public fun setRepeatCb(proc: Proc, func: ProcFunc?) {
         proc.idleCb = func

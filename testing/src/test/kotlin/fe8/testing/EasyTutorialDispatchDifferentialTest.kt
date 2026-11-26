@@ -693,6 +693,8 @@ class EasyTutorialDispatchDifferentialTest {
             assertEquals(0x089EF328, acceptEv!!.pEventStart, "boot dispatched Tutorial1 accept")
             assertEquals(1, boot.loop.bmSt.lock, "boot locked game on Tutorial1 accept")
             assertEquals(25, ppAccept.scrCur, "boot PlayerPhase stayed in RangeDisplayIdle")
+            // The ASMC (PlayPhaseForcePressAButtonInRangeDisp) yields one frame before the enqueue.
+            boot.frame()
             assertEquals(3, boot.control.playSt.tutorialCounter, "boot queued Tutorial2")
             assertEquals(4, boot.control.playSt.tutorialExecType, "boot queued AFTERMOVE")
         }

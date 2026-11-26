@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 719 across 109 decomp files (missing reason: 0).
+Total entries: 718 across 109 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -871,15 +871,6 @@ Total entries: 719 across 109 decomp files (missing reason: 0).
 | `StartIntroMonologue` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitle.kt` | lifecycle |
 | `gProcScr_08AA2184` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleScenes.kt` | no @VerifiesPort test names it |
 
-## src/proc.c (4)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `Proc_SetEndCb` | `engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt` | the game never calls it |
-| `Proc_SetRepeatCb` | `engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt` | its only caller, PlayPhaseForcePressAButtonInRangeDisp in playerphase.c, never runs in the 41 reference runs |
-| `Proc_ForAll` | `engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt` | its only callers, sub_8009A84 via GameControl label 3 and ClassReel_OnEnd, were not found running in any of the 41 reference runs; the search was not exhaustive |
-| `Proc_ForEachMarked` | `engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt` | the game never calls it |
-
 ## src/worldmap_face.c (4)
 
 | Function | Kotlin file | Reason |
@@ -984,6 +975,14 @@ Total entries: 719 across 109 decomp files (missing reason: 0).
 | `ManimLevelUp_DimBgm` | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | the capture does not record audio |
 | `ManimLevelUp_RestoreBgm` | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | the capture does not record audio |
 | `ClearManimLevelUpWindow` | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | the windows are already off when it runs, so no register in the capture depends on it |
+
+## src/proc.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `Proc_SetEndCb` | `engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt` | the game never calls it |
+| `Proc_ForAll` | `engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt` | its only callers, sub_8009A84 via GameControl label 3 and ClassReel_OnEnd, were not found running in any of the 41 reference runs; the search was not exhaustive |
+| `Proc_ForEachMarked` | `engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt` | the game never calls it |
 
 ## src/soundwrapper.c (3)
 

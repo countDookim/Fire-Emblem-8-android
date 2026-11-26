@@ -457,6 +457,16 @@ public class PlayerPhase(
     }
 
     /**
+     * The repeat callback of the range display (`PlayerPhase_RangeDisplayIdle`), kept as one
+     * instance because [playPhaseForcePressAButtonInRangeDisp] compares `proc_idleCb` with it.
+     */
+    public val rangeDisplayIdleCb: ProcFunc = ProcFunc { hooks.rangeDisplayIdle.invoke(it) }
+
+    /** `PlayerPhase_RangeDisplayIdle_ForceAPress` as the repeat callback it is swapped in as. */
+    private val rangeDisplayIdleForceAPressCb: ProcFunc =
+        ProcFunc { playerPhaseRangeDisplayIdleForceAPress(it) }
+
+    /**
      * `gProcScr_PlayerPhase` (0x0859AAD8), in the order of the C. Labels: 0 phase start (suspend
      * save, auto end check), 9 cursor idle, 1 unit selected (movement select), 2 unit action menu
      * (after the move), 7 action (the camera, then the action, traps and events), 4 wait for the
@@ -492,7 +502,7 @@ public class PlayerPhase(
             startChildBlocking { selectEventsScript },
             call(ProcFunc { playerPhaseInitUnitMovementSelect() }),
             sleep(1),
-            repeat(ProcFunc { hooks.rangeDisplayIdle.invoke(it) }),
+            repeat(rangeDisplayIdleCb),
             call(ProcFunc { hooks.displayUnitMovement.invoke(it) }),
             repeat(ProcFunc { hooks.waitForUnitMovement.invoke(it) }),
             label(2),
@@ -1200,6 +1210,32 @@ public class PlayerPhase(
             unit, units.xPos(unit), units.yPos(unit), arrow.workingMovementScript,
         )
         hooks.setAutoMuMoveScript(arrow.workingMovementScript)
+    }
+
+    /**
+     * Ported from src/playerphase.c: PlayPhaseForcePressAButtonInRangeDisp
+     *
+     * The ASMC of the Easy tutorial's destination event: when the player phase proc's repeat
+     * callback is the range display's, swaps in [playerPhaseRangeDisplayIdleForceAPress]
+     * (`Proc_SetRepeatCb`). Does nothing without the proc.
+     */
+    public fun playPhaseForcePressAButtonInRangeDisp() {
+        val playerPhaseProc = engine.find(script) ?: return
+        if (playerPhaseProc.idleCb === rangeDisplayIdleCb) {
+            engine.setRepeatCb(playerPhaseProc, rangeDisplayIdleForceAPressCb)
+        }
+    }
+
+    /**
+     * Ported from src/playerphase.c: PlayerPhase_RangeDisplayIdle_ForceAPress
+     *
+     * Forces `newKeys` to A and clears `repeatedKeys`, then runs the range display idle
+     * ([Hooks.rangeDisplayIdle]).
+     */
+    public fun playerPhaseRangeDisplayIdleForceAPress(proc: Proc) {
+        keys.newKeys = KEY_A
+        keys.repeatedKeys = 0
+        hooks.rangeDisplayIdle.invoke(proc)
     }
 
     /**

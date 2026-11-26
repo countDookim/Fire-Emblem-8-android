@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 717 across 109 decomp files (missing reason: 0).
+Total entries: 719 across 109 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -690,6 +690,30 @@ Total entries: 717 across 109 decomp files (missing reason: 0).
 | `GameControlHandlePostNormalOrExtraChapter` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
 | `GameControl_ChapterSwitch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `computeChapterRankings` is PC-3c, `winFlagSet` false branch is unexercised at f9443 -> f9444, and `registerChapterTimeAndTurnCount` / `chapterChangeUnitCleanup` stay transcribed |
 
+## src/savedraw.c (7)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ProcScr_savedraw` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | script order and mark are checked against the procs watch in SaveDrawLifecycleDifferentialTest, which cannot tag a data array |
+| `SaveDraw_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | the `susSlotCur == 0xFF` branch is unexercised in PC-cap1 where `susSlotCur == 0`, `SetObjAffine(0..3)` writes identity over an already-identity OAM matrix buffer from `SaveMenu_InitScreen`, and `sub_8014EF4(0)` masks already-zeroed `mode[0]`; `SaveDrawProc` fields, child cursor and AP proc creation, `StartBgVerticalScroll`/`SetBgVerticalScrollPosition`, `SaveDraw_ScrollFogBG`, `scrollEnabled = true`, and `sub_80AB548` match `r09459` |
+| `gProcScr_SaveDrawCursor` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | script order checked against the procs watch in SaveDrawCursorDifferentialTest, which cannot tag a script |
+| `SaveDrawCursor_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | PC-cap1 observes only the clearing of unk2a, susSlot, mainOptions, unk34 and unk38; cursorEn, unk2e, unk32 and unk3a are overwritten by sub_80AB4F4 before the first dump, and unk37 is already zero |
+| `sub_80AB514` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | no capture runs it; the title menu calls it for the Copy / Erase slot select |
+| `sub_80AB56C` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawEffects.kt` | the bottom deactivation check unk_04 > 0xB3F is never taken and unk_0a += unk_0d is unobservable because unk_0d stays 0 across PC-cap1; active drawing/clipping, velocity/acceleration updates, horizontal/top deactivation, LCG spawning up to 19 particles, and layer 14 OAM output match PC-cap1 |
+| `sub_80AAF6C` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | early exit only, `unk_46 == 0` is the only case PC-cap1 runs; the rest runs [Hooks.extraOptions] |
+
+## src/savemenu.c (7)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SaveMenu_ReloadScreenFormDifficulty` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuNewGame.kt` | the graphics reload is the [Hooks.reloadScreenGraphics] hook; only the surrounding logic is tested |
+| `SaveMenu_SetLcdChapterIdx` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | world-map, EVFLAG_136, and non-save_menu_type-2 chapter-override branches are not exercised in ram_trace_prologue_end; LCD, blend, and help-text setup for chapter 1 / save_menu_type 2 are verified at f09444 |
+| `SaveMenu_InitScreen` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | individual setup calls masked by identical `f09444` pre-state are `resetTextFont`, `loadObjUiGfx`, `gEndingTmScratchA` copy, `scrollCnt = 0`, `win0/win1_enableBlend = 1`, `hbEn = false`, `setWinEnable(0, 0, 0)`, `palette[0] = 0`, and the second `enableBgSyncByMask(2)`; graphics, tilemaps, palettes, LCD, OAM affine matrices, and VRAM are differential-checked at `r09458`/ `r09459`/`f09494` in `SaveMenuInitScreenDifferentialTest` |
+| `SaveMenuPutChapterTitle` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | empty-slot `chapterIdx == 0xFF` branch passing `-1` is unexercised in `ram_trace_prologue_end`, where all three slots are valid `[0, 7, 6]`; valid-slot path verified at `r09459`/`f09494` |
+| `SaveMenuCopyPalette` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | `count <= 0` early-return guard is unexercised in `ram_trace_prologue_end`, where calls pass `count = 1` and `count = 2`; `PAL_OBJ(2) -> PAL_OBJ(1)` copy verified at `r09450`/`r09458` |
+| `SaveMenuWaitSlotBoxScrolling` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSlotFlip.kt` | `ram_trace_prologue_end` runs the frame 8 refresh, the affine flip, the frame `0x20` branch with `main_sel_bitfile == MAIN_MENU_OPTION_INVALID` and no `0x30` frame; the `NEW_GAME` and has-options branches, the `0x30` branch and the non-zero `sus_slot` and non-empty title branches are not observed; frames 0..0x20 match f9804..9844 otherwise |
+| `SaveMenuScrollBackToMain` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuStart.kt` | no capture presses B on the slot select |
+
 ## src/uimenu.c (7)
 
 | Function | Kotlin file | Reason |
@@ -734,28 +758,6 @@ Total entries: 717 across 109 decomp files (missing reason: 0).
 | `PopupProc_PlaySound` | `game/src/commonMain/kotlin/fe8/game/ui/Popup.kt` | the trace has no record of the sound effect call |
 | `ProcScr_PopupUpdateIcon` | `game/src/commonMain/kotlin/fe8/game/ui/PopupScript.kt` | no @VerifiesPort test names it |
 | `ProcScr_Popup` | `game/src/commonMain/kotlin/fe8/game/ui/PopupScript.kt` | no @VerifiesPort test names it |
-
-## src/savedraw.c (6)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `ProcScr_savedraw` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | script order and mark are checked against the procs watch in SaveDrawLifecycleDifferentialTest, which cannot tag a data array |
-| `SaveDraw_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt` | the `susSlotCur == 0xFF` branch is unexercised in PC-cap1 where `susSlotCur == 0`, `SetObjAffine(0..3)` writes identity over an already-identity OAM matrix buffer from `SaveMenu_InitScreen`, and `sub_8014EF4(0)` masks already-zeroed `mode[0]`; `SaveDrawProc` fields, child cursor and AP proc creation, `StartBgVerticalScroll`/`SetBgVerticalScrollPosition`, `SaveDraw_ScrollFogBG`, `scrollEnabled = true`, and `sub_80AB548` match `r09459` |
-| `gProcScr_SaveDrawCursor` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | script order checked against the procs watch in SaveDrawCursorDifferentialTest, which cannot tag a script |
-| `SaveDrawCursor_Init` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawCursor.kt` | PC-cap1 observes only the clearing of unk2a, susSlot, mainOptions, unk34 and unk38; cursorEn, unk2e, unk32 and unk3a are overwritten by sub_80AB4F4 before the first dump, and unk37 is already zero |
-| `sub_80AB56C` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawEffects.kt` | the bottom deactivation check unk_04 > 0xB3F is never taken and unk_0a += unk_0d is unobservable because unk_0d stays 0 across PC-cap1; active drawing/clipping, velocity/acceleration updates, horizontal/top deactivation, LCG spawning up to 19 particles, and layer 14 OAM output match PC-cap1 |
-| `sub_80AAF6C` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | early exit only, `unk_46 == 0` is the only case PC-cap1 runs; the rest runs [Hooks.extraOptions] |
-
-## src/savemenu.c (6)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SaveMenu_ReloadScreenFormDifficulty` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuNewGame.kt` | the graphics reload is the [Hooks.reloadScreenGraphics] hook; only the surrounding logic is tested |
-| `SaveMenu_SetLcdChapterIdx` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuPostChapter.kt` | world-map, EVFLAG_136, and non-save_menu_type-2 chapter-override branches are not exercised in ram_trace_prologue_end; LCD, blend, and help-text setup for chapter 1 / save_menu_type 2 are verified at f09444 |
-| `SaveMenu_InitScreen` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | individual setup calls masked by identical `f09444` pre-state are `resetTextFont`, `loadObjUiGfx`, `gEndingTmScratchA` copy, `scrollCnt = 0`, `win0/win1_enableBlend = 1`, `hbEn = false`, `setWinEnable(0, 0, 0)`, `palette[0] = 0`, and the second `enableBgSyncByMask(2)`; graphics, tilemaps, palettes, LCD, OAM affine matrices, and VRAM are differential-checked at `r09458`/ `r09459`/`f09494` in `SaveMenuInitScreenDifferentialTest` |
-| `SaveMenuPutChapterTitle` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | empty-slot `chapterIdx == 0xFF` branch passing `-1` is unexercised in `ram_trace_prologue_end`, where all three slots are valid `[0, 7, 6]`; valid-slot path verified at `r09459`/`f09494` |
-| `SaveMenuCopyPalette` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuScreen.kt` | `count <= 0` early-return guard is unexercised in `ram_trace_prologue_end`, where calls pass `count = 1` and `count = 2`; `PAL_OBJ(2) -> PAL_OBJ(1)` copy verified at `r09450`/`r09458` |
-| `SaveMenuWaitSlotBoxScrolling` | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSlotFlip.kt` | `ram_trace_prologue_end` runs the frame 8 refresh, the affine flip, the frame `0x20` branch with `main_sel_bitfile == MAIN_MENU_OPTION_INVALID` and no `0x30` frame; the `NEW_GAME` and has-options branches, the `0x30` branch and the non-zero `sus_slot` and non-empty title branches are not observed; frames 0..0x20 match f9804..9844 otherwise |
 
 ## src/bmsave-lib.c (5)
 

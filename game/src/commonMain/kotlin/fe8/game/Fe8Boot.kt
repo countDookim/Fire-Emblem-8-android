@@ -203,6 +203,11 @@ public class Fe8Boot(
      * memory only.
      */
     private val saveStorage: SaveStorage? = null,
+    /**
+     * Runs the real title save menu (`PC-11`, [titleSaveMenu]) after the title screen. False keeps
+     * the auto-resume / auto-New-Game stand-in, for boots that start past the menu.
+     */
+    private val realTitleMenu: Boolean = false,
 ) {
     /** Test hook: told the command code of every event command that runs a no-op release stub. */
     public var onEventStub: ((code: Int) -> Unit)? = null
@@ -278,8 +283,8 @@ public class Fe8Boot(
     }
 
     /**
-     * Stand-in until M6-E (PC-9 for the New Game path) for `StartSaveMenu` (the save menu is not
-     * ported). With a valid suspend save in [sram] it takes the menu's "Resume" choice: reads the
+     * Stand-in for `StartSaveMenu` when [realTitleMenu] is false (boots that start past the menu).
+     * With a valid suspend save in [sram] it takes the menu's "Resume" choice: reads the
      * suspend save ([BmSuspendSave.readSuspendSave]) and sets `nextAction` to `GAME_ACTION_4`,
      * so the game control proc continues at the resumed game. Otherwise it is the dev "New Game"
      * choice: writes a fresh game to slot 0 ([BmSaveLib.writeNewGameSave], the save menu's
@@ -310,55 +315,87 @@ public class Fe8Boot(
      * Built on first use; needs the whole ROM (text, messages).
      */
     public val postChapterSaveMenu: SaveMenuAssembly.Result by lazy {
+        SaveMenuAssembly.assemble(saveMenuDeps)
+    }
+
+    /**
+     * The title save menu (`ProcScr_SaveMenu`, PC-11): its own assembly on the shared
+     * [saveMenuDeps] with the New Game path, the setup callbacks and the Resume / Restart loads
+     * wired ([SaveMenuAssembly.wireNewGame]). Built on first use; needs the whole ROM.
+     */
+    public val titleSaveMenu: SaveMenuAssembly.NewGameWiring by lazy {
+        val built = SaveMenuAssembly.assemble(saveMenuDeps)
+        val suspendSave = BmSuspendSave(saveLib, rom)
+        val gameSave = BmGameSave(saveLib, statsUnitLoader, rom)
+        SaveMenuAssembly.wireNewGame(
+            built, saveMenuDeps,
+            NewGameRam(control.playSt, flags, ByteArray(200), initUnits = { units.initUnits() }),
+            keys,
+            startBgmVolumeChange = { volume, end, duration, _ ->
+                control.sound.startBgmVolumeChange(volume, end, duration, null)
+            },
+            afterWrite = { flushSram() },
+            readSuspendSave = { suspendSave.readSuspendSave(suspendRam, it) },
+            readGameSave = { slot ->
+                gameSave.readGameSave(
+                    GameSaveRam(
+                        control.playSt, loop.bmSt, units, flags, clock, gmData = gmData,
+                    ),
+                    slot,
+                )
+            },
+        )
+    }
+
+    /** The shared [SaveMenuAssembly.Deps] of [postChapterSaveMenu] and [titleSaveMenu]. */
+    private val saveMenuDeps: SaveMenuAssembly.Deps by lazy {
         val scene = talkScene
         val nodes = WmNodeData(rom)
         val gameSave = BmGameSave(saveLib, statsUnitLoader, rom)
         val ram = GameSaveRam(control.playSt, loop.bmSt, units, flags, clock, gmData = gmData)
-        SaveMenuAssembly.assemble(
-            SaveMenuAssembly.Deps(
-                engine = engine,
-                hardware = hw,
-                rom = rom,
-                oam = loop.oam,
-                layers = loop.sprites,
-                scroll = BgVerticalScroll(),
-                apProcs = ApProcs(
-                    engine,
-                    SpriteAnimPlayer(
-                        { rom.u16(it) }, loop.sprites, WorldMapApHost(rom, hw, loop.oam),
-                    ),
+        SaveMenuAssembly.Deps(
+            engine = engine,
+            hardware = hw,
+            rom = rom,
+            oam = loop.oam,
+            layers = loop.sprites,
+            scroll = BgVerticalScroll(),
+            apProcs = ApProcs(
+                engine,
+                SpriteAnimPlayer(
+                    { rom.u16(it) }, loop.sprites, WorldMapApHost(rom, hw, loop.oam),
                 ),
-                playSt = control.playSt,
-                bmSt = loop.bmSt,
-                gmData = gmData,
-                saveLib = saveLib,
-                archivedFade = ArchivedPaletteFade(PaletteFade(hw, engine), hw, engine),
-                chapterTitle = ChapterTitle(
-                    rom, hw, battleChapters,
-                    getPlayChapterId = { chapter ->
-                        (0 until WM_NODE_COUNT).firstOrNull { node ->
-                            nodes.chapterId(node, control.playSt.chapterModeIndex) == chapter
-                        } ?: -1
-                    },
-                    getNextUnclearedNode = {
-                        WorldMapPath(gmData, WmPathData(rom)).getNextUnclearedNode()
-                    },
-                ),
-                text = scene.text,
-                messages = scene.messages,
-                lcg = rng.lcg,
-                loadObjUiGfx = {
-                    ChapterMapGfx(rom, battleChapters, hw, control.playSt).loadObjUiGfx()
-                },
-                clock = { clock.frames.toInt() },
-                setNextGameActionId = { control.setNextGameActionId(it) },
-                writeGameSave = { slot ->
-                    gameSave.writeGameSave(ram, slot)
-                    flushSram()
-                },
-                newKeys = { keys.newKeys },
-                playSoundEffect = { control.sound.playSoundEffect(it) },
             ),
+            playSt = control.playSt,
+            bmSt = loop.bmSt,
+            gmData = gmData,
+            saveLib = saveLib,
+            archivedFade = ArchivedPaletteFade(PaletteFade(hw, engine), hw, engine),
+            chapterTitle = ChapterTitle(
+                rom, hw, battleChapters,
+                getPlayChapterId = { chapter ->
+                    (0 until WM_NODE_COUNT).firstOrNull { node ->
+                        nodes.chapterId(node, control.playSt.chapterModeIndex) == chapter
+                    } ?: -1
+                },
+                getNextUnclearedNode = {
+                    WorldMapPath(gmData, WmPathData(rom)).getNextUnclearedNode()
+                },
+            ),
+            text = scene.text,
+            messages = scene.messages,
+            lcg = rng.lcg,
+            loadObjUiGfx = {
+                ChapterMapGfx(rom, battleChapters, hw, control.playSt).loadObjUiGfx()
+            },
+            clock = { clock.frames.toInt() },
+            setNextGameActionId = { control.setNextGameActionId(it) },
+            writeGameSave = { slot ->
+                gameSave.writeGameSave(ram, slot)
+                flushSram()
+            },
+            newKeys = { keys.newKeys },
+            playSoundEffect = { control.sound.playSoundEffect(it) },
         )
     }
 
@@ -1821,7 +1858,13 @@ public class Fe8Boot(
         // The New Game stand-in (M6-E) leads into the battle map, which reads ROM data outside
         // the boot windows: with windows only (debug APK without an imported ROM) the save menu
         // holds, instead of crashing on the first chapter read.
-        if (rom.isWholeRom) control.hooks.startSaveMenu = ProcFunc { newGameSaveMenu() }
+        if (rom.isWholeRom) {
+            control.hooks.startSaveMenu = if (realTitleMenu) {
+                ProcFunc { titleSaveMenu.start.startSaveMenu(it) }
+            } else {
+                ProcFunc { newGameSaveMenu() }
+            }
+        }
         if (rom.isWholeRom) {
             control.hooks.startIntroMonologue = ProcFunc { opSubtitle.startBlocking(it) }
             control.hooks.makeSaveMenuPostChapter =

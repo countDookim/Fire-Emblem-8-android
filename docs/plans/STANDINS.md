@@ -10,14 +10,14 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 259 across 60 Kotlin files.
+Total entries: 261 across 61 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 13 |
 | M6-C | 5 |
 | M6-D | 13 |
-| M6-E | 39 |
+| M6-E | 38 |
 | M6-F | 16 |
 | M6-G | 5 |
 | M6-H | 44 |
@@ -32,13 +32,14 @@ Total entries: 259 across 60 Kotlin files.
 | EP-34a | 2 |
 | EP-7 | 2 |
 | IS-2 | 1 |
+| PC-11 | 1 |
 | PC-4f | 1 |
 | PC-cap1 | 2 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 40 |
+| unassigned | 42 |
 
 ## M6-B (13)
 
@@ -86,13 +87,12 @@ Total entries: 259 across 60 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11: the range of a unit the player does not control, `PLAYER_SELECT_NOCONTROL`). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (label 12: the danger zone, `GenerateDangerZoneRange`, reached when the resume finds no active unit). |
 
-## M6-E (39)
+## M6-E (38)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `camera` | The New Game stand-in (M6-E) leads into the battle map, which reads ROM data outside the boot windows: with windows only (debug APK without an imported ROM) the save menu holds, instead of crashing... |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `eventTextBg` | Real: BG positions, the random background, the BG3 load of subcode 0; the fade procs and `DisplayCGfx` are no-op stand-ins (M6-E). |
-| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `newGameSaveMenu` | Stand-in until M6-E (PC-9 for the New Game path) for `StartSaveMenu` (the save menu is not ported). |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `refreshMapGraphics` | Text, UI frame, face and icon resets, weather particles and system font setup are stand-ins (M6-E). |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `talkSceneDelegate` | The talk window on the game's BG buffers, VRAM, fonts, procs, keys and the ROM messages (see [TalkScene] for its stand-ins, M6-E). |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `callEraseMural` | Stand-in until M6-E. |
@@ -342,6 +342,12 @@ Total entries: 259 across 60 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until IS-2 (help boxes): nothing happens (the selection's `onHelp`). |
 
+## PC-11 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `realTitleMenu` | False keeps the auto-resume / auto-New-Game stand-in, for boots that start past the menu. |
+
 ## PC-4f (1)
 
 | Kotlin file | Declaration | Stand-in |
@@ -379,10 +385,11 @@ Total entries: 259 across 60 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (40)
+## unassigned (42)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `newGameSaveMenu` | Stand-in for `StartSaveMenu` when [realTitleMenu] is false (boots that start past the menu). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleAisCommands.kt` | `BattleAisCommands` | Script pointers are GBA addresses, so the C `pScrCurrent + 1` (a `u32 *`) is `+ 4` here. @property hooks the stand-ins of the parts that are not ported. @property anims `gAnims[0..3]`: left front/b... |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleAisCommands.kt` | `BattleAisHooks` | Later tasks (BA-p3c/d/e) replace the stand-ins with ports, and a loaded mod may replace any of them. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmContainer.kt` | `getNextUnclearedChapter` | Stand-in until the game wires `WorldMapPath.getNextUnclearedNode`. |
@@ -409,6 +416,7 @@ Total entries: 259 across 60 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/save/SaveExtras.kt` | `multiArenaSaveReady` | `IsMultiArenaSaveReady()` (`src/bmsave-multiarena.c`), the Link Arena fallback when no game save is past the first chapter; a stand-in (false) until the Link Arena save is ported, which no title ru... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/DifficultyMenu.kt` | `newNewGameDifficultySelect` | Transcribed from src/difficultymenu.c: NewNewGameDifficultySelect (not verified: the capture shows the child's parent and the save menu's cursor holding at 23 while it runs, but the test's parent i... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveDrawSlots.kt` | `Hooks` | Stand-ins for the part of `sub_80AAF6C` that no capture runs (the extras option list, which needs `sub_80AAC40`) and for `sub_80AB514`; each fails loudly until ported. |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuAssembly.kt` | `wireNewGame` | Stand-in: the Extras list (no capture) is not run, A on Extras returns to the main list instead of soft-locking on the unwired scroll. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuChoice.kt` | `Hooks` | A null entry uses [SaveExtras] when given; without it the fixed stand-in answers apply (link arena, support viewer, free map and bonus claim false, the sound room true). |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `loadSaveMenuInfo` | Stand-in (not ported). |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuSelectLoop.kt` | `newGame` | Stand-in (not ported). |

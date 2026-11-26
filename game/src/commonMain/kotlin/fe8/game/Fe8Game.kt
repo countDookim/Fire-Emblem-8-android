@@ -62,6 +62,7 @@ public class Fe8Game(
             m4a = sound,
             pcm = pcm,
             saveStorage = saveStorage,
+            realTitleMenu = true,
         )
     }
 

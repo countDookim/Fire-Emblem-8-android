@@ -73,9 +73,7 @@ public class SaveMenuStart(
      */
     public fun saveMenuLoadExtraMenuGraphics(proc: Proc) {
         val state = proc.state as SaveMenuState
-        rom.decompressInto(
-            IMG_GAME_MAIN_MENU_OBJS, hardware.vram, OBJ_VRAM_OFFSET + CHOICE_STR_OFFSET,
-        )
+        loadMainChoiceGraphics()
         choice.initSaveMenuChoice(state)
 
         if (state.mainSelBitfile == PostSaveMenu.MAIN_MENU_OPTION_EXTRAS) {
@@ -92,6 +90,33 @@ public class SaveMenuStart(
 
         if (state.jumpLabel == SaveMenuNewGame.PL_MAIN_LOOP) state.unk2f = 0
         if (state.jumpLabel == SaveMenuNewGame.PL_SAVE_SLOT_SEL) state.unk2f = MENU_X_OFFSET
+    }
+
+    /** Decompresses `Img_GameMainMenuObjs` to the main choice string tiles. */
+    private fun loadMainChoiceGraphics() {
+        rom.decompressInto(
+            IMG_GAME_MAIN_MENU_OBJS, hardware.vram, OBJ_VRAM_OFFSET + CHOICE_STR_OFFSET,
+        )
+    }
+
+    /**
+     * One frame of the slide back from the slot select to the main list (B on the slot select):
+     * sets the jump label, advances `scroll_cnt`, moves the menu offset `unk_2f` right on a
+     * quadratic ease and, at frame 14, reloads the main choice graphics and ends the repeat.
+     *
+     * Transcribed from src/savemenu.c: SaveMenuScrollBackToMain (not verified: no capture presses
+     * B on the slot select)
+     */
+    public fun saveMenuScrollBackToMain(proc: Proc) {
+        val state = proc.state as SaveMenuState
+        state.jumpLabel = SaveMenuNewGame.PL_BACK_TO_MAIN
+        state.scrollCnt = (state.scrollCnt + 1) and 0xFF
+        val unk = SCROLL_FRAMES - state.scrollCnt
+        state.unk2f = (unk * MENU_X_OFFSET * unk / SCROLL_DIVISOR) and 0xFF
+        if (state.scrollCnt == SCROLL_FRAMES) {
+            loadMainChoiceGraphics()
+            engine.breakProc(proc)
+        }
     }
 
     /**
@@ -115,5 +140,7 @@ public class SaveMenuStart(
         /** `OBJCHR_SAVEMENU_MAINCHOICE_STR` (0x200 tiles of 0x20 bytes). */
         const val CHOICE_STR_OFFSET = 0x200 * 0x20
         const val MENU_X_OFFSET = 0xDC
+        const val SCROLL_FRAMES = 0xE
+        const val SCROLL_DIVISOR = 0xC4
     }
 }

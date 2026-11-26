@@ -97,6 +97,8 @@ public object SaveMenuAssembly {
         public val selectLoop: SaveMenuSelectLoop,
         /** Per-slot display data. */
         public val slotData: SaveSlotData,
+        /** `PostSaveMenuHandler`, whose load effects [wireNewGame] connects. */
+        public val postSaveMenu: PostSaveMenu,
     )
 
     /** Builds and fully wires the post-chapter save menu on [d]. */
@@ -107,6 +109,7 @@ public object SaveMenuAssembly {
         val slotData = SaveSlotData(d.saveLib, d.chapterTitle, d.hardware, d.rom)
         val uiHand = UiHand(d.rom, d.layers)
         val slots = SaveDrawSlots(d.layers, d.rom, cursor, uiHand, d.apProcs, d.clock)
+        slots.hooks.staticCursor = { y, proc -> cursor.sub80AB514(1, y, proc) }
         val effects = SaveDrawEffects(
             d.hardware, d.oam, d.layers, slotData, d.lcg, lifecycle.particles, d.rom,
         )
@@ -138,7 +141,7 @@ public object SaveMenuAssembly {
             it.hooks.writeGameSave = d.writeGameSave
         }
         menu.wireSelectLoop(loop)
-        return Result(menu, lifecycle, slots, effects, flip, loop, slotData)
+        return Result(menu, lifecycle, slots, effects, flip, loop, slotData, postSaveMenu)
     }
 
     /** What [wireNewGame] built. */
@@ -151,6 +154,8 @@ public object SaveMenuAssembly {
         public val sprites: DifficultyMenuSprites,
         /** The main menu loop, slot scroll, slot-select sprite and slot search (`PC-11c`). */
         public val mainLoop: SaveMenuMainLoop,
+        /** The setup callbacks and `StartSaveMenu` of the title menu (`PC-11`). */
+        public val start: SaveMenuStart,
     )
 
     /**
@@ -171,6 +176,8 @@ public object SaveMenuAssembly {
      * @param keys key status the difficulty select reads
      * @param startBgmVolumeChange `StartBgmVolumeChange`
      * @param afterWrite called after the new game is written (e.g. flush SRAM to storage)
+     * @param readSuspendSave `ReadSuspendSave(slot)`, run by `PostSaveMenuHandler` on Resume
+     * @param readGameSave `ReadGameSave(slot)`, run by `PostSaveMenuHandler` on Restart
      */
     public fun wireNewGame(
         result: Result,
@@ -179,6 +186,8 @@ public object SaveMenuAssembly {
         keys: KeyStatus,
         startBgmVolumeChange: (Int, Int, Int, Int) -> Unit = { _, _, _, _ -> },
         afterWrite: () -> Unit = {},
+        readSuspendSave: (Int) -> Unit = {},
+        readGameSave: (Int) -> Unit = {},
     ): NewGameWiring {
         val bridge = SaveMenuNewGame(d.engine, d.hardware, d.saveLib, ram, d.archivedFade)
         bridge.hooks.startBgmVolumeChange = startBgmVolumeChange
@@ -228,8 +237,37 @@ public object SaveMenuAssembly {
             bridge.saveMenuWriteNewGame(it)
             afterWrite()
         }
-        return NewGameWiring(bridge, difficulty, sprites, mainLoop)
+        result.postSaveMenu.effects.readSuspendSave = readSuspendSave
+        result.postSaveMenu.effects.readGameSave = readGameSave
+        result.postSaveMenu.effects.startBgmVolumeChange = {
+            startBgmVolumeChange(BGM_EXIT_VOLUME, BGM_EXIT_END, BGM_EXIT_DURATION, 0)
+        }
+        val start = SaveMenuStart(
+            d.engine, d.hardware, d.rom, d.playSt, bridge.script, result.menu,
+            SaveMenuChoice(extras = SaveExtras(d.saveLib)),
+        )
+        val funcs = bridge.hooks.funcs
+        funcs["SaveMenu_Init"] = ProcFunc { start.saveMenuInit() }
+        funcs["SaveMenu_InitScreen"] = ProcFunc { result.menu.hooks.initScreen.invoke(it) }
+        funcs["SaveMenu_LoadExtraMenuGraphics"] =
+            ProcFunc { start.saveMenuLoadExtraMenuGraphics(it) }
+        funcs["SaveMenu_JumpToTarget"] = ProcFunc { start.saveMenuJumpToTarget(it) }
+        funcs["SaveMenuRegisterSlotSelected"] =
+            ProcFunc { result.menu.hooks.registerSlotSelected.invoke(it) }
+        funcs["SaveMenuWaitSlotBoxScrolling"] =
+            ProcFunc { result.menu.hooks.waitSlotBoxScrolling.invoke(it) }
+        funcs["SaveMenu_EndHelpPromptSprite"] = ProcFunc { d.engine.endEach(helpPrompt.script) }
+        funcs["SaveMenuScrollBackToMain"] = ProcFunc { start.saveMenuScrollBackToMain(it) }
+        // Stand-in: the Extras list (no capture) is not run, A on Extras returns to the main
+        // list instead of soft-locking on the unwired scroll.
+        funcs["sub_80A9A68"] =
+            ProcFunc { d.engine.goto(it, SaveMenuNewGame.PL_MAIN_LOOP) }
+        return NewGameWiring(bridge, difficulty, sprites, mainLoop, start)
     }
+
+    private const val BGM_EXIT_VOLUME = 0xC0
+    private const val BGM_EXIT_END = 0x100
+    private const val BGM_EXIT_DURATION = 0x10
 
     /** `MSG_882`, the "suspended data will be lost" message of the confirm help box. */
     private const val MSG_882 = 0x882

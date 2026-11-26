@@ -271,6 +271,24 @@ public class SaveDrawCursor(
         state.unk3a = a and 0xFF
     }
 
+    /**
+     * Queues the static second cursor: sets `unk_37 = b`, `unk_38 = 1`, `unk_3a = a` and clears
+     * `unk_39` on the child cursor proc of [saveDrawProc].
+     *
+     * Transcribed from src/savedraw.c: sub_80AB514 (not verified: no capture runs it; the
+     * title menu calls it for the Copy / Erase slot select)
+     */
+    public fun sub80AB514(a: Int, b: Int, saveDrawProc: Proc) {
+        val cursorProc = checkNotNull((saveDrawProc.state as SaveDrawParent).drawCursorProc) {
+            "SaveDrawProc has no drawCursorProc"
+        }
+        val state = cursorProc.state as SaveDrawCursorProc
+        state.unk37 = b and 0xFF
+        state.unk38 = 1
+        state.unk3a = a and 0xFF
+        state.unk39 = 0
+    }
+
     /** ROM addresses and OAM/animation constants for [SaveDrawCursor]. */
     public companion object {
         /** ROM address of `Sprite_08A20570` (`src/savedraw.c`). */

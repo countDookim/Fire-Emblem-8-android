@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 716 across 109 decomp files (missing reason: 0).
+Total entries: 715 across 109 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -733,17 +733,6 @@ Total entries: 716 across 109 decomp files (missing reason: 0).
 | `GetTerrainHealAmount` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseTargets.kt` | no unit in a capture stands on a terrain that heals, and the map of the Prologue has none |
 | `GetTerrainHealsStatus` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseTargets.kt` | no unit in a capture stands on a terrain that heals a status, and the map of the Prologue has none |
 
-## src/helpbox.c (6)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` exists in `f3706..3722` or `f4894..4912` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580` |
-| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | the capture window ends the box through `sub_808A8AC`, never through this function |
-| `GetBoxDialogueSize` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | the captured box starts at (0, 0), so it is never called, and only the control-code paths are checked, no glyph width |
-| `gProcScr_HelpBoxTextScroll` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the proc's step, string offset and strip counts match the capture |
-| `ProcScr_HelpBoxIntro` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the script position matches the capture every frame |
-| `ResetHelpBoxInitSize` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the shared help box differential tests compare the box size only through the drawn tiles |
-
 ## src/mapanim.c (6)
 
 | Function | Kotlin file | Reason |
@@ -775,6 +764,16 @@ Total entries: 716 across 109 decomp files (missing reason: 0).
 | `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
 | `GGM_IsAnyCharacterKnown` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | the only caller, `IsExtraSupportViewerEnabled`, ANDs it with `IsGamePlayedThrough`, which is false in every run, so no run shows its result |
 | `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
+
+## src/helpbox.c (5)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` exists in `f3706..3722` or `f4894..4912` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580` |
+| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | the capture window ends the box through `sub_808A8AC`, never through this function |
+| `gProcScr_HelpBoxTextScroll` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the proc's step, string offset and strip counts match the capture |
+| `ProcScr_HelpBoxIntro` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the script position matches the capture every frame |
+| `ResetHelpBoxInitSize` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the shared help box differential tests compare the box size only through the drawn tiles |
 
 ## src/rng.c (5)
 

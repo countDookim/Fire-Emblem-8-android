@@ -13,7 +13,7 @@ captures/
 *.sav
 *.srm
 *.ss[0-9]
-.assets/
+.assets
 .assets.env
 extracted/
 rom/

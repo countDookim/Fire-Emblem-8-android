@@ -64,11 +64,14 @@ public class BattleGenerate(
         private set
 
     /**
-     * Transcribed from src/bmbattle.c: SetScriptedBattle
-     *   (not verified: a plain pointer store, observable only through the unwind)
+     * Ported from src/bmbattle.c: SetScriptedBattle
      *
      * Makes the next real battle replay [hits] (terminated by a hit with the END info), or
      * generate its own for `null`.
+     *
+     * Verified on the FIGHT_SCRIPT command of the Easy tutorial's `TutEirikaAttack` in
+     * `ram_trace_newgame_easy` (f26308): the stored pointer is `script_hits`, and the unwind of
+     * the player's attack at f27634 replays it.
      */
     public fun setScriptedBattle(hits: IntArray?) {
         scriptedBattleHits = hits

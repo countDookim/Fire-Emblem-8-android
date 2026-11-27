@@ -1,5 +1,6 @@
 package fe8.game.ui
 
+import gbafe.core.math.Interpolate
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
@@ -44,8 +45,8 @@ public class BoxDialogueState {
  * The dialogue box of the tutorial text (`src/helpbox.c`, `PC-11b2`): [startBoxDialogue]
  * (`sub_808AA04`) starts `gProcScr_BoxDialogue` and the box size comes from [getBoxDialogueSize].
  *
- * Stand-ins ([Hooks]): the drawing (`InitBoxDialogue` graphics, `DrawBoxDialogueText`) is not
- * ported yet.
+ * Stand-ins ([Hooks]): the drawing (`InitBoxDialogue` graphics, `DrawBoxDialogueText`,
+ * `sub_808ACFC`) is not ported yet; [mergeScript] and the teardown ([sub808A9F0]) are.
  *
  * @param engine proc scheduler running the box procs
  * @param textSystem text system whose active font measures the characters
@@ -80,9 +81,9 @@ public class BoxDialogue(
         /** `PlaySoundEffect(SONG_2E7)`. */
         public var playCloseSound: () -> Unit = {}
 
-        /** `sub_808A9F0()` (`PC-11b2b`). */
-        public var sub808A9F0: () -> Unit = {
-            throw NotImplementedError("not ported: sub_808A9F0 (PC-11b2b)")
+        /** `sub_808ACFC(x, y, w, h)`: draws the box frame (`PC-11b2c`). */
+        public var drawBoxFrame: (Int, Int, Int, Int) -> Unit = { _, _, _, _ ->
+            throw NotImplementedError("not ported: sub_808ACFC (PC-11b2c)")
         }
     }
 
@@ -127,9 +128,9 @@ public class BoxDialogue(
     /**
      * `gProcScr_BoxDialogue`: draws the box, waits for B or START, then plays the close sound.
      *
-     * Partially ported from src/helpbox.c: gProcScr_BoxDialogue (the commands up to the repeat
-     * are verified by the script position of f18230..f18240; the block, labels 1 to 3, the
-     * sleeps after them, the close call and the end are not)
+     * Ported from src/helpbox.c: gProcScr_BoxDialogue (the script position of every frame from
+     * f18230 to the end at f18384 is verified, `BoxDialogueMergeDifferentialTest`; the jump to
+     * label 2 on B or START is not run there)
      */
     public val script: ProcScript = ProcScript(
         "gProcScr_BoxDialogue",
@@ -149,6 +150,147 @@ public class BoxDialogue(
         ),
         newState = { BoxDialogueState() },
     )
+
+    /**
+     * `ProcScr_BoxDialogueDrawTextExt`: placeholder for the text drawing proc (`PC-11b2c`); only
+     * its identity is used here, by [sub808BAA4] and [sub808BB74].
+     */
+    public val drawTextExtScript: ProcScript = ProcScript(
+        "ProcScr_BoxDialogueDrawTextExt",
+        listOf(block(), end()),
+    )
+
+    /**
+     * `gUnknown_08A01800`: placeholder proc script whose body is not ported; only its identity is
+     * used here, by [sub808BAA4] and [sub808BB74].
+     */
+    public val unknown08A01800Script: ProcScript = ProcScript(
+        "gUnknown_08A01800",
+        listOf(block(), end()),
+    )
+
+    /**
+     * `ProcScr_MergeBoxDialogue`: grows the box frame until [sub808A9F0] breaks it, then shrinks
+     * it again and ends the idle proc.
+     *
+     * Ported from src/helpbox.c: ProcScr_MergeBoxDialogue (verified by the script position of
+     * every frame f18231..f18378)
+     */
+    public val mergeScript: ProcScript = ProcScript(
+        "ProcScr_MergeBoxDialogue",
+        listOf(
+            repeat(ProcFunc { mergeBoxDialogue1(it) }),
+            call(ProcFunc { mergeBoxDialogue2(it) }),
+            repeat(ProcFunc { mergeBoxDialogue3(it) }),
+            end(),
+        ),
+        newState = { HelpBoxState() },
+    )
+
+    /**
+     * Draws the frame of the box interpolated by [method] at the proc's timer.
+     *
+     * Ported from src/helpbox.c: sub_808A8E4
+     */
+    public fun sub808A8E4(proc: Proc, method: Int) {
+        val s = proc.state as HelpBoxState
+        val x = s.xBoxFinal
+        val y = s.yBoxFinal
+        val w = Interpolate.interpolate(method, s.wBoxInit, s.wBoxFinal, s.timer, s.timerMax)
+        val h = Interpolate.interpolate(method, s.hBoxInit, s.hBoxFinal, s.timer, s.timerMax)
+        s.xBox = x
+        s.yBox = y
+        hooks.drawBoxFrame(x, y, w, h)
+    }
+
+    /**
+     * Opening step of the merge proc: draws the frame and advances the timer up to its maximum.
+     *
+     * Ported from src/helpbox.c: MergeBoxDialogue1
+     */
+    public fun mergeBoxDialogue1(proc: Proc) {
+        val s = proc.state as HelpBoxState
+        sub808A8E4(proc, Interpolate.RCUBIC)
+        if (s.timer < s.timerMax) s.timer++
+    }
+
+    /**
+     * Starts the closing step: the box shrinks from the base size over a third of the time.
+     *
+     * Ported from src/helpbox.c: MergeBoxDialogue2
+     */
+    public fun mergeBoxDialogue2(proc: Proc) {
+        val s = proc.state as HelpBoxState
+        s.resetHelpBoxInitSize()
+        s.timerMax /= 3
+        s.timer = s.timerMax
+    }
+
+    /**
+     * Closing step of the merge proc: draws the shrinking frame; when the timer runs out, ends
+     * the proc's step and the idle proc.
+     *
+     * Ported from src/helpbox.c: MergeBoxDialogue3
+     */
+    public fun mergeBoxDialogue3(proc: Proc) {
+        val s = proc.state as HelpBoxState
+        sub808A8E4(proc, Interpolate.LINEAR)
+        s.timer--
+        if (s.timer < 0) {
+            engine.breakProc(proc)
+            engine.endEach(talkBoxIdleScript)
+        }
+    }
+
+    /**
+     * Clears the box text strips, ends the text procs and starts closing the merge procs.
+     *
+     * Ported from src/helpbox.c: sub_808A9F0
+     */
+    public fun sub808A9F0() {
+        sub808BAA4()
+        engine.breakEach(mergeScript)
+    }
+
+    /**
+     * Clears the box text strips (config bit 0: [getDialogueBoxConfig] ushr 8 of them, else the
+     * three or five of the yellow box) and ends the text procs.
+     *
+     * Partially ported from src/helpbox.c: sub_808BAA4 (verified for config 0x110 through the
+     * strips 0, 1 and 4 of the `f18550` VRAM dump; the strips 2 and 3 are overwritten there, and
+     * the config bit 0 arm is not run)
+     */
+    public fun sub808BAA4() {
+        textSystem.setTextFont(font)
+        if (getDialogueBoxConfig() and 1 == 0) {
+            for (i in 0..2) textSystem.spriteTextDrawBackground(texts[i])
+            if (getDialogueBoxConfig() and 0x10 != 0 && getDialogueBoxConfig() and 0x20 == 0) {
+                textSystem.spriteTextDrawBackground(texts[3])
+                textSystem.spriteTextDrawBackground(texts[4])
+            }
+        } else {
+            for (i in 0 until (getDialogueBoxConfig() ushr 8 and 0xFF)) {
+                textSystem.spriteTextDrawBackgroundExt(texts[i], 0)
+            }
+        }
+        engine.endEach(drawTextExtScript)
+        engine.endEach(unknown08A01800Script)
+        textSystem.setTextFont(null)
+    }
+
+    /**
+     * Ends every box dialogue proc.
+     *
+     * Transcribed from src/helpbox.c: sub_808BB74 (not verified: the capture window ends the
+     * box through `sub_808A8AC`, never through this function)
+     */
+    public fun sub808BB74() {
+        engine.endEach(script)
+        engine.endEach(talkBoxIdleScript)
+        engine.endEach(mergeScript)
+        engine.endEach(drawTextExtScript)
+        engine.endEach(unknown08A01800Script)
+    }
 
     /**
      * Initialises the box graphics and draws the text.
@@ -202,7 +344,7 @@ public class BoxDialogue(
             hooks.applyPalette(if (yellow) G_PAL_YELLOW_TEXT_BOX else G_PAL_HELP_TEXT_BOX, pad)
         } else {
             textSystem.initSpriteTextFont(font, dst, pad)
-            for (i in 0 until (getDialogueBoxConfig() ushr 8)) {
+            for (i in 0 until (getDialogueBoxConfig() ushr 8 and 0xFF)) {
                 textSystem.initSpriteText(texts[i])
             }
             textSystem.setTextFont(null)
@@ -227,13 +369,13 @@ public class BoxDialogue(
      * Plays the close sound if the config has bit 4 set, selects the system glyphs and runs
      * `sub_808A9F0`.
      *
-     * Transcribed from src/helpbox.c: sub_808A8AC (not verified: the proc has not ended in the
-     * window)
+     * Ported from src/helpbox.c: sub_808A8AC (verified at f18373 of `ram_trace_newgame_easy`: the
+     * close sound once for config 0x110 and `sub_808A9F0` running; the glyph set is not compared)
      */
     public fun sub808A8AC() {
         if (getDialogueBoxConfig() and 0x10 != 0) hooks.playCloseSound()
         textSystem.setTextFontGlyphs(TextSystem.GLYPHS_SYSTEM)
-        hooks.sub808A9F0()
+        sub808A9F0()
     }
 
     /**

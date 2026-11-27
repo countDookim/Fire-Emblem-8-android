@@ -266,7 +266,7 @@ public class HelpBox(
             s = proc.state as HelpBoxState
             s.noHelpSprite = noHelpSprite
             setHelpBoxInitPosition(s, info.xDisplay, info.yDisplay)
-            resetHelpBoxInitSize(s)
+            s.resetHelpBoxInitSize()
         } else {
             s = proc.state as HelpBoxState
             s.xBoxInit = s.xBox
@@ -313,7 +313,7 @@ public class HelpBox(
         s.item = 0
         s.msgId = msgId
         val (wContent, hContent) = getStringTextBox(msgId)
-        resetHelpBoxInitSize(s)
+        s.resetHelpBoxInitSize()
         applyHelpBoxContentSize(s, wContent, hContent)
         s.xBoxInit = px + 8
         s.yBoxInit = py + 8
@@ -359,7 +359,7 @@ public class HelpBox(
         engine.find(helpPrompt.script)?.lockCnt = 0
         if (!s.noHelpSprite) {
             hooks.playSoundEffect(SONG_71)
-            resetHelpBoxInitSize(s)
+            s.resetHelpBoxInitSize()
             val info = s.info!!
             setHelpBoxInitPosition(s, info.xDisplay, info.yDisplay)
         }
@@ -596,11 +596,6 @@ public class HelpBox(
         s.yBoxInit = y + originY * 8
     }
 
-    private fun resetHelpBoxInitSize(s: HelpBoxState) {
-        s.wBoxInit = 32
-        s.hBoxInit = 16
-    }
-
     private fun applyHelpBoxContentSize(s: HelpBoxState, width: Int, height: Int) {
         var w = 0xF0 and (width + 15)
         var h = height
@@ -757,4 +752,15 @@ public class HelpBox(
         )
         private val GFX_OFFSETS = intArrayOf(0x360, 0x760, 0xB60, 0xF60, 0x1360)
     }
+}
+
+/**
+ * Sets the initial box size of a help box proc to 32 by 16 pixels.
+ *
+ * Transcribed from src/helpbox.c: ResetHelpBoxInitSize (not verified: the shared help box
+ * differential tests compare the box size only through the drawn tiles)
+ */
+internal fun HelpBoxState.resetHelpBoxInitSize() {
+    wBoxInit = 32
+    hBoxInit = 16
 }

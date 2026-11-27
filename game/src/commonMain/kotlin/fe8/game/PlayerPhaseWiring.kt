@@ -239,7 +239,7 @@ internal class PlayerPhaseWiring(
         forecast = BattleForecast(
             engine, battle, battleGenerate, items, units, active, playSt, bm, map, hw, rom,
             talk.text, talk.messages, drawnIconLookupTable, iconGfxIdLookupTable,
-            loop.sprites, clock,
+            loop.sprites, clock, keys,
         )
         forecast.hooks.eventEngineExists = eventEngineExists
         val select = AttackMapSelect(
@@ -443,6 +443,7 @@ internal class PlayerPhaseWiring(
         h.startDestSelectedEvent = { infos.startDestSelectedEvent() }
         h.startAfterUnitMovedEvent = { infos.startAfterUnitMovedEvent() }
         forecast.hooks.tutorialPending = { infos.checkBattleForecastTutorialEvent() }
+        forecast.hooks.startTutorialEvent = { infos.startBattleForecastTutorialEvent() }
         val combat = CombatAction(engine, battle, battleGenerate, units, active)
         combat.hooks.doesBmxFadeExist = gbafe.proc.ProcBoolFunc { p ->
             h.doesBmxFadeExist.invoke(p)

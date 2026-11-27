@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 722 across 109 decomp files (missing reason: 0).
+Total entries: 721 across 109 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -215,32 +215,6 @@ Total entries: 722 across 109 decomp files (missing reason: 0).
 | `EventAB_WmUnitResumeMove` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
 | `EventBB_` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
 
-## src/bmbattle.c (21)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GetBattleAnimPreconfType` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | every capture has the setting OFF, so only the early return is seen; neither solo animation branch is, and inverting the test for the solo setting gives the same answer for all three battles |
-| `GetSoloAnimPreconfType` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | see [getBattleAnimPreconfType] |
-| `SetScriptedBattle` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | a plain pointer store, observable only through the unwind |
-| `GetUnitExpMultiplier` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no assassin in the captures, and the kill bonus it multiplies is 0 there |
-| `BattleCheckTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no capture has a triangle attack |
-| `BattleCheckSilencer` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced crit roll succeeds, so no mutation of it changes captured data |
-| `BattleGenerateHitTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced attacker has a triangle attack class attribute, so the first check returns every time and no mutation of the rest, nor of the scan, changes data |
-| `sub_802C334` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | `sUnknown_0203A60C` is already 0 before and after `f3804` `UnitBeginAction` in `ram_trace_prologue_clear` and is never written non-zero in the decomp, so a no-op survives against the capture |
-| `InitBattleUnitWithoutBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
-| `SetBattleUnitWeaponBallista` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
-| `ComputeBattleUnitBaseDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
-| `ComputeBattleUnitWeaponRankBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has an S rank weapon |
-| `ComputeBattleUnitStatusBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a status effect |
-| `ComputeBattleUnitSpecialWeaponStats` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no special weapon or petrified target in the trace |
-| `BattleApplyReaverEffect` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no reaver weapon in the trace |
-| `BattleInitTargetCanCounter` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no gorgon egg, uncounterable weapon or berserk actor in the trace |
-| `BattleApplyBallistaUpdates` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | only the no-ballista branch runs, and it writes nothing a capture could show |
-| `BeginBattleAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | the display writes (BG 2 clear, backdrop colour, the two map renders) are not compared; the branch it takes is verified through its callees |
-| `CanBattleUnitGainLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-| `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-| `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-
 ## src/bmsave-bwl.c (21)
 
 | Function | Kotlin file | Reason |
@@ -292,6 +266,31 @@ Total entries: 722 across 109 decomp files (missing reason: 0).
 | `sub_80BE330` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt` | no @VerifiesPort test names it |
 | `sub_80BE3E8` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt` | no @VerifiesPort test names it |
 | `MapMU_SetUnitChar` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt` | no @VerifiesPort test names it |
+
+## src/bmbattle.c (20)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetBattleAnimPreconfType` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | every capture has the setting OFF, so only the early return is seen; neither solo animation branch is, and inverting the test for the solo setting gives the same answer for all three battles |
+| `GetSoloAnimPreconfType` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | see [getBattleAnimPreconfType] |
+| `GetUnitExpMultiplier` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no assassin in the captures, and the kill bonus it multiplies is 0 there |
+| `BattleCheckTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no capture has a triangle attack |
+| `BattleCheckSilencer` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced crit roll succeeds, so no mutation of it changes captured data |
+| `BattleGenerateHitTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced attacker has a triangle attack class attribute, so the first check returns every time and no mutation of the rest, nor of the scan, changes data |
+| `sub_802C334` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | `sUnknown_0203A60C` is already 0 before and after `f3804` `UnitBeginAction` in `ram_trace_prologue_clear` and is never written non-zero in the decomp, so a no-op survives against the capture |
+| `InitBattleUnitWithoutBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
+| `SetBattleUnitWeaponBallista` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
+| `ComputeBattleUnitBaseDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
+| `ComputeBattleUnitWeaponRankBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has an S rank weapon |
+| `ComputeBattleUnitStatusBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a status effect |
+| `ComputeBattleUnitSpecialWeaponStats` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no special weapon or petrified target in the trace |
+| `BattleApplyReaverEffect` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no reaver weapon in the trace |
+| `BattleInitTargetCanCounter` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no gorgon egg, uncounterable weapon or berserk actor in the trace |
+| `BattleApplyBallistaUpdates` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | only the no-ballista branch runs, and it writes nothing a capture could show |
+| `BeginBattleAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | the display writes (BG 2 clear, backdrop colour, the two map renders) are not compared; the branch it takes is verified through its callees |
+| `CanBattleUnitGainLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
+| `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
+| `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 
 ## src/eventinfo.c (19)
 

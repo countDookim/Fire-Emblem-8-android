@@ -26,6 +26,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- PC-10e: scheduled, until ~23:30Z
+- PC-10m: scheduled, until ~23:30Z
 
 ## Current state
 

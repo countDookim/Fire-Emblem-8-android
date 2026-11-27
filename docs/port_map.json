@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1502,
+    "verified": 1514,
     "implemented_unverified": 157
   },
   "functions": {
@@ -1944,6 +1944,16 @@
       "status": "implemented",
       "tests": []
     },
+    "CheckTutorialEvent": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EasyTutorialTurn2DispatchDifferentialTest#CheckBattleForecastTutorialEvent is true only while FORECAST is queued"
+      ]
+    },
     "Checksum16": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
@@ -3721,6 +3731,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.EasyTutorialScriptedKillDifferentialTest#scripted kill matches the capture f24262 to f24650",
         "fe8.testing.EventScriptBattleDifferentialTest#script battle command generates the traced battle"
       ]
     },
@@ -3925,6 +3936,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.EasyTutorialScriptedKillDifferentialTest#scripted kill matches the capture f24262 to f24650",
         "fe8.testing.EventBattleReloadDifferentialTest#event battle end reloads the unit table"
       ]
     },
@@ -4613,10 +4625,11 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
+        "fe8.testing.EasyTutorialScriptedKillDifferentialTest#scripted kill matches the capture f24262 to f24650",
         "fe8.testing.EventScriptBattleDifferentialTest#script battle command generates the traced battle"
       ]
     },
@@ -5025,6 +5038,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleQuoteDifferentialTest#defeat event at f4636 starts battle engine proc and sets boss defeat flag"
+      ]
+    },
+    "GetDialogueBoxConfig": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BoxDialogueStartDifferentialTest#start matches the box proc row at f18230"
       ]
     },
     "GetDirectionOfPathAfterIndex": {
@@ -5703,7 +5726,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "implemented",
       "tests": []
     },
@@ -5958,7 +5981,7 @@
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHandles.kt",
       "status": "implemented",
       "tests": []
     },
@@ -8567,6 +8590,36 @@
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
+    "MergeBoxDialogue1": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture"
+      ]
+    },
+    "MergeBoxDialogue2": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture"
+      ]
+    },
+    "MergeBoxDialogue3": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture"
+      ]
+    },
     "MidiKeyToCgbFreq": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -8844,6 +8897,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.ForecastTutorialMaskDifferentialTest#NewBattleForecast adds the A bit to the ignore mask only while FORECAST is queued",
+        "fe8.testing.ForecastTutorialMaskDifferentialTest#production wiring starts the forecast tutorial event",
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
@@ -11027,7 +11082,11 @@
       "tests": [
         "fe8.testing.BossTurnEventDifferentialTest#the turn event start at f2964 reproduces the registry, flags and tutorial queue",
         "fe8.testing.EasyTutorialDispatchDifferentialTest#destination select dispatches Tutorial1 hint at f18800 and success at f19020",
-        "fe8.testing.EasyTutorialDispatchDifferentialTest#phase start keeps ONSELECT queued and unit select dispatches Tutorial0 at f18541"
+        "fe8.testing.EasyTutorialDispatchDifferentialTest#phase start keeps ONSELECT queued and unit select dispatches Tutorial0 at f18541",
+        "fe8.testing.EasyTutorialTurn2DispatchDifferentialTest#RunTutorialEvent POSTACTION dispatches Tutorial8 at f24029",
+        "fe8.testing.EasyTutorialTurn2DispatchDifferentialTest#StartAfterUnitMovedEvent dispatches Tutorial6 at f22448",
+        "fe8.testing.EasyTutorialTurn2DispatchDifferentialTest#StartBattleForecastTutorialEvent dispatches Tutorial7 at f22566",
+        "fe8.testing.EasyTutorialTurn2DispatchDifferentialTest#StartPlayerPhaseStartTutorialEvent dispatches Tutorial9 at f24210"
       ]
     },
     "RunWaitEvents": {
@@ -11214,6 +11273,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.EasyTutorialScriptedKillDifferentialTest#scripted kill matches the capture f24262 to f24650",
         "fe8.testing.EventVmDifferentialTest#ScriptBattleDeamon waits for game lock then reloads units"
       ]
     },
@@ -11370,6 +11430,16 @@
         "fe8.testing.OpAnimHsDifferentialTest#health and safety brightness pulse matches the boot RAM trace"
       ]
     },
+    "SetBoxDialogueSize": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture"
+      ]
+    },
     "SetCursorMapPosition": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -11378,6 +11448,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.CameraDifferentialTest#cursor snap frames match SetCursorMapPosition"
+      ]
+    },
+    "SetDialogueBoxConfig": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BoxDialogueStartDifferentialTest#start matches the box proc row at f18230"
       ]
     },
     "SetEventSlotC": {
@@ -11627,7 +11707,7 @@
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -13382,6 +13462,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TrapsDifferentialTest#TrapDamageDisplay spawns, yields on sleep 0, and ends when target count is 0 at f2766 and f3875"
+      ]
+    },
+    "TriggerBattleForcastToturialEvent": {
+      "decomp_file": "src/bksel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ForecastTutorialMaskDifferentialTest#TriggerBattleForcastToturialEvent unmasks A and starts the event at f22566",
+        "fe8.testing.ForecastTutorialMaskDifferentialTest#production wiring starts the forecast tutorial event"
       ]
     },
     "TrkVolPitSet": {
@@ -15245,6 +15336,46 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "sub_808A8AC": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture"
+      ]
+    },
+    "sub_808A8E4": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture"
+      ]
+    },
+    "sub_808A9F0": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture"
+      ]
+    },
+    "sub_808AA04": {
+      "decomp_file": "src/helpbox.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BoxDialogueStartDifferentialTest#start matches the box proc row at f18230"
       ]
     },
     "sub_808C234": {

@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 262 across 62 Kotlin files.
+Total entries: 263 across 62 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -39,7 +39,7 @@ Total entries: 262 across 62 Kotlin files.
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 43 |
+| unassigned | 44 |
 
 ## M6-B (13)
 
@@ -385,7 +385,7 @@ Total entries: 262 across 62 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (43)
+## unassigned (44)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -425,7 +425,8 @@ Total entries: 262 across 62 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveMenuStart.kt` | `saveMenuLoadExtraMenuGraphics` | Partially ported from src/savemenu.c: SaveMenu_LoadExtraMenuGraphics (verified: the fresh-start branch (`main_sel_bitfile` 0x100) and the main loop label at f943 of the title runs; not verified: th... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `biosPlaySt` | Stand-in for the BIOS bytes `IsGameNotFirstChapter` reads: a non-zero `chapterIndex`. |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/SaveSlotData.kt` | `saveMenuInitSaveSlotData` | The port passes [biosPlaySt], a stand-in `PlaySt` that gives that answer, so bit 0 of `unk_3a` is always set for a valid game slot. |
-| `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | `BoxDialogue` | Stand-ins ([Hooks]): the drawing (`InitBoxDialogue` graphics, `DrawBoxDialogueText`, `sub_808ACFC`) is not ported yet; [mergeScript] and the teardown ([sub808A9F0]) are. @param engine proc schedule... |
+| `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | `BoxDialogue` | Stand-ins ([Hooks]): the graphics loading and the special-prefix substitution; the box frame ([sub808ACFC]), the box size ([drawBoxDialogueText]), [mergeScript] and the teardown ([sub808A9F0]) are... |
+| `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | `drawBoxDialogueText` | Partially ported from src/helpbox.c: DrawBoxDialogueText (verified for config 0x110 by the merge proc fields of `BoxDialogueMergeDifferentialTest`; the config bit 0 arm and the special-prefix subst... |
 | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `drawExtInfoLabels` | Stand-in (PC-11cap2): draws nothing; no capture runs these (a CAP row, PC-11cap2, is needed). |
 | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `drawExtInfoStats` | Stand-in (PC-11cap2): draws nothing; no capture runs these (a CAP row, PC-11cap2, is needed). |
 | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | `itemInfoKind` | Stand-in (PC-11cap2): only the `item == 0` and save info cases (no item data). |

@@ -4,9 +4,11 @@ import fe8.game.RomView
 import fe8.game.text.Fe8Text
 import fe8.game.ui.BoxDialogue
 import fe8.game.ui.BoxDialogueState
+import fe8.game.ui.HelpBoxState
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
 import gbafe.proc.ProcEngine
+import gbafe.render.SpriteLayers
 import gbafe.text.MsgHuffman
 import gbafe.text.MsgStrings
 import gbafe.text.TextSystem
@@ -28,7 +30,7 @@ import org.junit.jupiter.api.Test
 class BoxDialogueStartDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
 
-    private fun newBox(): Pair<ProcEngine, BoxDialogue> {
+    private fun newBox(layers: SpriteLayers = SpriteLayers()): Pair<ProcEngine, BoxDialogue> {
         val romFile = File(
             System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets",
             "baserom.gba",
@@ -37,6 +39,7 @@ class BoxDialogueStartDifferentialTest {
         val romBytes = RomView.ofRom(romFile.readBytes()).wholeRomBytes()
         val engine = ProcEngine()
         val textSystem = TextSystem(romBytes, TextVram(), Fe8Text.CONFIG)
+        textSystem.resetText()
         val messages = MsgStrings(
             romBytes,
             MsgHuffman(
@@ -46,7 +49,10 @@ class BoxDialogueStartDifferentialTest {
             ),
             0x0815D48C - 0x08000000,
         )
-        return engine to BoxDialogue(engine, textSystem, messages)
+        return engine to BoxDialogue(
+            engine, textSystem, messages, view = RomView.ofRom(romFile.readBytes()),
+            layers = layers,
+        )
     }
 
     @Test
@@ -85,26 +91,28 @@ class BoxDialogueStartDifferentialTest {
         assumeTrue(run.dumps.containsKey("r$AFTER"), "no r$AFTER dump")
         val watch = run.watch("procs")
         val ewram = run.region("r$AFTER", "ewram")
-        val (engine, box) = newBox()
+        val layers = SpriteLayers()
+        val (engine, box) = newBox(layers)
         val rom = romBytes()
         val first = ProcArrayDump.ofWatch(watch, STEP, names).find("gProcScr_BoxDialogue")!!
         val palette = ByteArray(0x20)
         var paletteBank = -1
-        val drawn = ArrayList<List<Int>>()
         box.hooks.applyPalette = { src, bank ->
             System.arraycopy(rom, src - 0x08000000, palette, 0, 0x20)
             paletteBank = bank
         }
-        box.hooks.drawBoxDialogueText = { x, y, msg -> drawn += listOf(x, y, msg) }
         val proc = box.startBoxDialogue(first.u32(0x2C), first.u32(0x30), first.u16(0x34))
         // The event sets the config bits after starting the box: the capture value.
         box.setDialogueBoxConfig(u16(ewram, CONF + 0x42))
         for (step in STEP..AFTER) {
             val row = ProcArrayDump.ofWatch(watch, step, names).find("gProcScr_BoxDialogue")!!
             assertEquals(row.scrCur, proc.scrCur, "script position at the start of f$step")
+            layers.clear()
             engine.run(engine.root(3))
         }
-        assertEquals(listOf(listOf(first.u32(0x2C), first.u32(0x30), first.u16(0x34))), drawn)
+        // DrawBoxDialogueText ran: the merge proc holds the message and the start position.
+        val merge = engine.find(box.mergeScript)!!.state as HelpBoxState
+        assertEquals(first.u16(0x34), merge.msgId, "msg of DrawBoxDialogueText")
         assertEquals(u32(ewram, CONF), box.font.vramDest, "font vram")
         assertEquals(u32(ewram, CONF + 0x08), box.font.drawGlyph, "font draw_glyph")
         assertEquals(u32(ewram, CONF + 0x0C), box.font.getDrawDest, "font get_draw_dest")

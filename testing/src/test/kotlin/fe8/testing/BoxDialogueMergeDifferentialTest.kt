@@ -3,12 +3,15 @@ package fe8.testing
 import fe8.game.RomView
 import fe8.game.text.Fe8Text
 import fe8.game.ui.BoxDialogue
+import fe8.game.ui.BoxDialogue8A01800State
 import fe8.game.ui.HelpBoxState
 import gba.core.VerifiesPort
+import gba.testkit.GbaMem
 import gba.testkit.ReferenceData
 import gbafe.core.math.Interpolate
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
+import gbafe.render.SpriteLayers
 import gbafe.text.MsgHuffman
 import gbafe.text.MsgStrings
 import gbafe.text.TextSystem
@@ -53,7 +56,8 @@ class BoxDialogueMergeDifferentialTest {
     @VerifiesPort(
         "ProcScr_MergeBoxDialogue", "MergeBoxDialogue1", "MergeBoxDialogue2", "MergeBoxDialogue3",
         "sub_808A8E4", "sub_808A9F0", "sub_808BAA4", "sub_808A8AC", "gProcScr_BoxDialogue",
-        "ResetHelpBoxInitSize",
+        "ResetHelpBoxInitSize", "DrawBoxDialogueText", "sub_808ACFC", "sub_808A7B0",
+        "SetBoxDialogueSize", "sub_808BA60", "GetBoxDialogueSize",
     )
     fun `box and merge procs run f18230 to f18385 like the capture`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
@@ -67,6 +71,7 @@ class BoxDialogueMergeDifferentialTest {
         val engine = ProcEngine()
         val vram = TextVram()
         val textSystem = TextSystem(rom, vram, Fe8Text.CONFIG)
+        textSystem.resetText()
         val messages = MsgStrings(
             rom,
             MsgHuffman(
@@ -76,32 +81,17 @@ class BoxDialogueMergeDifferentialTest {
             ),
             0x0815D48C - 0x08000000,
         )
-        val box = BoxDialogue(engine, textSystem, messages)
+        val layers = SpriteLayers()
+        val box = BoxDialogue(
+            engine, textSystem, messages, view = RomView.ofRom(rom), layers = layers,
+        )
         fun dump(step: Int) = ProcArrayDump.ofWatch(watch, step, names)
         val first = dump(FIRST).find("gProcScr_BoxDialogue")!!
         val seed = dump(FIRST + 1).find("ProcScr_MergeBoxDialogue")!!
         val drawn = ArrayList<List<Int>>()
-        var merge: Proc? = null
-        box.hooks.drawBoxDialogueText = { _, _, _ ->
-            // The rest of DrawBoxDialogueText (PC-11b2c) fills the fields from the layout; the
-            // test takes them from the capture row.
-            val proc = engine.start(box.mergeScript, 3)
-            val s = proc.state as HelpBoxState
-            s.xBox = seed.u16(0x30)
-            s.yBox = seed.u16(0x32)
-            s.xBoxFinal = seed.u16(0x3C)
-            s.yBoxFinal = seed.u16(0x3E)
-            s.wBoxFinal = seed.u16(0x44)
-            s.hBoxFinal = seed.u16(0x46)
-            s.wBoxInit = seed.u16(0x40)
-            s.hBoxInit = seed.u16(0x42)
-            s.timer = 0
-            s.timerMax = seed.u16(0x4A)
-            merge = proc
-        }
         var closeSounds = 0
         box.hooks.playCloseSound = { closeSounds++ }
-        box.hooks.drawBoxFrame = { x, y, w, h -> drawn += listOf(x, y, w, h) }
+        box.hooks.frameDrawn = { x, y, w, h -> drawn += listOf(x, y, w, h) }
         val boxProc = box.startBoxDialogue(first.u32(0x2C), first.u32(0x30), first.u16(0x34))
         box.setDialogueBoxConfig(u16(run.region("r$CONF_DUMP", "ewram"), CONF + 0x42))
         var frames = 0
@@ -118,13 +108,16 @@ class BoxDialogueMergeDifferentialTest {
             assertEquals(row != null, engine.count(box.mergeScript) == 1, "merge exists at f$step")
             val before = drawn.size
             if (row != null) {
-                val proc = merge!!
+                val proc = engine.find(box.mergeScript)!!
                 val s = proc.state as HelpBoxState
                 assertEquals(row.scrCur, proc.scrCur, "merge script position at f$step")
                 assertEquals(row.u16(0x48).toShort().toInt(), s.timer, "timer at f$step")
                 assertEquals(row.u16(0x4A), s.timerMax, "timerMax at f$step")
-                assertEquals(row.u16(0x30), s.xBox, "xBox at f$step")
-                assertEquals(row.u16(0x32), s.yBox, "yBox at f$step")
+                // xBox and yBox are uninitialised memory until the first frame draw.
+                if (step > FIRST + 1) {
+                    assertEquals(row.u16(0x30), s.xBox, "xBox at f$step")
+                    assertEquals(row.u16(0x32), s.yBox, "yBox at f$step")
+                }
                 assertEquals(row.u16(0x40), s.wBoxInit, "wBoxInit at f$step")
                 assertEquals(row.u16(0x42), s.hBoxInit, "hBoxInit at f$step")
                 if (row.scrCur == 1 && step == LAST_OPEN) {
@@ -133,7 +126,20 @@ class BoxDialogueMergeDifferentialTest {
                     s.hBoxInit = 0
                 }
             }
-            if (step !in LAG_FRAMES) engine.run(engine.root(3))
+            if (step == FIRST + 1) checkDrawBoxDialogueText(engine, box, dump(step))
+            if (step !in LAG_FRAMES) {
+                layers.clear()
+                engine.run(engine.root(3))
+            }
+            val capDump = listOf("r%05d", "f%05d").map { it.format(step) }
+                .firstOrNull { run.dumps.containsKey(it) }
+            if (capDump != null && row != null) {
+                assertEquals(
+                    capturePool(run.region(capDump, "ewram"), run.region(capDump, "iwram")),
+                    ownPool(layers),
+                    "layer 2 box sprites at f$step",
+                )
+            }
             frames++
             // The tutorial text proc (not ported) jumps the box proc to label 3 after the box ran.
             val next = dump(step + 1).find("gProcScr_BoxDialogue")
@@ -188,7 +194,66 @@ class BoxDialogueMergeDifferentialTest {
         }
     }
 
+    /** The fields `DrawBoxDialogueText` and `sub_808BA60` set, against the dump of [FIRST] + 1. */
+    private fun checkDrawBoxDialogueText(engine: ProcEngine, box: BoxDialogue, d: ProcArrayDump) {
+        val row = d.find("ProcScr_MergeBoxDialogue")!!
+        val s = engine.find(box.mergeScript)!!.state as HelpBoxState
+        val offsets = listOf(0x38, 0x3A, 0x3C, 0x3E, 0x40, 0x42, 0x44, 0x46, 0x4A, 0x4C, 0x4E)
+        assertEquals(
+            offsets.map { row.u16(it) },
+            listOf(
+                s.xBoxInit, s.yBoxInit, s.xBoxFinal, s.yBoxFinal, s.wBoxInit, s.hBoxInit,
+                s.wBoxFinal, s.hBoxFinal, s.timerMax, s.msgId, s.item,
+            ).map { it and 0xFFFF },
+            "DrawBoxDialogueText fields",
+        )
+        assertEquals(0, row.u32(0x2C), "info")
+        val text = d.find("gUnknown_08A01800")!!
+        val t = engine.find(box.unknown08A01800Script)!!.state as BoxDialogue8A01800State
+        assertEquals(
+            listOf(text.u8(0x2C), text.u8(0x30), text.u16(0x5C)),
+            listOf(t.unk2c, t.unk30, t.msgId),
+            "sub_808BA60 fields",
+        )
+    }
+
+    /** The box frame sprites use palette bank 5 of OBJ (`pad_idx` 5, bank `0x15`). */
+    private fun isBoxAttr(a2: Int): Boolean = a2 and 0xF000 == 0x5000
+
+    /** Layer 2 box entries of the capture's `sSpritePool`: oam1, oam0, oam2, object. */
+    private fun capturePool(ewram: ByteArray, iwram: ByteArray): List<List<Int>> {
+        val allocIt = GbaMem.u32(iwram, GbaMem.IWRAM, ADDR_G_SPRITE_ALLOC_IT)
+        var addr = word(ewram, ADDR_S_SPRITE_LAYERS - GbaMem.EWRAM + 2 * ENTRY_SIZE)
+        val out = ArrayList<List<Int>>()
+        while (addr in ADDR_S_SPRITE_POOL until allocIt) {
+            val base = addr - GbaMem.EWRAM
+            if (isBoxAttr(u16(ewram, base + 8))) {
+                out += listOf(
+                    u16(ewram, base + 4).toShort().toInt(), u16(ewram, base + 6).toShort().toInt(),
+                    u16(ewram, base + 8), word(ewram, base + 0x0C),
+                )
+            }
+            addr = word(ewram, base)
+        }
+        return out
+    }
+
+    private fun ownPool(layers: SpriteLayers): List<List<Int>> {
+        val out = ArrayList<List<Int>>()
+        var e = layers.layers[2].next
+        while (e != null && e in layers.pool) {
+            if (isBoxAttr(e.oam2)) out += listOf(e.oam1, e.oam0, e.oam2, e.obj!!.id)
+            e = e.next
+        }
+        return out
+    }
+
     private companion object {
+        const val ADDR_S_SPRITE_POOL = 0x02029D8C
+        const val ADDR_S_SPRITE_LAYERS = 0x0202A58C
+        const val ADDR_G_SPRITE_ALLOC_IT = 0x03004970
+        const val ENTRY_SIZE = 0x10
+
         const val RUN = "ram_trace_newgame_easy"
         const val FIRST = 18230
         const val LAST = 18385

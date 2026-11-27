@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 715 across 109 decomp files (missing reason: 0).
+Total entries: 722 across 109 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -487,6 +487,23 @@ Total entries: 715 across 109 decomp files (missing reason: 0).
 | `SetFaceDisplayBits` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | independently of refresh |
 | `EndFaceById` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | checked through the faded-out faces of [handleWmFaceFade] |
 
+## src/helpbox.c (12)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` exists in `f3706..3722` or `f4894..4912` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580` |
+| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | the capture window ends the box through `sub_808A8AC`, never through this function |
+| `sub_808B0D4` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | the config bit 2 arm is not run |
+| `sub_808B0F8` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | the config bit 2 arm is not run |
+| `sub_808B11C` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | only reached by `[NL2]` and the page codes, which the captured message does not contain |
+| `sub_808B788` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | the `[LoadOverworldFaces]` and config bit 1 `[X]` paths are not run by the capture |
+| `sub_808A530` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | no VRAM dump of the scroll in the capture |
+| `sub_808B804` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | label 5 is not run |
+| `sub_808B870` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | label 6 is not run |
+| `gProcScr_HelpBoxTextScroll` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the proc's step, string offset and strip counts match the capture |
+| `ProcScr_HelpBoxIntro` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the script position matches the capture every frame |
+| `ResetHelpBoxInitSize` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the shared help box differential tests compare the box size only through the drawn tiles |
+
 ## src/chapterintrofx.c (11)
 
 | Function | Kotlin file | Reason |
@@ -764,16 +781,6 @@ Total entries: 715 across 109 decomp files (missing reason: 0).
 | `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
 | `GGM_IsAnyCharacterKnown` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | the only caller, `IsExtraSupportViewerEnabled`, ANDs it with `IsGamePlayedThrough`, which is false in every run, so no run shows its result |
 | `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
-
-## src/helpbox.c (5)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` exists in `f3706..3722` or `f4894..4912` of `ram_trace_prologue_clear` or anywhere in `PC-cap1` `f10297..25580` |
-| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt` | the capture window ends the box through `sub_808A8AC`, never through this function |
-| `gProcScr_HelpBoxTextScroll` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the proc's step, string offset and strip counts match the capture |
-| `ProcScr_HelpBoxIntro` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the procs watch cannot tag a script; the script position matches the capture every frame |
-| `ResetHelpBoxInitSize` | `game/src/commonMain/kotlin/fe8/game/ui/HelpBox.kt` | the shared help box differential tests compare the box size only through the drawn tiles |
 
 ## src/rng.c (5)
 

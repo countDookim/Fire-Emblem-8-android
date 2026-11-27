@@ -4,6 +4,7 @@ import fe8.game.RomView
 import fe8.game.scene.IntSupplier
 import fe8.game.ui.ItemIcon
 import fe8.game.ui.UiFrame
+import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcBoolFunc
 import gbafe.proc.ProcEngine
@@ -61,6 +62,8 @@ public class BattleForecast(
     private val sprites: SpriteLayers,
     /** `GetGameClock`. */
     private val clock: IntSupplier,
+    /** `gKeyStatusIgnoredSt` ([KeyStatus.ignoreMask]): the tutorial masks the A button. */
+    private val keys: KeyStatus,
 ) {
     /** `gUiTmScratchA` (0x500 bytes): the panel's BG 0 tilemap, 32 entries a row. */
     public val tilemapA: ShortArray = ShortArray(SCRATCH_ENTRIES)
@@ -147,6 +150,12 @@ public class BattleForecast(
          * is false.
          */
         public var tutorialPending: () -> Boolean = { false }
+
+        /**
+         * `StartBattleForecastTutorialEvent`. `PlayerPhaseWiring` sets
+         * `EventInfos.startBattleForecastTutorialEvent`; the default does nothing.
+         */
+        public var startTutorialEvent: () -> Unit = {}
     }
 
     /** The hooks, set by the game. */
@@ -215,8 +224,9 @@ public class BattleForecast(
      *
      * Starts the forecast proc (`PROC_TREE_3`) for the chosen layout (`battleForecastType` 0
      * standard, 1 extended; 2 shows none: only the text font is reset, not verified: the capture
-     * uses the standard one) and sets every tile of the movement map to -1. The tutorial's
-     * `SetKeyStatus_IgnoreMask` (A button) is not written (no capture has the event).
+     * uses the standard one) and sets every tile of the movement map to -1. While the forecast
+     * tutorial is pending ([Hooks.tutorialPending]) the A button is added to the key ignore mask
+     * (verified at `f22560..22566` of `ram_trace_newgame_easy`).
      */
     public fun newBattleForecast() {
         if (playSt.battleForecastType == 2) {
@@ -227,6 +237,8 @@ public class BattleForecast(
         val proc = engine.start(script, PROC_TREE_3)
         val state = proc.state as State
         state.ready = 0
+
+        if (hooks.tutorialPending()) keys.applyIgnoreMask(keys.ignoreMask or A_BUTTON)
 
         when (playSt.battleForecastType) {
             0 -> state.frameKind = 1
@@ -890,15 +902,17 @@ public class BattleForecast(
     }
 
     /**
-     * Transcribed from src/bksel.c: TriggerBattleForcastToturialEvent (not verified: the capture
-     *   starts no tutorial event, so no mutation changes captured data)
+     * Ported from src/bksel.c: TriggerBattleForcastToturialEvent
      *
-     * Starts the forecast tutorial event (`StartBattleForecastTutorialEvent`) when it is due
-     * ([Hooks.tutorialPending]), after unmasking the A button; the event itself and the key mask
-     * change are not written.
+     * Once the panel has slid in, if the forecast tutorial is pending ([Hooks.tutorialPending])
+     * unmasks the A button and starts the event ([Hooks.startTutorialEvent]). Verified at
+     * `f22566` and `f23370` of `ram_trace_newgame_easy`.
      */
-    private fun triggerTutorial() {
-        hooks.tutorialPending()
+    public fun triggerTutorial() {
+        if (hooks.tutorialPending()) {
+            keys.applyIgnoreMask(keys.ignoreMask and A_BUTTON.inv())
+            hooks.startTutorialEvent()
+        }
     }
 
     /**
@@ -957,6 +971,7 @@ public class BattleForecast(
 
     private companion object {
         const val PROC_TREE_3 = 3
+        const val A_BUTTON = 0x0001
         const val SCRATCH_ENTRIES = 0x280
         const val BKSEL_PAL_COLORS = 8 * 16
         const val LABEL_COUNT = 6

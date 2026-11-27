@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 717 across 109 decomp files (missing reason: 0).
+Total entries: 716 across 109 decomp files (missing reason: 0).
 
 ## src/bmunit.c (34)
 
@@ -806,15 +806,6 @@ Total entries: 717 across 109 decomp files (missing reason: 0).
 | `EndGmPalFade` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPaletteFade.kt` | no @VerifiesPort test names it |
 | `StartGmPalFade_` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPaletteFade.kt` | no @VerifiesPort test names it |
 
-## src/bksel.c (4)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `BattleForecast_OnEnd` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | the frame palette it restores is the window's own in the capture, so no mutation changes captured data |
-| `PutBattleForecastTilemaps` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | only a redraw of the contents puts the whole panel, and the capture never changes the target |
-| `TriggerBattleForcastToturialEvent` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | the capture starts no tutorial event, so no mutation changes captured data |
-| `UpdateBattleForecastContents` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | the capture's one call comes before the proc is ready, and the contents are redrawn at the start anyway |
-
 ## src/bmidoten.c (4)
 
 | Function | Kotlin file | Reason |
@@ -902,6 +893,14 @@ Total entries: 717 across 109 decomp files (missing reason: 0).
 | `IsItemDisplayedInBattle` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | no captured battle uses an item of type "item"; only [getBattleAnimationId] calls it |
 | `FilterBattleAnimCharacterPalette` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | the captures show only the null default; the ballista animations are not in a capture |
 | `CheckBattleScripted` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | the result only feeds the branch of `PrepareBattleGraphicsMaybe` (EP-15) that is not taken either way |
+
+## src/bksel.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `BattleForecast_OnEnd` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | the frame palette it restores is the window's own in the capture, so no mutation changes captured data |
+| `PutBattleForecastTilemaps` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | only a redraw of the contents puts the whole panel, and the capture never changes the target |
+| `UpdateBattleForecastContents` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | the capture's one call comes before the proc is ready, and the contents are redrawn at the start anyway |
 
 ## src/bmdifficulty.c (3)
 

@@ -10,6 +10,7 @@ import fe8.game.bm.BMapMain
 import fe8.game.bm.CallDelayedArg
 import fe8.game.bm.MovementMap
 import fe8.game.bm.PathArrow
+import fe8.game.bm.BattleForecast
 import fe8.game.bm.BattleGenerate
 import fe8.game.bm.BmBattle
 import fe8.game.bm.BmContainer
@@ -1104,6 +1105,10 @@ public class Fe8Boot(
     /** The player phase wiring (menu and battle forecast), set by the battle map wiring. */
     internal var playerWiring: PlayerPhaseWiring? = null
         private set
+
+    /** The battle forecast window of the player phase wiring (null before it ran). */
+    public val battleForecast: BattleForecast?
+        get() = playerWiring?.takeIf { it.isForecastReady }?.forecast
 
     /** The active unit (`gActiveUnit`), set by the battle map wiring. */
     private var activeUnit: ActiveUnit? = null

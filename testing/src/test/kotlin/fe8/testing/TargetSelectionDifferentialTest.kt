@@ -183,7 +183,7 @@ class TargetSelectionDifferentialTest {
             )
             forecast = BattleForecast(
                 engine, battle, gen, items, units, active, playSt, bm, map, hw, rom, text,
-                messages, iconTable, iconGfxTable, sprites, { clock },
+                messages, iconTable, iconGfxTable, sprites, { clock }, keys,
             )
             select = AttackMapSelect(
                 engine, targets, active, units, facing, camMove, forecast, hw,

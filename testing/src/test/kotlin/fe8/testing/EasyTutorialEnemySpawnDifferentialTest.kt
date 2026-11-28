@@ -14,6 +14,7 @@ import fe8.game.bm.PlaySt
 import fe8.game.bm.Reda
 import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
+import fe8.game.event.EventConst.EVC_ADVANCE_YIELD
 import fe8.game.event.EventConst.EVC_STOP_YIELD
 import fe8.game.event.EventEngine
 import fe8.game.event.EventEngineHooks
@@ -21,6 +22,7 @@ import fe8.game.event.EventEngineProc
 import fe8.game.event.EventHandler
 import fe8.game.event.EventMoveUnit
 import fe8.game.event.EventScrCore
+import fe8.game.event.EventScrHooks
 import fe8.game.flags.Fe8EventFlags
 import fe8.game.event.EventMoveUnitHost
 import fe8.game.event.EventState
@@ -50,7 +52,7 @@ import org.junit.jupiter.api.Timeout
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Timeout(180)
 class EasyTutorialEnemySpawnDifferentialTest {
-    private var shared: Rig? = null
+    private var shared: Pair<ByteArray, ReferenceData.Run>? = null
     private var loaded = false
 
     @AfterAll
@@ -66,7 +68,7 @@ class EasyTutorialEnemySpawnDifferentialTest {
             )
             val romFile = File(assets, "baserom.gba")
             shared = if (ref.available && romFile.isFile) {
-                Rig(romFile.readBytes(), ref.run(RUN))
+                romFile.readBytes() to ref.run(RUN)
             } else {
                 null
             }
@@ -74,12 +76,24 @@ class EasyTutorialEnemySpawnDifferentialTest {
         }
         val r = shared
         assumeTrue(r != null, "reference data or ROM not present")
-        return r!!
+        return Rig(r!!.first, r.second)
     }
 
     @Test
     fun `Turn1 spawn script loads and walks three red units f19901 to f19970`() {
         rig().verify()
+    }
+
+    @VerifiesPort("Event02_EvBitAndIdMod")
+    @Test
+    fun `End-turn events set and clear their flags per frame f19883 to f19892`() {
+        rig().verifyEndTurnFlags()
+    }
+
+    @VerifiesPort("Event02_EvBitAndIdMod")
+    @Test
+    fun `Turn1 message event flags 0x103 and 0x4F 0x50 per frame f20478 to f20725`() {
+        rig().verifyTurn1MessageFlags()
     }
 
     private class Rig(
@@ -90,6 +104,7 @@ class EasyTutorialEnemySpawnDifferentialTest {
         private val flagsWatch = run.watch("flags")
         private val rom = RomView.ofRom(romBytes)
         private val chapters = ChapterData(rom)
+        private val evGlobalsWatch = run.watch("evglobals")
         private val gbmst = run.watch("gbmst")
         private val gplayst = run.watch("gplayst")
         private val rngWatch = run.watch("rng")
@@ -198,7 +213,17 @@ class EasyTutorialEnemySpawnDifferentialTest {
                 muCtrl.startDefinedMove(id, list, count, flags)
             }
             for (code in 0..0xFF) engine.register(code, EventHandler { EVC_STOP_YIELD })
-            EventScrCore(state, mem, flags = flags, rng = rng, playSt = playSt, keys = keys)
+            EventScrCore(
+                state, mem, flags = flags, rng = rng, playSt = playSt, keys = keys,
+                hooks = object : EventScrHooks {
+                    override fun countRedUnits(): Int = table.countRedUnits()
+
+                    // The active-event registry is not ported to this window: the id is the
+                    // capture's (slot 2 after `EvtGetTriggeredEid`).
+                    override fun eventTriggerId(script: Int): Int =
+                        if (script == END_TURN_EVENT) END_TURN_EVENT_FLAG else 0
+                },
+            )
                 .registerAll(engine)
             unitState.registerOn(engine)
             loads.registerOn(engine)
@@ -256,6 +281,94 @@ class EasyTutorialEnemySpawnDifferentialTest {
                 assertEquals(hp, table.bytes[table.unitOffset(0x81 + i) + 0x13].toInt(), "hp $i")
             }
         }
+
+        /**
+         * Runs the Easy-tutorial box event's tail (f19884..f19888: its END pops the call stack,
+         * `SetFlag` 0xC9 and 0xB7, then `Event01_End` hands over to the cutscene tail script) and
+         * the end-turn event (queued, runs f19890: `ClearFlag` of the slot-2 flag 0x07), seeded
+         * from the capture at f19883. The capture's event flags are compared every frame.
+         */
+        fun verifyEndTurnFlags() {
+            val seed = 19883
+            val ew = run.region("r19880", "ewram")
+            procs.init()
+            mu.initMus()
+            bmSt.decode(gbmst.step(seed), 0)
+            playSt.decode(gplayst.step(seed), 0)
+            loadRng(seed)
+            flags.copyIn(flagsWatch.step(seed))
+            table.loadFrom(ew)
+            map.initChapterMap(playSt.chapterIndex)
+            // The box's text commands are stubs (their procs are PC-10e); the capture's box is
+            // gone at the seed, so each one passes in one frame.
+            for (code in intArrayOf(0x1A, 0x1B, 0x1D)) {
+                engine.register(code, EventHandler { EVC_ADVANCE_YIELD })
+            }
+            state.load(evGlobalsWatch.step(seed), 0)
+            val ev2 = checkNotNull(
+                ProcArrayDump.ofWatch(procsWatch, 19889, names).find("ProcScr_StdEventEngine"),
+            )
+            assertEquals(END_TURN_EVENT, ev2.u32(EV_START), "end-turn event")
+            // The queued end-turn event is the one the capture starts at f19889 (the port hands
+            // over by CallNextQueuedEvent when the box engine ends).
+            assertEquals(END_TURN_EVENT, state.callQueue[0], "queued end-turn event")
+            seedEventEngine(seed)
+            val unchanged = flagsWatch.step(seed)
+            var changed = 0
+            // The capture's new engine only finishes its set-up in f19889 (scr 3, nothing run
+            // yet) and runs its script in f19890; the port runs it in its f19889: from there on
+            // port frame f is compared with capture frame f + 1.
+            for (step in seed + 1..19891) {
+                procs.run(procs.root(3))
+                procs.run(procs.root(5))
+                val cap = if (step >= 19889) step + 1 else step
+                assertFlags(cap)
+                if (!flagsWatch.step(cap).contentEquals(unchanged)) changed++
+            }
+            // 0x52 and 0x64 set f19886, 0x106 cleared f19890 (raw bit numbers of the watch)
+            assertEquals(1, flagBit(flagsWatch.step(19886), 0x52))
+            assertEquals(1, flagBit(flagsWatch.step(19886), 0x64))
+            assertEquals(1, flagBit(flagsWatch.step(19889), 0x106))
+            assertEquals(0, flagBit(flagsWatch.step(19890), 0x106))
+            assertTrue(changed >= 4, "flags change in the window")
+        }
+
+        /**
+         * Seeds the box-less event engine at [seed] and compares the capture's flags every frame
+         * up to [last]: the Turn1 message event clears chapter flag 4 (raw 0x103) f20479 and
+         * sets 0xB4/0xB5 (raw 0x4F/0x50) f20725; no other flag changes in f20479..20731 (the
+         * capture compare covers every flag bit).
+         */
+        fun verifyTurn1MessageFlags() {
+            for (code in intArrayOf(0x1A, 0x1B, 0x1D)) {
+                engine.register(code, EventHandler { EVC_ADVANCE_YIELD })
+            }
+            for ((seed, last) in listOf(20478 to 20480, 20723 to 20727)) {
+                procs.init()
+                playSt.decode(gplayst.step(seed), 0)
+                bmSt.decode(gbmst.step(seed), 0)
+                flags.copyIn(flagsWatch.step(seed))
+                state.load(evGlobalsWatch.step(seed), 0)
+                val proc = seedEventEngine(seed)
+                for (step in seed + 1..last) {
+                    procs.run(procs.root(3))
+                    procs.run(procs.root(5))
+                    assertFlags(step)
+                    val dump = dumpEventEngine(step)
+                    if (step < last - 1) {
+                        assertEquals(dump.u32(EV_CURRENT), proc.pEventCurrent, "cur f$step")
+                    }
+                }
+            }
+            assertEquals(1, flagBit(flagsWatch.step(20478), 0x103))
+            assertEquals(0, flagBit(flagsWatch.step(20479), 0x103))
+            assertEquals(0, flagBit(flagsWatch.step(20724), 0x4F))
+            assertEquals(1, flagBit(flagsWatch.step(20725), 0x4F))
+            assertEquals(1, flagBit(flagsWatch.step(20725), 0x50))
+        }
+
+        private fun flagBit(bits: ByteArray, raw: Int): Int =
+            (bits[raw shr 3].toInt() shr (raw and 7)) and 1
 
         private fun assertFlags(cap: Int) {
             val want = flagsWatch.step(cap)
@@ -444,6 +557,8 @@ class EasyTutorialEnemySpawnDifferentialTest {
         const val PLAY_FLAG_HARD = 1 shl 6
         const val PROC_SCR_MUCTRL = 0x089A2DB0
         const val LAG = 2
+        const val END_TURN_EVENT = 0x089EF0D8
+        const val END_TURN_EVENT_FLAG = 7
         const val MU_STATE_INACTIVE_CAP = 1
         const val MU_UNIT = 0x2C
         const val MU_CAM = 0x3E

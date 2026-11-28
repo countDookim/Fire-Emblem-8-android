@@ -45,9 +45,6 @@ class EasyTutorialBoxDialogueDifferentialTest {
     private fun u16(b: ByteArray, o: Int) =
         (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
 
-    // Box 2 (f18561..18743) is not compared: the capture draws the first A-press page
-    // (f18569) over two frames, the port in one (PC-10e; CI fails on skipped tests).
-
     @Test
     @VerifiesPort(
         "gProcScr_BoxDialogue", "ProcScr_MergeBoxDialogue", "ProcScr_BoxDialogueDrawTextExt",
@@ -55,6 +52,13 @@ class EasyTutorialBoxDialogueDifferentialTest {
         "sub_808B844", "sub_808A87C", "sub_808A8AC", "sub_808A9F0",
     )
     fun `third box proc tree matches f18810 to f18983`() = window(18810, 18983, 18811)
+
+    @Test
+    @VerifiesPort(
+        "gProcScr_BoxDialogue", "ProcScr_MergeBoxDialogue", "ProcScr_BoxDialogueDrawTextExt",
+        "ProcScr_TalkBoxIdle", "BoxDialogueInterpreter_Main",
+    )
+    fun `second box proc tree matches f18561 to f18743`() = window(18561, 18743, 18562)
 
     @Test
     @VerifiesPort(
@@ -149,6 +153,7 @@ class EasyTutorialBoxDialogueDifferentialTest {
                 val s = mergeProc.state as HelpBoxState
                 assertEquals(merge.u16(0x48).toShort().toInt(), s.timer, "merge timer at f$step")
             }
+            var skipRest = false
             val textRow = d.find("ProcScr_BoxDialogueDrawTextExt")
             val textProc = engine.find(box.drawTextExtScript)
             assertEquals(textRow != null, textProc != null, "text proc at f$step")
@@ -158,23 +163,40 @@ class EasyTutorialBoxDialogueDifferentialTest {
                 }
                 val t = textProc.state as BoxDialogueTextState
                 assertEquals(textRow.scrCur, textProc.scrCur, "text script position at f$step")
-                assertEquals(textRow.u32(0x2C) - textBase, t.strPos, "str at f$step")
-                assertEquals(textRow.u16(0x48), t.currentLine, "current_line at f$step")
-                assertEquals(textRow.u16(0x4E), t.unk4e, "unk_4e at f$step")
-                // x_offset is stale memory on the first frame (the state is not cleared at start).
-                if (textFrames > 0 && step != LAG_FRAME) {
-                    assertEquals(textRow.u8(0x52), t.xOffset, "x_offset at f$step")
+                if (step == MID_CALL_FRAME) {
+                    // The snapshot caught the A-press call (up to 0x80 characters) half done:
+                    // the drawn prefix of the page is shorter than what the finished call drew.
+                    val cap = textRow.u32(0x2C) - textBase
+                    assertTrue(cap in 1 until t.strPos, "mid-call str $cap < ${t.strPos} at f$step")
+                    assertEquals(textRow.u16(0x4E), t.unk4e, "unk_4e at f$step")
+                    textFrames++
+                    skipRest = true
                 }
-                textFrames++
+                if (!skipRest) assertEquals(textRow.u32(0x2C) - textBase, t.strPos, "str at f$step")
+                if (!skipRest) {
+                    assertEquals(textRow.u16(0x48), t.currentLine, "current_line at f$step")
+                    assertEquals(textRow.u16(0x4E), t.unk4e, "unk_4e at f$step")
+                    // x_offset is stale memory on the first frame (the state is not cleared at
+                    // start).
+                    if (textFrames > 0 && step != LAG_FRAME) {
+                        assertEquals(textRow.u8(0x52), t.xOffset, "x_offset at f$step")
+                    }
+                    textFrames++
+                }
             }
             val wait = d.find("gProcScr_TalkWaitForInput")
             val waitProc = engine.find(waitScript)
-            assertEquals(wait != null, waitProc != null, "page wait proc at f$step")
-            if (wait != null && waitProc != null) {
+            if (step != MID_CALL_FRAME) {
+                assertEquals(wait != null, waitProc != null, "page wait proc at f$step")
+            }
+            if (step == MID_CALL_FRAME) {
+                // The [A] that starts the wait is the end of the call the snapshot caught half done.
+                assertEquals(null, wait, "capture has no page wait yet at f$step")
+            } else if (wait != null && waitProc != null) {
                 assertEquals(wait.scrCur, waitProc.scrCur, "page wait position at f$step")
                 waitFrames++
             }
-            if (step != LAG_FRAME) {
+            if (step != LAG_FRAME && step != MID_CALL_FRAME) {
                 layers.clear()
                 engine.run(engine.root(3))
             }
@@ -189,6 +211,17 @@ class EasyTutorialBoxDialogueDifferentialTest {
 
         /** The capture's main loop skipped a frame here (the proc tree did not run). */
         const val LAG_FRAME = 18240
+
+        /**
+         * The A press at f18569 starts a call of `BoxDialogueInterpreter_Main` with the 0x80
+         * character budget. The capture's f18570 snapshot is in the middle of it (the drawing
+         * overran the vblank: `gGameClock` still ticks once per vblank, f18569..18573 =
+         * 17439..17443, and the page is 38 chars in at f18570 and 52 at f18571, which the
+         * budget-1 slow path of f18571 (`unk_4e` = 1, no keys, `unk_4a` timer) cannot draw).
+         * The call ended during the next vblank period, so that frame's logic run is missing: the
+         * merge timer at f18571 is one lower than after two runs. The port runs once for both.
+         */
+        const val MID_CALL_FRAME = 18570
         const val CONF = 0x0203E7E8 - 0x02000000
     }
 }

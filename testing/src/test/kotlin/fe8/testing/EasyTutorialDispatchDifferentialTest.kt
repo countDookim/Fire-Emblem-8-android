@@ -97,6 +97,13 @@ class EasyTutorialDispatchDifferentialTest {
     }
 
     @Test
+    @VerifiesPort("Event0B_EnqueueCall", "EnqueueTutEvent")
+    fun `Event0B_EnqueueCall enqueues Tutorial4 ONSELECT at f22137`() {
+        // f22137: the turn event's EvtEnqueueConditionalTutCall (queue 0/0 -> ONSELECT(2)/5).
+        rig().assertEnqueueStep(22136, 22137)
+    }
+
+    @Test
     @VerifiesPort("RunTutorialEvent", "TryCallSelectEvents")
     fun `phase start keeps ONSELECT queued and unit select dispatches Tutorial0 at f18541`() {
         val r = rig()

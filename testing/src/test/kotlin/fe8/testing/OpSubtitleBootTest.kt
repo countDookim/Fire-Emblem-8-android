@@ -77,11 +77,18 @@ class OpSubtitleBootTest {
                 when {
                     frame - titleAt in 0..3 -> 0x8L
                     frame == press -> 0x8L
+                    // The real title menu: A picks New Game and its prompts until the monologue.
+                    frame - titleAt > 4 && frame % 20 in 5..8 && !subtitleLive() -> 0x1L
                     else -> 0L
                 }
             }
         }
         val boot get() = game.boot!!
+        private var subtitleSeen = false
+        private fun subtitleLive(): Boolean {
+            if (!subtitleSeen) subtitleSeen = subtitle() != null
+            return subtitleSeen
+        }
         fun tick() {
             if (titleAt == Int.MAX_VALUE &&
                 boot.engine.procs.any { it.script?.name == "gProcScr_DrawTitleSprites" }

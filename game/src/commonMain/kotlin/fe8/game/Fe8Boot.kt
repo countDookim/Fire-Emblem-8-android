@@ -57,6 +57,7 @@ import fe8.game.bm.SelectTargets
 import fe8.game.bm.UnitDeployState
 import fe8.game.bm.UnitDeployStateHooks
 import fe8.game.bm.UnitLoader
+import fe8.game.ui.BoxDialogue
 import fe8.game.ui.GotItemPopup
 import fe8.game.ui.UiFrame
 import fe8.game.ui.ItemIcon
@@ -983,8 +984,26 @@ public class Fe8Boot(
             suspendMapDisp = { if (rom.isWholeRom) battleMap.bMapDispSuspend() },
             resumeMapDisp = { if (rom.isWholeRom) battleMap.bMapDispResume() },
             changeSpritePalette = { unitSprites?.changeUnitSpritePalette(it) },
+            boxDialogue = boxDialogue(scene),
         )
     }
+
+    /**
+     * The ported box dialogue (`sub_808AA04`, `GetBoxDialogueSize`) over the [scene] text system.
+     * The ported callees are wired; the box graphics decompression and palette, the control-code
+     * prefix substitution and the sounds stay the no-op defaults of [BoxDialogue.Hooks].
+     */
+    private fun boxDialogue(scene: TalkScene): BoxDialogue =
+        BoxDialogue(
+            engine, scene.text, scene.messages, newKeys = { keys.newKeys }, view = rom,
+            layers = loop.sprites,
+        ).also { box ->
+            box.hooks.clearAllTalkFlags = scene.talk::clearAllTalkFlags
+            box.hooks.startTalkWaitForInput = { p, x, y -> scene.talk.startTalkWaitForInput(p, x, y) }
+            box.hooks.textDisplaySpeed = { control.playSt.textSpeed }
+            box.hooks.gameClock = { clock.frames.toInt() }
+            box.hooks.playSound = { control.sound.playSoundEffect(it) }
+        }
 
     /**
      * Restores the available parts of `RefreshBMapGraphics` after a conversation background.

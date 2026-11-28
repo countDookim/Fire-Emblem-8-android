@@ -20,6 +20,11 @@ Items are removed from this page once the owner confirms them; the history is in
 
 Everything up to 0.1.868 was tested earlier; new items carry their build.
 
+- **Title menu (PC-11b2, build pending CI):** press START on the title. The real save menu opens
+  (New Game / Resume / Restart as the save allows). With no save pick New Game with A: the
+  opening monologue then the Prologue plays as before. With a suspend save, Resume continues it.
+  Known limits: the box dialogue's [Yes]/[No] boxes, control-code prefixes, box graphics and
+  sounds are stand-ins; New Game always uses Normal difficulty.
 
 
 ## 2. Open bugs (no fix yet)
@@ -39,8 +44,6 @@ Retest these only when a change to them is announced.
   - There is no help box, inventory or status screen (M6-E, M6-F, M6-H).
   - Selecting an enemy shows no range (PP-enemy); the info windows closing then is normal.
 - **Chapter 1 and saves:**
-  - Power-on always resumes the suspend save: the real title menu is built but kept off in the app
-    until New Game through it works (PC-11b2).
   - Selecting a unit and opening its menu crashes ("EvCheck05_LOCA is not ported yet", EP-35b).
   - Battle animations in the Chapter 1 opening are skipped (M6-G).
 - **Map events and rules:** no staff range, traps, after-move or tutorial events, dialogue during the

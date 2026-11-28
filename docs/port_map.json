@@ -3471,6 +3471,8 @@
       "status": "verified",
       "tests": [
         "fe8.testing.CutsceneStartSkipDifferentialTest#skipping ends the talk tree and the faces when the engine reaches the text wait",
+        "fe8.testing.EasyTutorialEnemySpawnDifferentialTest#End-turn events set and clear their flags per frame f19883 to f19892",
+        "fe8.testing.EasyTutorialEnemySpawnDifferentialTest#Turn1 message event flags 0x103 and 0x4F 0x50 per frame f20478 to f20725",
         "fe8.testing.EventVmDifferentialTest#Event02 EvBitAndIdMod"
       ]
     },
@@ -11722,7 +11724,7 @@
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },

@@ -15360,7 +15360,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture"
+        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture",
+        "fe8.testing.EasyTutorialBoxDialogueDifferentialTest#third box proc tree matches f18810 to f18983"
       ]
     },
     "sub_808A8E4": {
@@ -15380,7 +15381,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture"
+        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture",
+        "fe8.testing.EasyTutorialBoxDialogueDifferentialTest#third box proc tree matches f18810 to f18983"
       ]
     },
     "sub_808AA04": {
@@ -15400,7 +15402,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture"
+        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture",
+        "fe8.testing.EasyTutorialBoxDialogueDifferentialTest#third box proc tree matches f18810 to f18983"
       ]
     },
     "sub_808B844": {
@@ -15410,7 +15413,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture"
+        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture",
+        "fe8.testing.EasyTutorialBoxDialogueDifferentialTest#third box proc tree matches f18810 to f18983"
       ]
     },
     "sub_808B904": {
@@ -15420,7 +15424,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/BoxDialogue.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture"
+        "fe8.testing.BoxDialogueMergeDifferentialTest#box and merge procs run f18230 to f18385 like the capture",
+        "fe8.testing.EasyTutorialBoxDialogueDifferentialTest#third box proc tree matches f18810 to f18983"
       ]
     },
     "sub_808C234": {

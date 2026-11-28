@@ -67,7 +67,15 @@ class EasyTutorialBoxDialogueDifferentialTest {
     )
     fun `first box proc tree matches f18230 to f18384`() = window(18230, 18384, 18240)
 
-    private fun window(first: Int, last: Int, confDump: Int) {
+    internal fun window(
+        firstFrame: Int,
+        last: Int,
+        confDump: Int,
+        lagFrames: Set<Int> = setOf(LAG_FRAME),
+        midCallFrames: Set<Int> = setOf(MID_CALL_FRAME),
+        scriptBehindFrames: Set<Int> = emptySet(),
+        scanBack: Int = 0,
+    ) {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val names = ProcArrayDump.romNames()
         assumeTrue(names.isNotEmpty(), "decomp nm file not present")
@@ -80,6 +88,11 @@ class EasyTutorialBoxDialogueDifferentialTest {
         val confName = "r$confDump"
         assumeTrue(run.dumps.containsKey(confName), "no $confName dump")
         val watch = run.watch("procs")
+        // A box that started up to `scanBack` frames before the window is followed from its start.
+        val first = (firstFrame - scanBack..last).first {
+            scanBack == 0 ||
+                ProcArrayDump.ofWatch(watch, it, names).find("gProcScr_BoxDialogue") != null
+        }
         val rom = RomView.ofRom(romFile.readBytes()).wholeRomBytes()
         val engine = ProcEngine()
         val textSystem = TextSystem(rom, TextVram(), Fe8Text.CONFIG)
@@ -162,8 +175,10 @@ class EasyTutorialBoxDialogueDifferentialTest {
                     textBase = textRow.u32(0x2C)
                 }
                 val t = textProc.state as BoxDialogueTextState
-                assertEquals(textRow.scrCur, textProc.scrCur, "text script position at f$step")
-                if (step == MID_CALL_FRAME) {
+                if (step !in scriptBehindFrames) {
+                    assertEquals(textRow.scrCur, textProc.scrCur, "text script position at f$step")
+                }
+                if (step in midCallFrames) {
                     // The snapshot caught the A-press call (up to 0x80 characters) half done:
                     // the drawn prefix of the page is shorter than what the finished call drew.
                     val cap = textRow.u32(0x2C) - textBase
@@ -178,7 +193,7 @@ class EasyTutorialBoxDialogueDifferentialTest {
                     assertEquals(textRow.u16(0x4E), t.unk4e, "unk_4e at f$step")
                     // x_offset is stale memory on the first frame (the state is not cleared at
                     // start).
-                    if (textFrames > 0 && step != LAG_FRAME) {
+                    if (textFrames > 0 && step !in lagFrames) {
                         assertEquals(textRow.u8(0x52), t.xOffset, "x_offset at f$step")
                     }
                     textFrames++
@@ -186,17 +201,17 @@ class EasyTutorialBoxDialogueDifferentialTest {
             }
             val wait = d.find("gProcScr_TalkWaitForInput")
             val waitProc = engine.find(waitScript)
-            if (step != MID_CALL_FRAME) {
+            if (step !in midCallFrames) {
                 assertEquals(wait != null, waitProc != null, "page wait proc at f$step")
             }
-            if (step == MID_CALL_FRAME) {
+            if (step in midCallFrames) {
                 // The [A] that starts the wait is the end of the call the snapshot caught half done.
                 assertEquals(null, wait, "capture has no page wait yet at f$step")
             } else if (wait != null && waitProc != null) {
                 assertEquals(wait.scrCur, waitProc.scrCur, "page wait position at f$step")
                 waitFrames++
             }
-            if (step != LAG_FRAME && step != MID_CALL_FRAME) {
+            if (step !in lagFrames && step !in midCallFrames) {
                 layers.clear()
                 engine.run(engine.root(3))
             }

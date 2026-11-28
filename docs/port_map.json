@@ -11724,7 +11724,7 @@
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
       "status": "implemented",
       "tests": []
     },
